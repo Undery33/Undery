@@ -58,6 +58,8 @@ ESLint는 `eslint-config-next` 플러그인의 현재 peer dependency 호환성�
 
 ## 저장소 CI
 
+개발 의존성의 `@typescript-eslint/typescript-estree`가 사용하는 minimatch는 glob 패턴 처리 DoS 취약점(GHSA-g3hv-75wg-m249)을 피하도록 `11.0.5`로 한정 override했습니다. 상위 패키지가 수정 버전을 직접 채택하면 override 제거 여부를 검토합니다. 의존성 변경 후 전체 검사·빌드와 `npm audit`를 다시 실행합니다.
+
 `.github/workflows/ci.yml`에는 `main`·`feature/**` push, pull request와 수동 실행을 위한 GitHub Actions 검사가 정의되어 있습니다. `npm ci` → `check` → `build` 후 CI 안에서 프로덕션 서버를 띄워 smoke test를 실행합니다. 배포 단계는 없으며 Jenkins 설정도 아닙니다. 워크플로 파일의 존재는 원격 CI가 실제 통과했다는 뜻이 아니므로 해당 커밋의 실행 결과를 별도로 확인합니다.
 
 ## 배포 전에 할 일: 아직 미수행
