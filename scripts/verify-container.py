@@ -30,7 +30,11 @@ class Resources(HTMLParser):
 
 
 def verify(base, expected):
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
     def read(path, method='GET'):
         request = urllib.request.Request(urllib.parse.urljoin(base+'/', path), method=method)
@@ -72,6 +76,12 @@ def verify(base, expected):
             if resource.endswith('.js'):
                 assert 'javascript' in asset_headers.get('Content-Type', ''), resource
         print('PASS GUI, dialogs and all assets: '+path)
+    for path, location in (('/vrchat/', '/vrchat'),
+                           ('/vrchat/?view=gallery&from=qa', '/vrchat?view=gallery&from=qa')):
+        status, headers, _ = read(path)
+        assert status == 308, path
+        assert headers.get('Location') == location, 'Redirect must preserve the public origin and query'
+    print('PASS relative VRChat redirects and preserved query parameters')
     for path in ('/missing-page', '/.env', '/.git/config'):
         assert read(path)[0] == 404, path
     assert read('/', method='POST')[0] in (403, 405), 'Writes must be rejected'
