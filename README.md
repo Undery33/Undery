@@ -13,4 +13,6 @@ Node.js 18 이상에서 `npm start`를 실행하고 `http://127.0.0.1:4173/vrcha
 
 ## 배포
 
-Jenkins `Undery_Feature`에서 `FEATURE_BRANCH=feature/vrchat-web-gui`를 선택합니다. 배포 설정과 Dockerfile은 `feature/site-foundation`에서 읽고 이 브랜치의 `dist/`를 VRChat 정적 자원으로 패키징합니다. `DEPLOY=true`는 BuildKit 이미지 검사 후 GHCR 게시와 운영 배포를 수행합니다. `main` 병합은 필요하지 않습니다.
+이 브랜치에 새 커밋을 push하면 Jenkins `Undery_Feature`가 약 2분 SCM polling으로 감지합니다. 직전 성공 빌드와 GUI 커밋이 달라지면 BuildKit 이미지 검사 → GHCR 게시 → digest 기반 운영 배포를 자동 실행합니다. 테스트 실패 시 기존 운영 화면을 유지하며 `main` 병합은 필요하지 않습니다.
+
+배포 설정과 Dockerfile은 `feature/site-foundation`에서 읽고 이 브랜치의 `dist/`를 `/vrchat` 정적 자원으로 패키징합니다. 인프라만 변경되면 검사만 수행합니다. 수동 재배포는 `FEATURE_BRANCH=feature/vrchat-web-gui`, `DEPLOY=true`로 실행합니다. 수동 `DEPLOY=false`와 GUI 비교 이력이 없는 첫 빌드는 검사 전용입니다. 상세 설정은 [Jenkins 운영 문서](https://github.com/Undery33/Undery/blob/feature/site-foundation/docs/jenkins.md)를 참고합니다.
