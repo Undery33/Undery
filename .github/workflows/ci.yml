@@ -36,5 +36,5 @@ jobs:
         run: npm run test:integration
       - name: Package feature runtime
         if: startsWith(env.SOURCE_BRANCH, 'feature/')
-        run: npm run release:package
+        run: npm run release:package && npm run test:release
 

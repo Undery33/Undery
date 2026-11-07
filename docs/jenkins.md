@@ -26,7 +26,7 @@
 2. `checkout scm`으로 Jenkinsfile을 읽은 리비전을 사용합니다. 저장소 URL과 실제 브랜치를 검증하고 전체 커밋 SHA를 기록합니다.
 3. `npm ci` → `npm run check` → `npm run test:deploy` → `npm run build`를 실행합니다.
 4. 소스 디렉터리와 분리한 `.next/standalone`에서 임시 서버를 실행합니다. Markdown 검색·상세·CSS·관리자 503·포트폴리오 noindex·빌드 식별자를 검사합니다.
-5. 해당 빌드의 산출물과 SHA-256을 보관하고 `stash`로 배포 에이전트에 전달합니다. 배포 단계는 소스를 다시 checkout하거나 빌드하지 않습니다.
+5. 산출물을 압축한 뒤 배포 도우미와 같은 추출기로 임시 디렉터리에 풀고 HTTP 검사를 다시 실행합니다(`npm run test:release`). 검증한 압축 파일과 SHA-256을 보관하고 `stash`로 배포 에이전트에 전달합니다. 배포 단계는 소스를 다시 checkout하거나 빌드하지 않습니다.
 6. `DEPLOY=true`일 때만 설치된 root 소유 도우미를 호출합니다. 커밋·브랜치·저장소와 압축 파일 경로를 검증한 뒤 릴리스 링크를 교체합니다.
 7. `undery-web.service`를 재시작합니다. `/api/health`가 선택한 커밋·브랜치를 반환해야 성공입니다. 재시작 또는 상태 확인 실패 시 이전 링크로 되돌리고 서비스를 재시작합니다.
 

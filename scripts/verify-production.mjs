@@ -12,7 +12,7 @@ const port = portProbe.address().port;
 await new Promise((resolve, reject) => portProbe.close((error) => error ? reject(error) : resolve()));
 
 const baseUrl = `http://127.0.0.1:${port}`;
-const cwd = path.resolve(".next/standalone");
+const cwd = path.resolve(process.env.RUNTIME_DIRECTORY || ".next/standalone");
 const server = spawn(process.execPath, [path.join(cwd, "server.js")], {
   cwd,
   stdio: ["ignore", "pipe", "pipe"],

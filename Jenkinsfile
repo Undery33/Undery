@@ -52,7 +52,7 @@ python3 --version
         stage('Verify standalone HTTP') { steps { sh 'npm run test:integration' } }
         stage('Archive verified release') {
           steps {
-            sh 'npm run release:package'
+            sh 'npm run release:package && npm run test:release'
             archiveArtifacts artifacts: 'artifacts/*', fingerprint: true
             stash name: 'verified-release', includes: 'artifacts/*'
           }

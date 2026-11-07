@@ -97,11 +97,16 @@ def restart():
 
 
 def healthy(commit, branch):
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     for _ in range(40):
         try:
             with opener.open('http://127.0.0.1:3000/api/health', timeout=2) as response:
-                data = json.load(response)
+                body = response.read(65537)
+                require(len(body) <= 65536, 'Oversized health response')
+                data = json.loads(body)
             if data == {'status': 'ok', 'repository': 'Undery33/Undery', 'commit': commit, 'branch': branch}:
                 return True
         except (OSError, ValueError):

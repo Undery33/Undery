@@ -16,6 +16,7 @@
     "test:smoke": "node scripts/smoke-test.mjs",
     "test:integration": "node scripts/verify-production.mjs",
     "release:package": "python3 scripts/package-release.py",
+    "test:release": "python3 scripts/verify-release.py",
     "test:deploy": "python3 -m unittest discover -s tests/deploy -v"
   },
   "dependencies": {
