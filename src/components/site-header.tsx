@@ -7,9 +7,12 @@ export function SiteHeader() {
       <div className="shell header-inner">
         <Link className="wordmark" href="/" aria-label="Undery 홈">Undery<span aria-hidden="true">.</span></Link>
         <nav aria-label="주 메뉴">
-          {publicSections.map((section) => <Link key={section.href} href={section.href}>{section.label}</Link>)}
+          {publicSections.map((section) => section.href === "/vrchat"
+            ? <a key={section.href} href={section.href}>{section.label}</a>
+            : <Link key={section.href} href={section.href}>{section.label}</Link>)}
         </nav>
       </div>
     </header>
   );
 }
+

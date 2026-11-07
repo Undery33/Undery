@@ -119,7 +119,7 @@ class DockerHost:
             '--pids-limit', '128', '--memory', '256m', '--cpus', '1',
             '--restart', 'no' if candidate else 'unless-stopped',
             '--publish', '127.0.0.1::8080' if candidate else '127.0.0.1:3000:8080',
-            '--entrypoint', '/usr/sbin/nginx', image, '-g', 'daemon off;')
+            '--entrypoint', '/usr/local/bin/node', image, '/opt/undery/container-entrypoint.mjs')
 
     def candidate_url(self, name):
         info = self.container(name)

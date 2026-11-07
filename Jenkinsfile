@@ -63,7 +63,13 @@ python3 infrastructure/scripts/prepare-container-context.py --source web-source 
           }
         }
         stage('BuildKit build and container HTTP checks') {
-          steps { sh 'sh infrastructure/scripts/build-container.sh container-context artifacts' }
+          steps {
+            sh '''#!/bin/sh
+set -eu
+sh infrastructure/scripts/build-container.sh container-context artifacts
+sha256sum infrastructure/deploy/undery-deploy-container.py | cut -d ' ' -f 1 > artifacts/deploy-helper-sha256.txt
+'''
+          }
         }
         stage('Publish tested image to GHCR') {
           when { expression { params.DEPLOY } }
@@ -86,6 +92,12 @@ python3 infrastructure/scripts/prepare-container-context.py --source web-source 
         sh '''#!/bin/sh
 set -eu
 image=$(cat artifacts/image-digest.txt)
+expected_helper=$(cat artifacts/deploy-helper-sha256.txt)
+actual_helper=$(sha256sum /usr/local/sbin/undery-deploy-container | cut -d ' ' -f 1)
+if [ "$actual_helper" != "$expected_helper" ]; then
+  echo '운영 helper가 현재 배포 설정과 다릅니다. 관리자가 deploy/install-container-helper.sh를 설치한 뒤 다시 실행해야 합니다.' >&2
+  exit 1
+fi
 sudo -n /usr/local/sbin/undery-deploy-container "$BUILD_COMMIT" "$SOURCE_BRANCH" "$PIPELINE_COMMIT" "$image"
 '''
       }

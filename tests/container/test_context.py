@@ -46,8 +46,14 @@ class ContextTests(unittest.TestCase):
         (self.source / 'dist/assets/avatar.png').write_bytes(b'\x89PNG\r\n\x1a\nfixture')
         self.sha = commit(self.source)
         (self.infra / 'deploy').mkdir()
-        for name in ('Dockerfile', '.dockerignore', 'deploy/container-nginx.conf'):
+        for name in ('Dockerfile', '.dockerignore', 'deploy/container-nginx.conf',
+                     'deploy/container-entrypoint.mjs'):
             shutil.copyfile(ROOT / name, self.infra / name)
+        for name in (*CONTEXT.MAIN_FILES, *CONTEXT.MAIN_REQUIRED_SOURCE,
+                     'content/computer/example.md'):
+            target = self.infra / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text('tracked main input: ' + name)
         self.pipeline_sha = commit(self.infra)
 
     def prepare(self, **overrides):
@@ -74,6 +80,74 @@ class ContextTests(unittest.TestCase):
         self.assertFalse((output / '.git').exists())
         self.assertEqual((output / 'nginx.conf').read_bytes(),
                          (self.infra / 'deploy/container-nginx.conf').read_bytes())
+        self.assertEqual((output / 'container-entrypoint.mjs').read_bytes(),
+                         (self.infra / 'deploy/container-entrypoint.mjs').read_bytes())
+        for name in (*CONTEXT.MAIN_FILES, *CONTEXT.MAIN_REQUIRED_SOURCE,
+                     'content/computer/example.md'):
+            self.assertEqual((output / 'main' / name).read_bytes(),
+                             (self.infra / name).read_bytes())
+
+    def test_gui_prefix_references_map_to_dist_and_keep_query(self):
+        (self.source / 'dist/index.html').write_text(
+            '<link href="/vrchat/styles.css?v=2" rel="stylesheet">'
+            '<script src="/vrchat/app.js"></script>'
+            '<img src="/vrchat/assets/avatar.png">')
+        (self.source / 'dist/styles.css').write_text('body {background: url("/vrchat/assets/avatar.png")}')
+        self.sha = commit(self.source)
+        self.prepare()
+        self.assertEqual((self.root / 'context/dist/index.html').read_bytes(),
+                         (self.source / 'dist/index.html').read_bytes())
+
+    def test_main_context_excludes_unapproved_files_even_when_tracked(self):
+        for name in ('.env', 'node_modules/secret.txt', 'scripts/unapproved.mjs',
+                     'tests/private.txt', 'build-info.json', 'src/untracked.ts'):
+            target = self.infra / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text('must not enter the image context')
+        git(self.infra, 'add', '.env', 'node_modules', 'scripts/unapproved.mjs',
+            'tests/private.txt', 'build-info.json')
+        git(self.infra, '-c', 'user.name=Context Test', '-c', 'user.email=context@example.invalid',
+            'commit', '--quiet', '-m', 'unapproved files')
+        self.pipeline_sha = git(self.infra, 'rev-parse', 'HEAD')
+        self.prepare()
+        output = self.root / 'context/main'
+        for name in ('.env', 'node_modules', 'scripts/unapproved.mjs', 'tests',
+                     'build-info.json', 'src/untracked.ts'):
+            self.assertFalse((output / name).exists(), name)
+
+    def test_changed_main_source_and_entrypoint_are_rejected(self):
+        for name in ('src/app/(public)/page.tsx', 'deploy/container-entrypoint.mjs'):
+            with self.subTest(name=name):
+                target = self.infra / name
+                original = target.read_bytes()
+                target.write_text('changed after checkout')
+                with self.assertRaisesRegex(ValueError, 'differs from selected commit'):
+                    self.prepare()
+                target.write_bytes(original)
+
+    def test_missing_required_main_inputs_are_rejected(self):
+        for name in ('package-lock.json', 'src/app/(public)/page.tsx'):
+            with self.subTest(name=name):
+                target = self.infra / name
+                original = target.read_bytes()
+                target.unlink()
+                self.pipeline_sha = commit(self.infra)
+                with self.assertRaisesRegex(ValueError, 'Missing tracked main'):
+                    self.prepare()
+                target.write_bytes(original)
+                self.pipeline_sha = commit(self.infra)
+
+    def test_main_source_symlinks_and_hidden_files_are_rejected(self):
+        link = self.infra / 'src/link.ts'
+        link.symlink_to('app/layout.tsx')
+        self.pipeline_sha = commit(self.infra)
+        with self.assertRaisesRegex(ValueError, 'Unsafe tracked type'):
+            self.prepare()
+        link.unlink()
+        (self.infra / 'src/.env').write_text('SECRET=value')
+        self.pipeline_sha = commit(self.infra)
+        with self.assertRaisesRegex(ValueError, 'hidden tracked path'):
+            self.prepare()
 
     def test_main_invalid_sha_and_wrong_checkout_are_rejected(self):
         for overrides in ({'branch': 'main'}, {'branch': 'feature/../main'},
@@ -112,7 +186,11 @@ class ContextTests(unittest.TestCase):
 
     def test_missing_outside_hidden_and_external_html_references_are_rejected(self):
         for reference in ('./missing.png', '../outside.png', './.env',
-                          './%2e%2e/outside.png', 'https://outside.invalid/image.png', '//outside.invalid/x'):
+                          './%2e%2e/outside.png', 'https://outside.invalid/image.png', '//outside.invalid/x',
+                          '/assets/avatar.png', '/vrchat-other/assets/avatar.png',
+                          '/vrchat/../outside.png', '/vrchat/%2e%2e/outside.png',
+                          '/vrchat/%252e%252e/outside.png', '/vrchat/.env', '/vrchat//outside.invalid/x',
+                          '/vrchat/%5coutside.png', '/vrchat/%0aoutside.png'):
             with self.subTest(reference=reference):
                 (self.source / 'dist/index.html').write_text(f'<img src="{reference}">')
                 self.sha = commit(self.source)

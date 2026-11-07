@@ -136,8 +136,10 @@ class ContainerDeploymentTests(unittest.TestCase):
                                 ('--security-opt', 'no-new-privileges'), ('--pids-limit', '128'),
                                 ('--memory', '256m'), ('--cpus', '1'),
                                 ('--restart', 'unless-stopped'),
+                                ('--entrypoint', '/usr/local/bin/node'),
                                 ('--publish', '127.0.0.1:3000:8080')]:
                 self.assertEqual(args[args.index(flag) + 1], value)
+            self.assertEqual(args[-2:], (IMAGE, '/opt/undery/container-entrypoint.mjs'))
             self.assertIn('--read-only', args)
             self.assertIn('/tmp:rw,noexec,nosuid,size=64m,mode=1777', args)
             self.assertNotIn('--privileged', args)
@@ -148,6 +150,8 @@ class ContainerDeploymentTests(unittest.TestCase):
             args = docker.call_args.args
             self.assertEqual(args[args.index('--publish') + 1], '127.0.0.1::8080')
             self.assertEqual(args[args.index('--restart') + 1], 'no')
+            self.assertEqual(args[args.index('--entrypoint') + 1], '/usr/local/bin/node')
+            self.assertEqual(args[-2:], (IMAGE, '/opt/undery/container-entrypoint.mjs'))
 
     def test_candidate_failure_preserves_running_legacy_service(self):
         host = FakeHost()

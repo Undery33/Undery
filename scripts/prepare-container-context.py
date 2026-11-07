@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build an isolated Docker context from verified, tracked static GUI files."""
+"""Build an isolated context from verified main-app and static-GUI checkouts."""
 import argparse
 import hashlib
 from html.parser import HTMLParser
@@ -16,6 +16,11 @@ from urllib.parse import unquote, urlsplit
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MAX_TOTAL_BYTES = 128 * 1024 * 1024
 MAX_FILES = 2000
+MAIN_FILES = ('package.json', 'package-lock.json', 'next.config.ts', 'tsconfig.json',
+              'next-env.d.ts', 'scripts/build-info.mjs', 'scripts/prepare-standalone.mjs')
+MAIN_DIRECTORIES = ('src', 'content')
+MAIN_REQUIRED_SOURCE = ('src/app/layout.tsx', 'src/app/(public)/page.tsx',
+                        'src/app/api/health/route.ts')
 SHA = re.compile(r'[a-f0-9]{40}')
 BRANCH = re.compile(r'feature/[A-Za-z0-9][A-Za-z0-9._/-]*')
 CSS_URL = re.compile(r'url\(\s*([\'"]?)(.*?)\1\s*\)', re.IGNORECASE)
@@ -60,7 +65,7 @@ def tracked_files(checkout, commit, pathspec):
         require(not path.is_absolute() and str(path) == name
                 and '..' not in path.parts and '\\' not in name
                 and not any(ord(char) < 32 for char in name)
-                and not any(part.startswith('.') for part in path.parts),
+                and not any(part.startswith('.') or part == 'node_modules' for part in path.parts),
                 f'Unsafe or hidden tracked path: {name}')
         source_file = regular_file(checkout, path)
         data = source_file.read_bytes()
@@ -78,13 +83,19 @@ def reference_target(reference, relative, files):
     parsed = urlsplit(reference)
     require(not parsed.scheme and not parsed.netloc, f'External reference in {relative}: {reference}')
     path = unquote(parsed.path)
-    require(path and not path.startswith('/') and '\\' not in path
+    absolute_gui_path = parsed.path.startswith('/vrchat/') and path.startswith('/vrchat/')
+    require(path and (not path.startswith('/') or absolute_gui_path) and '\\' not in path
             and not any(ord(char) < 32 for char in path),
             f'Invalid local reference in {relative}: {reference}')
+    if absolute_gui_path:
+        path = path.removeprefix('/vrchat/')
+    require(path and not path.startswith('/') and '%' not in path,
+            f'Invalid GUI asset path in {relative}: {reference}')
     parts = PurePosixPath(path).parts
     require('..' not in parts and not any(part.startswith('.') for part in parts),
             f'Outside or hidden reference in {relative}: {reference}')
-    target = str(PurePosixPath(relative).parent / PurePosixPath(path))
+    parent = PurePosixPath('dist') if absolute_gui_path else PurePosixPath(relative).parent
+    target = str(parent / PurePosixPath(path))
     require(target in files, f'Reference is not a tracked dist file: {relative} -> {reference}')
 
 
@@ -151,10 +162,26 @@ def prepare_context(source, output, commit, branch, pipeline_commit, infrastruct
     files = tracked_files(source, commit, 'dist')
     validate_assets(files)
     infrastructure_files = {}
-    for path in ('Dockerfile', 'deploy/container-nginx.conf'):
+    for path in ('Dockerfile', 'deploy/container-nginx.conf', 'deploy/container-entrypoint.mjs'):
         selected = tracked_files(infrastructure, pipeline_commit, path)
         require(path in selected, f'Missing tracked infrastructure file: {path}')
         infrastructure_files[path] = selected[path]
+    # Copy only the main application's tracked build inputs. Never copy the
+    # checkout, local dependency tree, credentials, generated output or tests.
+    main_files = {}
+    for path in MAIN_FILES:
+        selected = tracked_files(infrastructure, pipeline_commit, path)
+        require(path in selected, f'Missing tracked main build input: {path}')
+        main_files.update(selected)
+    for path in MAIN_DIRECTORIES:
+        selected = tracked_files(infrastructure, pipeline_commit, path)
+        require(selected, f'Missing tracked main source directory: {path}')
+        main_files.update(selected)
+    for path in MAIN_REQUIRED_SOURCE:
+        require(path in main_files, f'Missing tracked main source file: {path}')
+    require(len(files) + len(main_files) <= MAX_FILES
+            and sum(map(len, files.values())) + sum(map(len, main_files.values())) <= MAX_TOTAL_BYTES,
+            'Combined application exceeds the context size limit')
     # .dockerignore is intentionally hidden, so verify its exact blob separately.
     ignore = infrastructure / '.dockerignore'
     require(stat.S_ISREG(ignore.lstat().st_mode), '.dockerignore must be a regular file')
@@ -169,8 +196,10 @@ def prepare_context(source, output, commit, branch, pipeline_commit, infrastruct
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix='.container-context-', dir=output.parent))
     try:
-        for name, data in {**files, 'Dockerfile': infrastructure_files['Dockerfile'],
+        for name, data in {**files, **{'main/' + name: data for name, data in main_files.items()},
+                           'Dockerfile': infrastructure_files['Dockerfile'],
                            'nginx.conf': infrastructure_files['deploy/container-nginx.conf'],
+                           'container-entrypoint.mjs': infrastructure_files['deploy/container-entrypoint.mjs'],
                            '.dockerignore': ignore_data,
                            'health.json': (json.dumps(metadata, sort_keys=True) + '\n').encode(),
                            'asset-manifest.json': (json.dumps(manifest, sort_keys=True, indent=2) + '\n').encode()}.items():
