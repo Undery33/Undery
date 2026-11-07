@@ -1,0 +1,8 @@
+{
+  "name": "undery-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Undery PowerPoint design as a self-hosted static website",
+  "scripts": {"start": "node preview.mjs"},
+  "engines": {"node": ">=18"}
+}
