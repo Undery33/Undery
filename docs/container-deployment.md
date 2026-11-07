@@ -58,13 +58,15 @@ sudo docker --config /etc/undery-ghcr login ghcr.io -u Undery33
 
 ```text
 FEATURE_BRANCH=feature/vrchat-web-gui
-DEPLOY=false  # 빌드와 검사만
-DEPLOY=true   # 같은 검사 후 GHCR 게시와 운영 반영
+DEPLOY=false  # 수동 실행은 빌드와 검사만
+DEPLOY=true   # 수동 실행도 검사 후 GHCR 게시와 운영 반영
 ```
 
-`DEPLOY=false`는 기본값입니다. SCM polling도 자동 운영 전환을 의미하지 않습니다. 새 GUI 브랜치를 배포하려면 해당 파라미터를 명시해 실행합니다. 메인 앱과 선택한 GUI를 포함한 운영 이미지 한 개를 교체하며 브랜치별 preview URL은 만들지 않습니다.
+`DEPLOY=false`는 수동 실행 기본값입니다. **SCM 자동 실행에서 `feature/vrchat-web-gui`가 직전 성공 빌드의 GUI 커밋과 달라지면 검증 후 자동 게시·배포합니다.** 배포 설정만 변경되었거나 GUI 비교 이력이 없으면 검사만 수행합니다. 수동 실행과 다른 feature 브랜치의 배포는 `DEPLOY=true`로 지정합니다. 메인 앱과 선택한 GUI를 포함한 운영 이미지 한 개를 교체하며 브랜치별 preview URL은 만들지 않습니다.
 
-2분 SCM polling은 배포 설정과 마지막 실행에서 선택한 웹 소스의 변경을 감시합니다. 두 checkout의 Git 이력이 섞이지 않도록 Job·배포 설정은 `.git`으로 끝나는 URL을 사용하고 웹 소스는 같은 저장소의 `https://github.com/Undery33/Undery`와 `ScmName=undery-web-source`를 사용합니다. Git plugin의 `BuildData` 선택은 remote URL 문자열을 기준으로 하므로 remote 이름이나 `ScmName`만 분리해서는 충분하지 않습니다. 변경 없는 두 SHA가 반복 빌드를 일으키면 SCM Poll Log에서 각 checkout의 기준 SHA를 확인합니다.
+2분 SCM polling은 배포 설정과 고정된 `feature/vrchat-web-gui`의 변경을 감시합니다. 다른 feature 브랜치를 수동 빌드해도 GUI 감시 기준은 유지합니다. 두 checkout의 Git 이력이 섞이지 않도록 Job·배포 설정은 `.git`으로 끝나는 URL을 사용하고 GUI 감시는 같은 저장소의 `https://github.com/Undery33/Undery`와 `ScmName=undery-web-source`를 사용합니다. Git plugin의 `BuildData` 선택은 remote URL 문자열을 기준으로 하므로 remote 이름이나 `ScmName`만 분리해서는 충분하지 않습니다. 변경 없는 두 SHA가 반복 빌드를 일으키면 SCM Poll Log에서 각 checkout의 기준 SHA를 확인합니다.
+
+`deploy/deployment-policy.py`가 실행 원인·브랜치·현재 및 이전 GUI SHA로 `auto`·`manual`·`check` 모드를 결정합니다. 자동 실행에는 GUI 비교 이력이 필요하며 수동 `DEPLOY=false`는 새 커밋이어도 게시하지 않습니다. GitHub webhook 추가 설정은 필요하지 않으며 push 후 다음 polling 주기와 빌드 시간이 지나면 반영됩니다.
 
 ## 이미지 생성과 전환
 
@@ -84,7 +86,7 @@ DEPLOY=true   # 같은 검사 후 GHCR 게시와 운영 반영
 
 ## 검증 한계
 
-CI의 이미지 검사 성공은 실제 서버 전환 완료를 뜻하지 않습니다. Jenkins 로그인·GHCR Credentials·rootless builder·새 helper 준비 후 `DEPLOY=true` 실행과 운영 상태 확인이 모두 성공해야 배포 완료입니다. 강제 장애나 서버 재부팅을 실제로 발생시키는 시험은 별도입니다.
+CI의 이미지 검사 성공은 실제 서버 전환 완료를 뜻하지 않습니다. Jenkins 로그인·GHCR Credentials·rootless builder·새 helper 준비 후 수동 `DEPLOY=true` 또는 조건을 충족한 SCM 자동 배포와 운영 상태 확인이 모두 성공해야 배포 완료입니다. 강제 장애나 서버 재부팅을 실제로 발생시키는 시험은 별도입니다.
 
 ## 출처
 
@@ -94,3 +96,5 @@ CI의 이미지 검사 성공은 실제 서버 전환 완료를 뜻하지 않습
 - [GitHub Container registry 인증과 권한](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
 - [Jenkins GitSCM: getKey·isRelevantBuildData·getBuildData](https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java)
 - [Jenkins BuildData: hasBeenReferenced](https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/util/BuildData.java)
+- [Jenkins Git plugin: 이전 성공 커밋 변수](https://plugins.jenkins.io/git/#environment-variables)
+- [Jenkins Pipeline: Get Build Cause](https://www.jenkins.io/doc/pipeline/examples/#get-build-cause)

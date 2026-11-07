@@ -10,7 +10,7 @@ pipeline {
   }
   parameters {
     string(name: 'FEATURE_BRANCH', defaultValue: 'feature/vrchat-web-gui', description: 'dist/ 정적 사이트가 있는 feature/ 브랜치', trim: true)
-    booleanParam(name: 'DEPLOY', defaultValue: false, description: '검사한 이미지를 GHCR에 게시하고 운영 서버에 배포합니다.')
+    booleanParam(name: 'DEPLOY', defaultValue: false, description: '수동 실행에서 게시·배포합니다. VRChat 브랜치 변경은 SCM 자동 실행에서 배포합니다.')
   }
   triggers { pollSCM('H/2 * * * *') }
   stages {
@@ -34,18 +34,41 @@ pipeline {
               dir('web-source') {
                 // GitSCM BuildData matches the remote URL, not its branch or ScmName.
                 // Keep this equivalent URL distinct from the Job/infra .git URL.
+                // Always poll the VRChat branch, even after a manual build of another feature.
                 def source = checkout([$class: 'GitSCM',
-                  branches: [[name: 'refs/heads/' + params.FEATURE_BRANCH]],
+                  branches: [[name: 'refs/heads/feature/vrchat-web-gui']],
                   userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery']],
                   extensions: [[$class: 'ScmName', name: 'undery-web-source'],
                     [$class: 'CloneOption', shallow: true, depth: 1, noTags: true]]])
-                if (source.GIT_BRANCH.replaceFirst(/^origin\//, '') != params.FEATURE_BRANCH || source.GIT_URL != 'https://github.com/Undery33/Undery') {
-                  error('선택한 웹 소스 브랜치와 checkout 결과가 다릅니다.')
+                if (source.GIT_BRANCH.replaceFirst(/^origin\//, '') != 'feature/vrchat-web-gui' || source.GIT_URL != 'https://github.com/Undery33/Undery') {
+                  error('자동 감시 대상 VRChat 브랜치와 checkout 결과가 다릅니다.')
                 }
                 env.BUILD_COMMIT = source.GIT_COMMIT
+                env.PREVIOUS_GUI_COMMIT = source.GIT_PREVIOUS_SUCCESSFUL_COMMIT ?: ''
                 env.SOURCE_BRANCH = params.FEATURE_BRANCH
+                if (params.FEATURE_BRANCH != 'feature/vrchat-web-gui') {
+                  // Do not register another GitSCM: manual branches must not replace polling history.
+                  withEnv(['REQUESTED_BRANCH=' + params.FEATURE_BRANCH]) {
+                    sh '''#!/bin/sh
+set -eu
+git fetch --no-tags --depth=1 origin "refs/heads/$REQUESTED_BRANCH"
+git checkout --detach FETCH_HEAD
+'''
+                  }
+                  env.BUILD_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                }
               }
-              currentBuild.description = env.SOURCE_BRANCH + ' @ ' + env.BUILD_COMMIT.take(12) + ' / infra ' + env.PIPELINE_COMMIT.take(12)
+              def causes = currentBuild.getBuildCauses()
+              // A mixed manual/SCM queue item keeps the explicit manual DEPLOY choice.
+              env.SCM_TRIGGERED = (!causes.isEmpty() && causes.every { it._class == 'hudson.triggers.SCMTrigger$SCMTriggerCause' }) ? 'true' : 'false'
+              env.MANUAL_DEPLOY = params.DEPLOY ? 'true' : 'false'
+              env.DEPLOY_MODE = sh(script: '''#!/bin/sh
+set -eu
+python3 infrastructure/deploy/deployment-policy.py --branch "$SOURCE_BRANCH" --commit "$BUILD_COMMIT" --previous "$PREVIOUS_GUI_COMMIT" --manual "$MANUAL_DEPLOY" --scm "$SCM_TRIGGERED"
+''', returnStdout: true).trim()
+              env.SHOULD_DEPLOY = (env.DEPLOY_MODE in ['auto', 'manual']) ? 'true' : 'false'
+              echo '배포 모드: ' + env.DEPLOY_MODE + ' / 이전 성공 GUI: ' + (env.PREVIOUS_GUI_COMMIT ?: '없음')
+              currentBuild.description = env.SOURCE_BRANCH + ' @ ' + env.BUILD_COMMIT.take(12) + ' / infra ' + env.PIPELINE_COMMIT.take(12) + ' / ' + env.DEPLOY_MODE
             }
             sh '''#!/bin/sh
 set -eu
@@ -72,7 +95,7 @@ sha256sum infrastructure/deploy/undery-deploy-container.py | cut -d ' ' -f 1 > a
           }
         }
         stage('Publish tested image to GHCR') {
-          when { expression { params.DEPLOY } }
+          when { expression { env.SHOULD_DEPLOY == 'true' } }
           steps {
             withCredentials([usernamePassword(credentialsId: 'ghcr-undery-push', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_PASSWORD')]) {
               sh 'sh infrastructure/scripts/push-container.sh artifacts'
@@ -84,7 +107,7 @@ sha256sum infrastructure/deploy/undery-deploy-container.py | cut -d ' ' -f 1 > a
       }
     }
     stage('Deploy immutable image') {
-      when { beforeAgent true; expression { params.DEPLOY } }
+      when { beforeAgent true; expression { env.SHOULD_DEPLOY == 'true' } }
       agent { label 'site-deploy' }
       steps {
         deleteDir()

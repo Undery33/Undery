@@ -66,7 +66,7 @@ Smoke test는 서버를 자동으로 시작하지 않습니다. `SMOKE_BASE_URL`
 - 기존 PostgreSQL 연결, 스키마 확인·마이그레이션
 - 최종 디자인, 실제 포트폴리오·운영 콘텐츠
 
-현재 DB 드라이버·ORM·OAuth 공급자·업로드 저장소는 연결하지 않았습니다. Jenkins는 `main` 병합 없이 메인 앱과 선택한 `feature/` 브랜치의 GUI를 함께 빌드합니다. `DEPLOY=true`일 때 검사한 이미지를 게시·배포하며 기본값은 검사 전용입니다. 실제 서버 적용에는 [Jenkins 설정과 배포 도우미 설치](docs/jenkins.md)가 필요합니다.
+현재 DB 드라이버·ORM·OAuth 공급자·업로드 저장소는 연결하지 않았습니다. Jenkins는 `main` 병합 없이 메인 앱과 선택한 `feature/` 브랜치의 GUI를 함께 빌드합니다. `feature/vrchat-web-gui`의 새 커밋은 약 2분 SCM polling으로 감지한 뒤 검사·GHCR 게시·운영 배포를 자동 실행합니다. 배포 설정만 바뀌면 검사만 수행합니다. 수동 실행은 `DEPLOY=true`일 때 게시·배포하며 기본값 `false`는 검사 전용입니다. 실제 서버 적용에는 [Jenkins 설정과 배포 도우미 설치](docs/jenkins.md)가 필요합니다.
 
 ## 문서
 

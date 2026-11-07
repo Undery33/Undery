@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <flow-definition plugin="workflow-job">
-  <description>BuildKit·GHCR 배포. 배포 설정은 feature/site-foundation, 웹 소스는 FEATURE_BRANCH에서 가져옵니다.</description>
+  <description>BuildKit·GHCR 배포. feature/vrchat-web-gui 변경은 검증 후 자동 배포합니다. 배포 설정은 feature/site-foundation, 수동 웹 소스는 FEATURE_BRANCH에서 가져옵니다.</description>
   <keepDependencies>false</keepDependencies>
   <properties>
     <hudson.model.ParametersDefinitionProperty>
@@ -13,7 +13,7 @@
         </hudson.model.StringParameterDefinition>
         <hudson.model.BooleanParameterDefinition>
           <name>DEPLOY</name>
-          <description>검사 통과 후 웹사이트 배포</description>
+          <description>수동 실행에서 검사 후 배포. VRChat SCM 변경은 자동 배포.</description>
           <defaultValue>false</defaultValue>
         </hudson.model.BooleanParameterDefinition>
       </parameterDefinitions>
