@@ -1,3 +1,5 @@
+> 현재 Jenkins 배포는 BuildKit·GHCR 정적 GUI 이미지 방식으로 변경되었습니다. 배포 설정은 `feature/site-foundation`, 웹 소스는 `FEATURE_BRANCH`에서 별도로 가져옵니다. 아래 Next.js standalone 설명은 기존 앱 및 이전 운영 방식입니다. 현재 실행·설정 방법은 [컨테이너 배포 문서](container-deployment.md)를 기준으로 합니다.
+
 # 실행·검증·향후 운영 절차
 
 이 문서는 로컬 실행과 배포 전 점검을 설명합니다. `main` 병합 없이 feature 브랜치를 반영하는 Jenkins 설정·호스트 설치 절차는 [Jenkins 문서](jenkins.md)를 따릅니다. 실제 설치·운영 배포 성공은 각 실행 결과로 확인합니다.

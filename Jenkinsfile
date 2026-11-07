@@ -1,5 +1,5 @@
-// Pipeline from SCM: Undery33/Undery, Branch Specifier refs/heads/${FEATURE_BRANCH}.
-// This repository is owner-controlled. Do not configure PR/fork discovery here.
+// Job SCM is fixed to refs/heads/feature/site-foundation.
+// FEATURE_BRANCH selects web content only; its scripts are never executed.
 pipeline {
   agent none
   options {
@@ -9,70 +9,81 @@ pipeline {
     buildDiscarder(logRotator(numToKeepStr: '20'))
   }
   parameters {
-    string(name: 'FEATURE_BRANCH', defaultValue: 'feature/site-foundation', description: '빌드할 feature/ 브랜치. main은 허용하지 않습니다.', trim: true)
-    booleanParam(name: 'DEPLOY', defaultValue: false, description: '검증 성공 시 해당 feature 커밋을 웹사이트에 배포합니다.')
+    string(name: 'FEATURE_BRANCH', defaultValue: 'feature/vrchat-web-gui', description: 'dist/ 정적 사이트가 있는 feature/ 브랜치', trim: true)
+    booleanParam(name: 'DEPLOY', defaultValue: false, description: '검사한 이미지를 GHCR에 게시하고 운영 서버에 배포합니다.')
   }
   triggers { pollSCM('H/2 * * * *') }
-  environment {
-    NEXT_TELEMETRY_DISABLED = '1'
-    SITE_URL = 'https://undery.link'
-    NODE_OPTIONS = '--max-old-space-size=1536'
-  }
   stages {
-    stage('Build selected feature') {
+    stage('Build selected feature image') {
       agent { label 'site-ci' }
       stages {
-        stage('Validate branch and checkout') {
+        stage('Checkout infrastructure and web source') {
           steps {
             script {
               if (!(params.FEATURE_BRANCH ==~ /feature\/[A-Za-z0-9][A-Za-z0-9._\/-]*/) || params.FEATURE_BRANCH.contains('..') || env.CHANGE_ID) {
-                error('소유 저장소의 feature/ 브랜치만 빌드할 수 있습니다.')
+                error('소유 저장소의 feature/ 브랜치만 배포할 수 있습니다.')
               }
               deleteDir()
-              def revision = checkout scm
-              def checkedBranch = revision.GIT_BRANCH.replaceFirst(/^origin\//, '')
-              if (checkedBranch != params.FEATURE_BRANCH || revision.GIT_URL != 'https://github.com/Undery33/Undery.git') {
-                error('Job SCM 저장소 또는 브랜치가 선택한 feature와 다릅니다.')
+              dir('infrastructure') {
+                def infra = checkout scm
+                if (infra.GIT_BRANCH.replaceFirst(/^origin\//, '') != 'feature/site-foundation' || infra.GIT_URL != 'https://github.com/Undery33/Undery.git') {
+                  error('Job SCM은 Undery33/Undery의 feature/site-foundation이어야 합니다.')
+                }
+                env.PIPELINE_COMMIT = infra.GIT_COMMIT
               }
-              env.BUILD_COMMIT = revision.GIT_COMMIT
-              env.SOURCE_BRANCH = params.FEATURE_BRANCH
-              currentBuild.description = env.SOURCE_BRANCH + ' @ ' + env.BUILD_COMMIT.take(12)
+              dir('web-source') {
+                def source = checkout([$class: 'GitSCM',
+                  branches: [[name: 'refs/heads/' + params.FEATURE_BRANCH]],
+                  userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery.git']],
+                  extensions: [[$class: 'CloneOption', shallow: true, depth: 1, noTags: true]]])
+                if (source.GIT_BRANCH.replaceFirst(/^origin\//, '') != params.FEATURE_BRANCH) {
+                  error('선택한 웹 소스 브랜치와 checkout 결과가 다릅니다.')
+                }
+                env.BUILD_COMMIT = source.GIT_COMMIT
+                env.SOURCE_BRANCH = params.FEATURE_BRANCH
+              }
+              currentBuild.description = env.SOURCE_BRANCH + ' @ ' + env.BUILD_COMMIT.take(12) + ' / infra ' + env.PIPELINE_COMMIT.take(12)
             }
             sh '''#!/bin/sh
 set -eu
-test "$(git rev-parse HEAD)" = "$BUILD_COMMIT"
-node -e 'if (Number(process.versions.node.split(".")[0]) < 24) process.exit(1)'
-python3 --version
+test "$(git -C web-source rev-parse HEAD)" = "$BUILD_COMMIT"
+test "$(git -C infrastructure rev-parse HEAD)" = "$PIPELINE_COMMIT"
+python3 infrastructure/scripts/prepare-container-context.py --source web-source --output container-context --commit "$BUILD_COMMIT" --branch "$SOURCE_BRANCH" --pipeline-commit "$PIPELINE_COMMIT"
 '''
           }
         }
-        stage('Install') { steps { sh 'npm ci --no-fund' } }
-        stage('Validate') { steps { sh 'npm run check && npm run test:deploy' } }
-        stage('Build') { steps { sh 'npm run build' } }
-        stage('Verify standalone HTTP') { steps { sh 'npm run test:integration' } }
-        stage('Archive verified release') {
+        stage('Validate deployment tooling') {
           steps {
-            sh 'npm run release:package && npm run test:release'
+            dir('infrastructure') {
+              sh 'python3 -m unittest discover -s tests/container -v && python3 -m unittest discover -s tests/deploy -v'
+            }
+          }
+        }
+        stage('BuildKit build and container HTTP checks') {
+          steps { sh 'sh infrastructure/scripts/build-container.sh container-context artifacts' }
+        }
+        stage('Publish tested image to GHCR') {
+          when { expression { params.DEPLOY } }
+          steps {
+            withCredentials([usernamePassword(credentialsId: 'ghcr-undery-push', usernameVariable: 'GHCR_USERNAME', passwordVariable: 'GHCR_PASSWORD')]) {
+              sh 'sh infrastructure/scripts/push-container.sh artifacts'
+            }
             archiveArtifacts artifacts: 'artifacts/*', fingerprint: true
-            stash name: 'verified-release', includes: 'artifacts/*,scripts/smoke-test.mjs'
+            stash name: 'container-release', includes: 'artifacts/*'
           }
         }
       }
     }
-    stage('Deploy feature release') {
+    stage('Deploy immutable image') {
       when { beforeAgent true; expression { params.DEPLOY } }
       agent { label 'site-deploy' }
       steps {
         deleteDir()
-        unstash 'verified-release'
-        // Run a root-owned, separately installed helper. Never sudo repository code.
+        unstash 'container-release'
         sh '''#!/bin/sh
 set -eu
-cd artifacts
-sha256sum -c release.tar.gz.sha256
-sudo -n /usr/local/sbin/undery-deploy-release "$BUILD_COMMIT" "$SOURCE_BRANCH" < release.tar.gz
-cd ..
-SMOKE_BASE_URL="$SITE_URL" node scripts/smoke-test.mjs
+image=$(cat artifacts/image-digest.txt)
+sudo -n /usr/local/sbin/undery-deploy-container "$BUILD_COMMIT" "$SOURCE_BRANCH" "$PIPELINE_COMMIT" "$image"
 '''
       }
     }

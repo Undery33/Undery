@@ -1,3 +1,5 @@
+> 현재 Jenkins 배포는 BuildKit·GHCR 정적 GUI 이미지 방식으로 변경되었습니다. 배포 설정은 `feature/site-foundation`, 웹 소스는 `FEATURE_BRANCH`에서 별도로 가져옵니다. 아래 Next.js standalone 설명은 기존 앱 및 이전 운영 방식입니다. 현재 실행·설정 방법은 [컨테이너 배포 문서](container-deployment.md)를 기준으로 합니다.
+
 # 구조와 보안 경계
 
 ## 현재 구조

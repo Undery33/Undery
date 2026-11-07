@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!nginx.conf
+!health.json
+!asset-manifest.json
+!dist/
+!dist/**

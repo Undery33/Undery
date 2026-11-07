@@ -1,0 +1,53 @@
+name: Container checks
+
+on:
+  push:
+    branches: [feature/site-foundation]
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - Jenkinsfile
+      - deploy/**
+      - scripts/**
+      - tests/**
+      - .github/workflows/container.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: infrastructure
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Undery33/Undery
+          ref: feature/vrchat-web-gui
+          path: web-source
+          persist-credentials: false
+      - name: Validate tooling and prepare isolated image context
+        run: |
+          cd infrastructure
+          python3 -m unittest discover -s tests/container -v
+          python3 -m unittest discover -s tests/deploy -v
+          python3 scripts/prepare-container-context.py --source ../web-source --output ../container-context --commit "$(git -C ../web-source rev-parse HEAD)" --branch feature/vrchat-web-gui --pipeline-commit "$(git rev-parse HEAD)"
+      - uses: docker/setup-buildx-action@v4
+      - name: Build with BuildKit
+        run: |
+          docker buildx build --pull --load --platform linux/amd64 \
+            --build-arg SOURCE_COMMIT="$(git -C web-source rev-parse HEAD)" \
+            --build-arg SOURCE_BRANCH=feature/vrchat-web-gui \
+            --build-arg PIPELINE_COMMIT="$(git -C infrastructure rev-parse HEAD)" \
+            --tag undery-container-check:ci container-context
+      - name: Test actual Nginx image
+        run: python3 infrastructure/scripts/verify-container.py --image undery-container-check:ci --metadata container-context/health.json
