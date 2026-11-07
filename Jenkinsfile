@@ -54,7 +54,7 @@ python3 --version
           steps {
             sh 'npm run release:package && npm run test:release'
             archiveArtifacts artifacts: 'artifacts/*', fingerprint: true
-            stash name: 'verified-release', includes: 'artifacts/*'
+            stash name: 'verified-release', includes: 'artifacts/*,scripts/smoke-test.mjs'
           }
         }
       }
@@ -71,6 +71,8 @@ set -eu
 cd artifacts
 sha256sum -c release.tar.gz.sha256
 sudo -n /usr/local/sbin/undery-deploy-release "$BUILD_COMMIT" "$SOURCE_BRANCH" < release.tar.gz
+cd ..
+SMOKE_BASE_URL="$SITE_URL" node scripts/smoke-test.mjs
 '''
       }
     }

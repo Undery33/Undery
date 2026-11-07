@@ -60,7 +60,6 @@ Smoke test는 서버를 자동으로 시작하지 않습니다. `SMOKE_BASE_URL`
 - 서버 측 GitHub OAuth 로그인, 소유자 권한 검사와 관리자 작성 화면
 - VRChat·Valorant 미디어 게시, 업로드와 방문자 댓글
 - 기존 PostgreSQL 연결, 스키마 확인·마이그레이션
-- 개인 서버의 배포 도우미 최초 설치와 Jenkins를 통한 실제 운영 배포 검증
 - 최종 디자인, 실제 포트폴리오·운영 콘텐츠
 
 현재 DB 드라이버·ORM·OAuth 공급자·업로드 저장소는 연결하지 않았습니다. Jenkins 구성은 `main` 병합 없이 선택한 `feature/` 브랜치를 검사·빌드하고 `DEPLOY=true` 실행 시 해당 산출물을 배포합니다. 기본값은 검사 전용입니다. 실제 서버 적용에는 [Jenkins 설정과 배포 도우미 설치](docs/jenkins.md)가 필요합니다.

@@ -5,7 +5,7 @@ const origin = new URL(base);
 if (!["http:", "https:"].includes(origin.protocol)) throw new Error("SMOKE_BASE_URL must be HTTP(S).");
 
 async function read(path, options) {
-  const response = await fetch(new URL(path, origin), { redirect: "manual", ...options });
+  const response = await fetch(new URL(path, origin), { redirect: "manual", signal: AbortSignal.timeout(15000), ...options });
   return { response, html: await response.text() };
 }
 
