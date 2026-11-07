@@ -171,7 +171,13 @@ def verify_readiness_failure(name, base):
     find_next = r'''
 const fs = require('node:fs');
 const matches = fs.readdirSync('/proc').filter(name => /^[0-9]+$/.test(name)).filter(name => {
-  try { return fs.readFileSync('/proc/' + name + '/cmdline', 'utf8').split('\0').includes('/opt/undery/main/server.js'); }
+  try {
+    const proc = '/proc/' + name;
+    const parent = /^PPid:\s*(\d+)\s*$/m.exec(fs.readFileSync(proc + '/status', 'utf8'))?.[1];
+    // Next changes process.title, which replaces argv in /proc/*/cmdline.
+    return parent === '1' && fs.realpathSync(proc + '/cwd') === '/opt/undery/main'
+      && fs.readlinkSync(proc + '/exe') === process.execPath;
+  }
   catch { return false; }
 });
 if (matches.length !== 1) throw new Error('Expected exactly one supervised Next.js process');
