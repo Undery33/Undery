@@ -55,6 +55,8 @@ DEPLOY=true   # 같은 검사 후 GHCR 게시와 운영 반영
 
 `DEPLOY=false`는 기본값입니다. SCM polling도 자동 운영 전환을 의미하지 않습니다. 새 feature 브랜치를 배포하려면 해당 파라미터를 명시해 실행합니다. 운영 사이트 한 곳을 선택한 브랜치로 교체하는 방식이며 브랜치별 preview URL을 만드는 방식이 아닙니다.
 
+2분 SCM polling은 배포 설정과 마지막 실행에서 선택한 웹 소스의 변경을 감시합니다. 두 checkout의 Git 이력이 섞이지 않도록 Job·배포 설정은 `.git`으로 끝나는 URL을 사용하고 웹 소스는 같은 저장소의 `https://github.com/Undery33/Undery`와 `ScmName=undery-web-source`를 사용합니다. Git plugin의 `BuildData` 선택은 remote URL 문자열을 기준으로 하므로 remote 이름이나 `ScmName`만 분리해서는 충분하지 않습니다. 변경 없는 두 SHA가 반복 빌드를 일으키면 SCM Poll Log에서 각 checkout의 기준 SHA를 확인합니다.
+
 ## 이미지 생성과 전환
 
 1. 소스 SHA와 배포 설정 SHA를 각각 고정합니다.
@@ -81,3 +83,5 @@ CI의 이미지 검사 성공은 실제 서버 전환 완료를 뜻하지 않습
 - [Docker rootless mode](https://docs.docker.com/engine/security/rootless/)
 - [Buildx container driver](https://docs.docker.com/build/builders/drivers/docker-container/)
 - [GitHub Container registry 인증과 권한](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
+- [Jenkins GitSCM: getKey·isRelevantBuildData·getBuildData](https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/GitSCM.java)
+- [Jenkins BuildData: hasBeenReferenced](https://github.com/jenkinsci/git-plugin/blob/master/src/main/java/hudson/plugins/git/util/BuildData.java)

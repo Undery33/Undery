@@ -17,6 +17,8 @@
 
 웹 소스와 배포 설정을 각각 checkout하며 main merge는 수행하지 않습니다. `feature/` 브랜치 중 `dist/` 정적 사이트 계약을 만족하는 브랜치를 선택할 수 있습니다. 운영 이미지 태그에는 두 commit SHA가 들어가며 실제 배포는 digest를 사용합니다. `DEPLOY=false`는 게시·배포 없이 이미지 빌드와 검사만 수행합니다.
 
+`pollSCM('H/2 * * * *')`는 두 checkout의 변경을 감시합니다. Job·배포 설정의 `.git` URL은 유지하며 웹 소스만 동일 저장소의 `.git` 없는 URL과 `ScmName=undery-web-source`로 분리합니다. 이는 동일 remote URL의 `BuildData`가 서로 다른 브랜치를 혼동해 변경 없이 반복 빌드하는 현상을 방지하기 위한 구성입니다. polling으로 시작한 기본 실행은 검사만 수행합니다.
+
 [Job XML](../deploy/jenkins-job.xml)은 설정 예시이며 파일 수정만으로 실행 중인 Jenkins Job이 변경되지는 않습니다. 기존 동적 `${FEATURE_BRANCH}` SCM 설정은 고정된 `feature/site-foundation`으로 변경해야 합니다.
 
 기존 Next.js standalone 배포 구조와 이전 운영 기록은 [이전 배포 문서](legacy-standalone-deployment.md)에 보존했습니다. 신규 컨테이너 전환 후 이전 배포 Job을 동시에 실행하지 않습니다.

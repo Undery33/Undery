@@ -32,11 +32,14 @@ pipeline {
                 env.PIPELINE_COMMIT = infra.GIT_COMMIT
               }
               dir('web-source') {
+                // GitSCM BuildData matches the remote URL, not its branch or ScmName.
+                // Keep this equivalent URL distinct from the Job/infra .git URL.
                 def source = checkout([$class: 'GitSCM',
                   branches: [[name: 'refs/heads/' + params.FEATURE_BRANCH]],
-                  userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery.git']],
-                  extensions: [[$class: 'CloneOption', shallow: true, depth: 1, noTags: true]]])
-                if (source.GIT_BRANCH.replaceFirst(/^origin\//, '') != params.FEATURE_BRANCH) {
+                  userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery']],
+                  extensions: [[$class: 'ScmName', name: 'undery-web-source'],
+                    [$class: 'CloneOption', shallow: true, depth: 1, noTags: true]]])
+                if (source.GIT_BRANCH.replaceFirst(/^origin\//, '') != params.FEATURE_BRANCH || source.GIT_URL != 'https://github.com/Undery33/Undery') {
                   error('선택한 웹 소스 브랜치와 checkout 결과가 다릅니다.')
                 }
                 env.BUILD_COMMIT = source.GIT_COMMIT
