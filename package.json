@@ -6,15 +6,17 @@
   "engines": { "node": ">=24.0.0" },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
-    "build": "next build",
-    "start": "next start",
+    "build": "node scripts/build-info.mjs && next build && node scripts/prepare-standalone.mjs",
+    "start": "node scripts/start.mjs",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run lint && npm run typecheck && npm test",
     "test:smoke": "node scripts/smoke-test.mjs",
-    "test:integration": "node scripts/verify-production.mjs"
+    "test:integration": "node scripts/verify-production.mjs",
+    "release:package": "python3 scripts/package-release.py",
+    "test:deploy": "python3 -m unittest discover -s tests/deploy -v"
   },
   "dependencies": {
     "gray-matter": "4.0.3",
@@ -39,3 +41,4 @@
     }
   }
 }
+

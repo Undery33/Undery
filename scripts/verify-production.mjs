@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
+import path from "node:path";
 import { setTimeout } from "node:timers/promises";
 
 // A temporary loopback-only server for automated HTTP tests, not a browser preview.
@@ -11,9 +12,11 @@ const port = portProbe.address().port;
 await new Promise((resolve, reject) => portProbe.close((error) => error ? reject(error) : resolve()));
 
 const baseUrl = `http://127.0.0.1:${port}`;
-const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)], {
+const cwd = path.resolve(".next/standalone");
+const server = spawn(process.execPath, [path.join(cwd, "server.js")], {
+  cwd,
   stdio: ["ignore", "pipe", "pipe"],
-  env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+  env: { ...process.env, HOSTNAME: "127.0.0.1", PORT: String(port), NEXT_TELEMETRY_DISABLED: "1" },
 });
 let serverLog = "";
 server.stdout.on("data", (data) => { serverLog += data; });
@@ -40,3 +43,4 @@ try {
   if (server.exitCode === null) server.kill("SIGTERM");
   await serverExit;
 }
+

@@ -8,3 +8,7 @@ coverage/
 *.log
 .DS_Store
 .openai/
+
+build-info.json
+artifacts/
+__pycache__/

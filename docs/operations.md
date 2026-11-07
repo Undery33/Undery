@@ -1,6 +1,6 @@
 # 실행·검증·향후 운영 절차
 
-이 문서는 로컬 기초 구현의 실행법과 **나중에 수행할 운영 점검 사항**을 구분합니다. 현재 개인 서버의 파일·설정·DB·Jenkins는 확인하거나 변경하지 않았으며, 이번 작업에서 서비스를 배포하지 않았습니다.
+이 문서는 로컬 실행과 배포 전 점검을 설명합니다. `main` 병합 없이 feature 브랜치를 반영하는 Jenkins 설정·호스트 설치 절차는 [Jenkins 문서](jenkins.md)를 따릅니다. 실제 설치·운영 배포 성공은 각 실행 결과로 확인합니다.
 
 ## 작업 브랜치
 
@@ -28,8 +28,9 @@ npm run test:integration
 ```
 
 - `npm run check`: ESLint → Next.js 타입 생성·TypeScript 검사 → Vitest. `typecheck`는 `next typegen && tsc --noEmit`이며 실패하면 다음 단계로 넘어가지 않습니다.
-- `npm run build`: 콘텐츠 검증을 포함한 Next.js 프로덕션 빌드.
-- `npm run test:integration`: 먼저 생성한 빌드로 `127.0.0.1`의 임시 포트에 프로덕션 서버를 시작하고 HTTP smoke test 후 종료합니다. 공개 미리보기나 배포가 아닙니다.
+- `npm run build`: 빌드 식별자 생성 → Next.js standalone 빌드 → CSS·Markdown 복사.
+- `npm run test:integration`: 먼저 생성한 standalone 런타임에서 `127.0.0.1`의 임시 포트에 서버를 시작하고 HTTP smoke test 후 종료합니다. 공개 미리보기나 배포가 아닙니다.
+- `npm run test:deploy`: 실제 서비스 없이 압축 파일·브랜치·복구 절차 검사.
 
 서버를 계속 실행하며 확인하려면 빌드 후 `npm start`를 실행합니다. 서버가 실행된 상태에서 **다른 터미널**로 요청 검사를 실행합니다.
 
@@ -71,7 +72,7 @@ ESLint는 `eslint-config-next` 플러그인의 현재 peer dependency 호환성�
 5. 장애 감지, 재시작, 백업, 이전 빌드로의 rollback 절차와 관리자 503 처리 방침을 정합니다.
 6. 사용자 승인과 서버 환경 검토 후 실제 배포를 진행합니다.
 
-Dockerfile, 컨테이너 실행 환경, Jenkinsfile·잡·자격 증명은 이 기초 작업에 포함하지 않습니다. 현재 문서의 로컬 실행 명령은 기존 서버의 배포 절차를 뜻하지 않습니다.
+Dockerfile·컨테이너 실행 환경은 포함하지 않습니다. Jenkinsfile과 Job 예제·고정 배포 도우미는 제공하며 호스트 적용은 [Jenkins 문서](jenkins.md)를 따릅니다. 로컬 실행 명령 자체는 운영 반영을 수행하지 않습니다.
 
 ## 기존 PostgreSQL 연결 전에 할 일: 아직 미수행
 
@@ -82,3 +83,4 @@ Dockerfile, 컨테이너 실행 환경, Jenkinsfile·잡·자격 증명은 이 �
 5. 필요한 스키마 변경과 rollback 계획을 검토한 뒤 명시적으로 승인된 범위만 적용합니다.
 
 현재는 DB 드라이버·ORM·마이그레이션 파일·연결 문자열이 없습니다. 기존 DB가 이 코드와 호환된다고 가정하지 않습니다.
+

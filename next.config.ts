@@ -3,6 +3,13 @@ import type { NextConfig } from "next";
 const noIndex = { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" };
 
 const config: NextConfig = {
+  output: "standalone",
+  outputFileTracingIncludes: {
+    "/computer": ["./content/computer/**/*.md"],
+    "/computer/*": ["./content/computer/**/*.md"],
+    "/sitemap.xml": ["./content/computer/**/*.md"],
+    "/api/health": ["./build-info.json"],
+  },
   poweredByHeader: false,
   async headers() {
     return [
@@ -22,3 +29,4 @@ const config: NextConfig = {
 };
 
 export default config;
+

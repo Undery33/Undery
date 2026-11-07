@@ -9,6 +9,20 @@ async function read(path, options) {
   return { response, html: await response.text() };
 }
 
+const health = await read("/api/health");
+assert.equal(health.response.status, 200);
+assert.equal(health.response.headers.get("cache-control"), "no-store");
+const info = JSON.parse(health.html);
+assert.equal(info.repository, "Undery33/Undery");
+assert.match(info.commit, /^[a-f0-9]{40}$/);
+if (process.env.BUILD_COMMIT) assert.equal(info.commit, process.env.BUILD_COMMIT);
+if (process.env.SOURCE_BRANCH) assert.equal(info.branch, process.env.SOURCE_BRANCH);
+const home = await read("/");
+const stylesheet = home.html.match(/href="([^\"]+\.css(?:\?[^\"]*)?)"/);
+assert.ok(stylesheet, "Rendered page must reference a stylesheet");
+assert.equal((await read(stylesheet[1].replaceAll("&amp;", "&"))).response.status, 200);
+console.log("PASS build identity and standalone static assets");
+
 for (const path of ["/", "/computer", "/computer/getting-started", "/vrchat", "/valorant"]) {
   const { response, html } = await read(path);
   assert.equal(response.status, 200, path);
@@ -55,3 +69,4 @@ assert.doesNotMatch(sitemap.html, /\/portfolio|\/admin/);
 assert.equal((await read("/robots.txt")).response.status, 200);
 console.log("PASS 404, robots, and sitemap exclusions");
 console.log("All HTTP smoke checks passed.");
+

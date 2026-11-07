@@ -16,6 +16,9 @@ src/lib/site.ts                 사이트 정보·공개 메뉴·SITE_URL 처리
 scripts/smoke-test.mjs           실행 중인 서버의 HTTP 검사
 scripts/verify-production.mjs    임시 loopback 서버 시작·검사·종료
 .github/workflows/ci.yml         검사·빌드·smoke test, 배포 없음
+Jenkinsfile                     선택한 feature 브랜치 검사·산출물 보관·선택적 배포
+deploy/                         Jenkins Job 예제와 고정 배포 도우미
+src/app/api/health/              실행 중인 빌드 식별자·상태
 ```
 
 App Router의 서버 측 코드에서 `content/computer/*.md`를 읽습니다. 별도 API 서버나 데이터베이스는 없습니다. 글 상세는 게시 글의 경로를 빌드 시 생성하며, 콘텐츠 변경은 새 빌드를 통해 반영하는 방식으로 운영합니다. 검색은 URL의 `q`, `tag` 값을 받아 서버에서 처리하므로 링크 공유와 새로고침에도 조건이 유지됩니다.
@@ -61,4 +64,5 @@ OAuth 앱, 클라이언트 비밀값, 소유자 ID는 현재 설정하지 않았
 
 ## 향후 PostgreSQL·서버 연동
 
-기존 PostgreSQL 재사용 여부는 서버와 스키마를 확인한 후 결정합니다. 현재 연결 문자열, DB 접근, 마이그레이션, 개인 서버/Jenkins 연동, 배포는 수행하지 않았습니다. [운영 문서](operations.md)의 백업·검증 절차를 먼저 충족해야 합니다.
+기존 PostgreSQL 재사용 여부는 서버와 스키마를 확인한 후 결정합니다. 현재 연결 문자열·DB 접근·마이그레이션은 없습니다. Jenkins는 선택한 feature 커밋의 standalone 산출물을 배포하도록 구성합니다. 실제 호스트 설치와 실행 조건은 [Jenkins 문서](jenkins.md)를 따릅니다. DB·미디어·서비스 자격 증명을 코드 배포에 포함하지 않습니다.
+

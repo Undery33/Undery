@@ -16,6 +16,7 @@
 | `/vrchat`, `/valorant` | 준비 중 안내만 제공. 미디어 게시·댓글 없음 |
 | `/admin`, `/admin/*` | GET 요청에 HTTP 503. 인증·관리 기능 없이 닫힌 상태 |
 | `/portfolio` | 공용 메뉴와 분리한 소개 페이지 틀. 직접 URL로 접근 가능, `noindex` 적용 |
+| `/api/health` | 실행 중인 빌드의 저장소·커밋·브랜치와 상태 확인. `no-store` 적용 |
 
 예제 글은 실제 개인 이력이나 활동이 아니며 화면에 예제로 표시됩니다.
 
@@ -42,7 +43,7 @@ npm run test:integration
 npm start
 ```
 
-`check`는 ESLint, Next.js 타입 생성과 TypeScript 검사(`next typegen && tsc --noEmit`), Vitest를 차례로 실행합니다. `test:integration`은 기존 빌드로 loopback 전용 임시 프로덕션 서버를 띄워 HTTP smoke test를 실행한 뒤 서버를 종료합니다. 먼저 `build`가 필요합니다.
+`check`는 ESLint, Next.js 타입 생성과 TypeScript 검사(`next typegen && tsc --noEmit`), Vitest를 차례로 실행합니다. `build`는 빌드 식별자와 standalone 런타임을 생성하고 CSS·Markdown을 복사합니다. `test:integration`은 소스 checkout과 분리한 standalone 디렉터리에서 loopback 전용 임시 서버를 띄워 HTTP smoke test를 실행한 뒤 종료합니다. 먼저 `build`가 필요합니다. 배포 도우미의 별도 검사는 `npm run test:deploy`입니다.
 
 `npm start`로 서버를 유지하며 확인할 때는 다른 터미널에서 다음 명령을 사용할 수 있습니다.
 
@@ -59,13 +60,15 @@ Smoke test는 서버를 자동으로 시작하지 않습니다. `SMOKE_BASE_URL`
 - 서버 측 GitHub OAuth 로그인, 소유자 권한 검사와 관리자 작성 화면
 - VRChat·Valorant 미디어 게시, 업로드와 방문자 댓글
 - 기존 PostgreSQL 연결, 스키마 확인·마이그레이션
-- 개인 서버 접근, Jenkins 연동과 실제 배포
+- 개인 서버의 배포 도우미 최초 설치와 Jenkins를 통한 실제 운영 배포 검증
 - 최종 디자인, 실제 포트폴리오·운영 콘텐츠
 
-현재 DB 드라이버·ORM·OAuth 공급자·업로드 저장소를 연결하지 않았고, Docker/Jenkins 배포 구성을 제공하지 않습니다. 서버 파일과 자격 증명은 나중에 별도로 확인합니다.
+현재 DB 드라이버·ORM·OAuth 공급자·업로드 저장소는 연결하지 않았습니다. Jenkins 구성은 `main` 병합 없이 선택한 `feature/` 브랜치를 검사·빌드하고 `DEPLOY=true` 실행 시 해당 산출물을 배포합니다. 기본값은 검사 전용입니다. 실제 서버 적용에는 [Jenkins 설정과 배포 도우미 설치](docs/jenkins.md)가 필요합니다.
 
 ## 문서
 
 - [구조와 보안 경계](docs/architecture.md)
 - [실행·검증·향후 운영 절차](docs/operations.md)
 - [Markdown 글 작성](docs/content-authoring.md)
+- [feature 브랜치 Jenkins 빌드·배포](docs/jenkins.md)
+
