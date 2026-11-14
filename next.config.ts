@@ -24,6 +24,10 @@ const config: NextConfig = {
       },
       { source: "/portfolio/:path*", headers: [noIndex] },
       { source: "/admin/:path*", headers: [noIndex] },
+      {
+        source: "/birthday/memo/:path*",
+        headers: [noIndex, { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }],
+      },
     ];
   },
 };

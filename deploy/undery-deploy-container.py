@@ -2,6 +2,7 @@
 """Root-owned activation of one fixed GHCR repository; never execute checkout code."""
 from contextlib import ExitStack
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,14 @@ OWNER_LABEL = 'org.undery.managed'
 OWNER_VALUE = 'container-deploy-v1'
 LOCAL_HEALTH = 'http://127.0.0.1:3000/api/health'
 PUBLIC_HEALTH = 'https://undery.link/api/health'
+BIRTHDAY_DIRECTORY = Path('/etc/undery')
+BIRTHDAY_ENV = BIRTHDAY_DIRECTORY / 'birthday-memo.env'
+BIRTHDAY_RUNTIME = BIRTHDAY_DIRECTORY / 'birthday-memo-runtime.json'
+BIRTHDAY_ENV_KEYS = frozenset({
+    'BIRTHDAY_MEMO_DATABASE_URL', 'BIRTHDAY_MEMO_ENABLED', 'BIRTHDAY_MEMO_TRUST_PROXY',
+    'DATABASE_URL', 'PGHOST', 'PGDATABASE', 'PGUSER', 'PGPORT', 'PGPASSWORD',
+    'PGSSLMODE', 'PGCONNECT_TIMEOUT',
+})
 
 
 def require(condition, message):
@@ -57,7 +66,7 @@ def verify_image(info, commit, branch, pipeline_commit, image):
     require(not info.get('Config', {}).get('Volumes'), 'Image-declared volumes are not allowed')
 
 
-def read_health(url):
+def read_json(url, limit):
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             return None
@@ -65,9 +74,13 @@ def read_health(url):
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     with opener.open(url, timeout=5) as response:
         require(response.status == 200, 'Health endpoint must return HTTP 200')
-        body = response.read(65537)
-    require(len(body) <= 65536, 'Oversized health response')
+        body = response.read(limit + 1)
+    require(len(body) <= limit, 'Oversized health response')
     return json.loads(body)
+
+
+def read_health(url):
+    return read_json(url, 65536)
 
 
 def healthy(url, expected, attempts=40):
@@ -82,7 +95,95 @@ def healthy(url, expected, attempts=40):
     return False
 
 
+def birthday_ready(health_url, attempts=40):
+    require(health_url.endswith('/api/health'), 'Unexpected deployment health URL')
+    url = health_url[:-len('/api/health')] + '/birthday/memo/feed?page=0&order=oldest'
+    for attempt in range(attempts):
+        try:
+            result = read_json(url, 1048576)
+            if (isinstance(result, dict) and result.get('ok') is True
+                    and type(result.get('page')) is int and result.get('page') == 0
+                    and isinstance(result.get('entries'), list)):
+                return True
+        except (OSError, ValueError):
+            pass
+        if attempt + 1 < attempts:
+            time.sleep(0.5)
+    return False
+
+
+def private_file_bytes(path, limit):
+    """Inspect the opened inode; never follow a symlink or include contents in errors."""
+    trusted_path(path, private=True)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == 0
+                and stat.S_IMODE(info.st_mode) in (0o400, 0o600),
+                'Birthday runtime files must be root-owned private regular files')
+        require(info.st_size <= limit, 'Birthday runtime file is too large')
+        data = stream.read(limit + 1)
+    require(len(data) <= limit, 'Birthday runtime file is too large')
+    return data
+
+
+def validate_birthday_environment(data):
+    try:
+        text = data.decode('utf-8')
+    except UnicodeError:
+        raise ValueError('Birthday environment must be UTF-8') from None
+    require('\x00' not in text, 'Birthday environment contains an invalid character')
+    values = {}
+    for line in text.splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        key, separator, value = line.partition('=')
+        require(separator and key in BIRTHDAY_ENV_KEYS and key not in values,
+                'Birthday environment has an unknown, duplicate or incomplete key')
+        # Docker env files use literal values, not shell expansion or shell quoting.
+        values[key] = value
+    for key in ('BIRTHDAY_MEMO_ENABLED', 'BIRTHDAY_MEMO_TRUST_PROXY'):
+        if key in values:
+            require(values[key] in ('true', 'false'), 'Birthday switches must be true or false')
+    if values.get('BIRTHDAY_MEMO_ENABLED') != 'false':
+        require(bool(values.get('BIRTHDAY_MEMO_DATABASE_URL') or values.get('DATABASE_URL'))
+                or all(values.get(key) for key in ('PGHOST', 'PGDATABASE', 'PGUSER')),
+                'Birthday runtime requires the existing PostgreSQL connection settings')
+    # Do not return credentials; retain only a fingerprint for same-deployment consistency.
+    return {'environment_sha256': hashlib.sha256(data).hexdigest(),
+            'enabled': values.get('BIRTHDAY_MEMO_ENABLED') != 'false'}
+
+
+def read_birthday_runtime():
+    present = [os.path.lexists(path) for path in (BIRTHDAY_ENV, BIRTHDAY_RUNTIME)]
+    if not any(present):
+        return None
+    require(all(present), 'Birthday environment and runtime settings must be installed together')
+    trusted_path(BIRTHDAY_DIRECTORY.parent, directory=True)
+    trusted_path(BIRTHDAY_DIRECTORY, directory=True)
+    environment = private_file_bytes(BIRTHDAY_ENV, 65536)
+    settings = private_file_bytes(BIRTHDAY_RUNTIME, 4096)
+    def unique_keys(pairs):
+        require(len({key for key, _ in pairs}) == len(pairs), 'Duplicate birthday settings key')
+        return dict(pairs)
+    try:
+        config = json.loads(settings, object_pairs_hook=unique_keys)
+    except (ValueError, UnicodeError):
+        raise ValueError('Invalid birthday runtime JSON') from None
+    require(isinstance(config, dict) and set(config) == {'network'},
+            'Birthday runtime JSON must contain only the existing network name')
+    network = config['network']
+    require(isinstance(network, str)
+            and bool(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', network))
+            and network not in ('host', 'none', 'bridge'), 'Invalid birthday Docker network name')
+    return {'network': network, **validate_birthday_environment(environment),
+            'settings_sha256': hashlib.sha256(settings).hexdigest()}
+
+
 class DockerHost:
+    def __init__(self, birthday_runtime=None):
+        self.birthday_runtime = dict(birthday_runtime) if birthday_runtime is not None else None
+
     def command(self, args, timeout=60, check=True):
         result = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
                                 env={'PATH': '/usr/bin:/bin', 'HOME': '/root', 'LANG': 'C'})
@@ -112,6 +213,16 @@ class DockerHost:
 
     def run(self, name, image, candidate=False):
         require(self.container(name) is None, 'Container name is already in use')
+        runtime_options = []
+        if self.birthday_runtime is not None:
+            require(read_birthday_runtime() == self.birthday_runtime,
+                    'Birthday runtime settings changed during deployment; retry after review')
+            network = self.birthday_runtime['network']
+            info = json.loads(self.docker('network', 'inspect', network).stdout)
+            require(isinstance(info, list) and len(info) == 1
+                    and info[0].get('Name') == network and info[0].get('Driver') == 'bridge',
+                    'Birthday runtime requires an existing Docker bridge network')
+            runtime_options = ['--env-file', str(BIRTHDAY_ENV), '--network', network]
         self.docker(
             'run', '--detach', '--name', name, '--label', f'{OWNER_LABEL}={OWNER_VALUE}',
             '--user', '101:101', '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m,mode=1777',
@@ -119,6 +230,7 @@ class DockerHost:
             '--pids-limit', '128', '--memory', '256m', '--cpus', '1',
             '--restart', 'no' if candidate else 'unless-stopped',
             '--publish', '127.0.0.1::8080' if candidate else '127.0.0.1:3000:8080',
+            *runtime_options,
             '--entrypoint', '/usr/local/bin/node', image, '/opt/undery/container-entrypoint.mjs')
 
     def candidate_url(self, name):
@@ -175,7 +287,11 @@ class DockerHost:
         self.command([*args, SERVICE])
 
     def healthy(self, url, expected):
-        return healthy(url, expected, attempts=6 if url == PUBLIC_HEALTH else 40)
+        attempts = 6 if url == PUBLIC_HEALTH else 40
+        if not healthy(url, expected, attempts=attempts):
+            return False
+        return (self.birthday_runtime is None or not self.birthday_runtime['enabled']
+                or birthday_ready(url, attempts=attempts))
 
 
 def deploy(host, commit, branch, pipeline_commit, image, suffix=None):
@@ -252,7 +368,7 @@ def trusted_path(path, directory=False, private=False):
     require(stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode),
             'Unexpected deployment path type')
     if private:
-        require(not info.st_mode & 0o077, 'Registry configuration must be root-private')
+        require(not info.st_mode & 0o077, 'Deployment configuration must be root-private')
 
 
 def main():
@@ -265,6 +381,7 @@ def main():
     config = DOCKER_CONFIG / 'config.json'
     if config.exists() or config.is_symlink():
         trusted_path(config, private=True)
+    birthday_runtime = read_birthday_runtime()
     with ExitStack() as locks:
         # The first lock also serializes against the previously installed archive helper.
         for name in ('undery-feature-deploy.lock', 'undery-container-deploy.lock'):
@@ -274,7 +391,7 @@ def main():
             require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o077,
                     'Deployment lock must be a root-private regular file')
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        print(json.dumps(deploy(DockerHost(), *sys.argv[1:])))
+        print(json.dumps(deploy(DockerHost(birthday_runtime), *sys.argv[1:])))
 
 
 if __name__ == '__main__':

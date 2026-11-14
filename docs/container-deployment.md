@@ -52,6 +52,35 @@ sudo docker --config /etc/undery-ghcr login ghcr.io -u Undery33
 
 이미지가 public이면 익명 pull이 가능하므로 pull 토큰은 필요 없습니다. 저장소가 public이어도 새 GHCR 패키지의 공개 상태가 자동으로 public이라고 가정하지 않습니다. 이 작업은 패키지 공개 범위를 자동으로 바꾸지 않습니다. Jenkins push 토큰은 임시 Docker 설정에만 저장하고 종료 시 제거합니다. root pull 설정은 관리자 전용 경로에 저장합니다.
 
+## Birthday 메모의 기존 PostgreSQL 연결
+
+이 기능은 기존 프로젝트의 PostgreSQL을 사용합니다. 배포 helper는 DB나 Docker 네트워크를 새로 만들거나 DB 내용을 바꾸지 않습니다. 관리자에게 실제 DB 이름·접속 역할·DB 컨테이너 DNS 이름·기존 사용자 정의 bridge 네트워크를 확인하고, 메모 테이블의 검토된 마이그레이션을 먼저 적용해야 합니다. 호스트의 `127.0.0.1:5432`는 웹 컨테이너 자신의 루프백 주소와 다릅니다. 임시 컨테이너 IP를 접속 주소로 고정하지 않습니다.
+
+호스트 관리자는 다음 두 파일을 **함께** 준비합니다. 저장소·이미지·Jenkins 매개변수에 비밀번호를 넣지 않습니다.
+
+| 경로 | 내용 |
+| --- | --- |
+| `/etc/undery/birthday-memo.env` | 실제 PostgreSQL 접속 설정과 기능 스위치 |
+| `/etc/undery/birthday-memo-runtime.json` | `{"network":"실제로 확인한 기존 네트워크 이름"}` 형태의 JSON. `network` 이외 키는 허용하지 않음 |
+
+JSON의 한국어 설명값은 그대로 사용할 설정값이 아닙니다. 기존 DB 컨테이너가 연결된 사용자 정의 Docker bridge의 실제 이름으로 바꿉니다. helper는 해당 네트워크의 존재·이름·bridge 드라이버를 확인하며 `host`, `none`, 기본 `bridge` 네트워크는 허용하지 않습니다. DB가 기본 bridge에만 있다면 관리자가 기존 데이터 볼륨을 유지한 상태에서 사용자 정의 네트워크와 DB DNS 별칭을 별도로 준비해야 합니다. helper가 이 작업을 대신하지 않습니다.
+
+두 파일은 root 소유의 일반 파일이고 권한은 `0600` 또는 `0400`이어야 하며 심볼릭 링크를 허용하지 않습니다. `/etc`와 `/etc/undery`도 root 소유이며 다른 사용자에게 쓰기 권한이 없어야 합니다. `/etc/undery`의 `0750` 또는 `0700`은 허용합니다. JSON은 4 KiB, 환경 파일은 64 KiB까지 읽습니다. 기존 파일이 있으면 변경 전에 관리자 전용 위치에 백업하고, 내용이 완성된 파일을 원자적으로 교체합니다.
+
+환경 파일의 권장 키는 다음과 같습니다. 값은 Docker env-file의 리터럴 값이므로 `export`, 셸 확장, 값을 감싸는 셸 따옴표를 사용하지 않습니다. 비밀번호를 포함한 URL을 명령행이나 채팅에 쓰지 말고 관리자 편집기나 기존 비밀 설정 관리 방식으로 입력합니다.
+
+- `BIRTHDAY_MEMO_DATABASE_URL`: 기존 DB의 실제 PostgreSQL 연결 URL. DB 역할은 메모 기능에 필요한 권한만 사용합니다.
+- `BIRTHDAY_MEMO_ENABLED=true`: 메모 기능 사용. `false`는 기능을 잠시 중단할 때 사용합니다.
+- `BIRTHDAY_MEMO_TRUST_PROXY=true`: 검토된 호스트 Nginx가 직접 설정하고 컨테이너 Nginx가 전달하는 전용 `x-undery-client-ip` 헤더를 신뢰합니다. 외부 입력을 그대로 신뢰하는 프록시에서는 켜지 않습니다.
+
+기존 설정을 재사용해야 할 때는 `DATABASE_URL`, 또는 `PGHOST`·`PGDATABASE`·`PGUSER`와 `PGPORT`, `PGPASSWORD`, `PGSSLMODE`, `PGCONNECT_TIMEOUT`도 허용합니다. 현재 DB 드라이버가 자동으로 읽지 않는 `PGSSLROOTCERT`, `PGSSLCERT`, `PGSSLKEY`는 거부합니다. TLS 인증서 연결이 필요하면 드라이버가 지원하는 연결 문자열 옵션과 컨테이너 내부 인증서 경로를 별도로 검토해야 하며, 이 연결을 위해 TLS 검증을 끄지 않습니다. `NODE_OPTIONS`, `LD_PRELOAD`, 알려지지 않은 키, 중복 키, 등호가 없는 키는 거부합니다. 환경 파일의 내용이나 DB URL을 배포 로그에 출력하지 않습니다.
+
+두 파일이 모두 없으면 기존 배포 동작을 그대로 사용합니다. 하나만 있거나 권한·구문이 틀리면 운영 컨테이너를 변경하기 전에 중단합니다. 후보와 운영 컨테이너에는 같은 고정 env-file과 네트워크를 전달하며, 배포 중 설정이 바뀌면 중단하고 이전 런타임을 복원합니다. 이전 컨테이너의 DB 환경과 네트워크는 rollback 과정에서 그대로 보존됩니다.
+
+기능이 켜진 경우 기존 `/api/health`의 커밋 검증에 더해 후보·호스트 루프백·공개 HTTPS에서 `/birthday/memo/feed?page=0&order=oldest`를 읽어 HTTP 200과 정상 JSON 목록 응답을 확인합니다. DB 접속이나 테이블이 준비되지 않으면 새 운영 전환을 완료하지 않습니다. 이 검사는 글을 등록하지 않습니다. 기능을 명시적으로 `false`로 끈 경우 DB 목록 검사는 생략합니다.
+
+마지막으로 실제 URL 복사·붙여넣기 등록, 같은 토큰 재시도, 조회, 작성자가 없는 새 VRChat 인스턴스 표시를 별도 확인해야 합니다. 단위 테스트나 후보 목록 조회 성공만으로 이 검증까지 완료됐다고 판단하지 않습니다.
+
 ## Jenkins 실행
 
 기존 `Undery_Feature`의 SCM을 위 고정 브랜치로 변경합니다. 전체 Job 예시는 `deploy/jenkins-job.xml`에 있습니다. 저장소 URL은 `https://github.com/Undery33/Undery.git`, Script Path는 `Jenkinsfile`, Lightweight checkout은 끕니다.

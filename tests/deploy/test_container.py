@@ -1,8 +1,12 @@
 import copy
 import importlib.util
+import io
+import json
 from pathlib import Path
+import stat
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 spec = importlib.util.spec_from_file_location(
     'container_deploy', Path(__file__).resolve().parents[2] / 'deploy/undery-deploy-container.py')
@@ -146,6 +150,8 @@ class ContainerDeploymentTests(unittest.TestCase):
             self.assertNotIn('--mount', args)
             self.assertNotIn('--volume', args)
             self.assertNotIn('-v', args)
+            self.assertNotIn('--env-file', args)
+            self.assertNotIn('--network', args)
             host.run('undery-web-candidate-123-456', IMAGE, candidate=True)
             args = docker.call_args.args
             self.assertEqual(args[args.index('--publish') + 1], '127.0.0.1::8080')
@@ -231,6 +237,196 @@ class ContainerDeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Foreign container'):
             deployment.deploy(host, *ARGS, suffix='123-456')
         self.assertEqual(host.events, [])
+
+
+class BirthdayRuntimeTests(unittest.TestCase):
+    ENV = b'BIRTHDAY_MEMO_DATABASE_URL=postgresql://memo:local-test@existing-postgres/birthday\nBIRTHDAY_MEMO_TRUST_PROXY=true\n'
+    SETTINGS = b'{"network":"undery-existing-data"}'
+
+    def load(self, environment=None, settings=None):
+        environment = self.ENV if environment is None else environment
+        settings = self.SETTINGS if settings is None else settings
+        with patch.object(deployment.os.path, 'lexists', return_value=True), \
+                patch.object(deployment, 'trusted_path') as trusted, \
+                patch.object(deployment, 'private_file_bytes', side_effect=[environment, settings]):
+            result = deployment.read_birthday_runtime()
+            self.assertEqual([call.args[0] for call in trusted.call_args_list],
+                             [deployment.BIRTHDAY_DIRECTORY.parent, deployment.BIRTHDAY_DIRECTORY])
+            return result
+
+    def test_missing_pair_preserves_legacy_but_partial_pair_fails_closed(self):
+        with patch.object(deployment.os.path, 'lexists', return_value=False), \
+                patch.object(deployment, 'trusted_path') as trusted:
+            self.assertIsNone(deployment.read_birthday_runtime())
+            trusted.assert_not_called()
+        for present in ([True, False], [False, True]):
+            with self.subTest(present=present), \
+                    patch.object(deployment.os.path, 'lexists', side_effect=present), \
+                    self.assertRaisesRegex(ValueError, 'installed together'):
+                deployment.read_birthday_runtime()
+
+    def test_root_owner_private_file_and_no_symlink_are_required(self):
+        for mode, uid in [(stat.S_IFLNK | 0o600, 0), (stat.S_IFREG | 0o640, 0),
+                          (stat.S_IFREG | 0o600, 1000), (stat.S_IFDIR | 0o600, 0)]:
+            path = Mock()
+            path.lstat.return_value = SimpleNamespace(st_mode=mode, st_uid=uid)
+            with self.subTest(mode=mode, uid=uid), self.assertRaises(ValueError):
+                deployment.trusted_path(path, private=True)
+        directory = Mock()
+        directory.lstat.return_value = SimpleNamespace(st_mode=stat.S_IFDIR | 0o750, st_uid=0)
+        deployment.trusted_path(directory, directory=True)
+
+    def test_opened_inode_is_rechecked_bounded_and_opened_without_following(self):
+        class BytesFile(io.BytesIO):
+            def fileno(self):
+                return 123
+        valid = SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_uid=0, st_size=3)
+        for info, data, limit, succeeds in [
+            (valid, b'abc', 3, True),
+            (SimpleNamespace(st_mode=stat.S_IFREG | 0o644, st_uid=0, st_size=3), b'abc', 3, False),
+            (SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_uid=1000, st_size=3), b'abc', 3, False),
+            (SimpleNamespace(st_mode=stat.S_IFREG | 0o700, st_uid=0, st_size=3), b'abc', 3, False),
+            (SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_uid=0, st_size=4), b'abcd', 3, False),
+            (valid, b'abcd', 3, False),  # File grew after fstat.
+        ]:
+            with self.subTest(info=info, data=data), \
+                    patch.object(deployment, 'trusted_path'), \
+                    patch.object(deployment.os, 'O_NOFOLLOW', 0x20000000, create=True), \
+                    patch.object(deployment.os, 'O_CLOEXEC', 0x10000000, create=True), \
+                    patch.object(deployment.os, 'open', return_value=123) as opened, \
+                    patch.object(deployment.os, 'fdopen', return_value=BytesFile(data)), \
+                    patch.object(deployment.os, 'fstat', return_value=info):
+                if succeeds:
+                    self.assertEqual(deployment.private_file_bytes(deployment.BIRTHDAY_ENV, limit), data)
+                else:
+                    with self.assertRaises(ValueError):
+                        deployment.private_file_bytes(deployment.BIRTHDAY_ENV, limit)
+                self.assertEqual(opened.call_args.args[1],
+                                 deployment.os.O_RDONLY | 0x20000000 | 0x10000000)
+
+    def test_environment_accepts_only_explicit_connection_settings_without_echoing_values(self):
+        valid = self.load()
+        self.assertEqual(valid['network'], 'undery-existing-data')
+        self.assertNotIn('local-test', repr(valid))
+        self.assertEqual(len(valid['environment_sha256']), 64)
+        self.load(environment=b'PGHOST=existing-postgres\nPGDATABASE=birthday\nPGUSER=memo\nPGPASSWORD=local-test\n')
+        self.load(environment=b'BIRTHDAY_MEMO_ENABLED=false\n')
+        for invalid in [
+            self.ENV + b'NODE_OPTIONS=--require=/tmp/x\n',
+            self.ENV + b'LD_PRELOAD=/tmp/x\n',
+            self.ENV + b'PGSSLROOTCERT=/tmp/root.pem\n',
+            self.ENV + b'PGSSLCERT=/tmp/client.pem\n',
+            self.ENV + b'PGSSLKEY=/tmp/client.key\n',
+            self.ENV + b'PGPASSWORD\n',
+            self.ENV + b'BIRTHDAY_MEMO_TRUST_PROXY=false\n',
+            b'BIRTHDAY_MEMO_ENABLED=yes\n',
+            b'PGHOST=existing-postgres\nPGUSER=memo\n',
+            b'BIRTHDAY_MEMO_DATABASE_URL=local-test\x00\n',
+            b'\xff\n',
+        ]:
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError) as raised:
+                self.load(environment=invalid)
+            self.assertNotIn('local-test', str(raised.exception))
+
+    def test_network_json_rejects_special_networks_options_unknown_keys_and_bad_names(self):
+        for name in ['host', 'none', 'bridge', '--network=host', 'bad name', 'a/b', 'a' * 129, None]:
+            with self.subTest(network=name), self.assertRaises(ValueError):
+                self.load(settings=json.dumps({'network': name}).encode())
+        for value in [b'{}', b'[]', b'{bad', b'{"network":"data","environmentFile":"/tmp/env"}',
+                      b'{"network":"first","network":"second"}']:
+            with self.subTest(settings=value), self.assertRaises(ValueError):
+                self.load(settings=value)
+
+    def test_candidate_and_production_share_fixed_env_file_and_existing_bridge_network(self):
+        settings = self.load()
+        host = deployment.DockerHost(settings)
+        network = SimpleNamespace(stdout=json.dumps([{'Name': settings['network'], 'Driver': 'bridge'}]))
+        with patch.object(host, 'container', return_value=None), \
+                patch.object(deployment, 'read_birthday_runtime', return_value=settings), \
+                patch.object(host, 'docker', return_value=network) as docker:
+            host.run('undery-web-candidate-123-456', IMAGE, candidate=True)
+            host.run(deployment.CURRENT, IMAGE)
+            runs = [call.args for call in docker.call_args_list if call.args[0] == 'run']
+            self.assertEqual(len(runs), 2)
+            for args in runs:
+                self.assertEqual(args[args.index('--env-file') + 1], str(deployment.BIRTHDAY_ENV))
+                self.assertEqual(args[args.index('--network') + 1], settings['network'])
+                self.assertNotIn('local-test', repr(args))
+                self.assertNotIn('--mount', args)
+                self.assertNotIn('--privileged', args)
+
+    def test_invalid_or_changed_runtime_never_starts_a_container(self):
+        settings = self.load()
+        host = deployment.DockerHost(settings)
+        for network in [[{'Name': settings['network'], 'Driver': 'host'}],
+                        [{'Name': 'wrong', 'Driver': 'bridge'}], [], {}]:
+            with self.subTest(network=network), \
+                    patch.object(host, 'container', return_value=None), \
+                    patch.object(deployment, 'read_birthday_runtime', return_value=settings), \
+                    patch.object(host, 'docker', return_value=SimpleNamespace(stdout=json.dumps(network))) as docker, \
+                    self.assertRaises(ValueError):
+                host.run(deployment.CURRENT, IMAGE)
+            self.assertFalse(any(call.args[0] == 'run' for call in docker.call_args_list))
+        with patch.object(host, 'container', return_value=None), \
+                patch.object(deployment, 'read_birthday_runtime', return_value=None), \
+                patch.object(host, 'docker') as docker, self.assertRaisesRegex(ValueError, 'changed'):
+            host.run(deployment.CURRENT, IMAGE)
+        docker.assert_not_called()
+
+    def test_rollback_preserves_previous_database_environment_and_network(self):
+        candidate_url = 'http://127.0.0.1:49152/api/health'
+        for failed_url in [candidate_url, deployment.LOCAL_HEALTH, deployment.PUBLIC_HEALTH]:
+            host = FakeHost(existing=True, enabled='disabled')
+            host.containers[deployment.CURRENT]['Config']['Env'] = ['BIRTHDAY_MEMO_ENABLED=false']
+            host.containers[deployment.CURRENT]['NetworkSettings'] = {'Networks': {'previous-data': {}}}
+            original = copy.deepcopy(host.containers[deployment.CURRENT])
+            host.healthy = deployment.DockerHost(self.load()).healthy
+
+            def feed_response(url, limit):
+                if url == failed_url.replace('/api/health', '/birthday/memo/feed?page=0&order=oldest'):
+                    raise OSError('database unavailable')
+                return {'ok': True, 'page': 0, 'entries': []}
+
+            error_type = ValueError if failed_url == candidate_url else RuntimeError
+            error_message = 'Candidate health failed' if failed_url == candidate_url else 'previous runtime restored'
+            with self.subTest(failed_url=failed_url), \
+                    patch.object(deployment, 'healthy', return_value=True), \
+                    patch.object(deployment, 'read_json', side_effect=feed_response), \
+                    patch.object(deployment.time, 'sleep'), \
+                    self.assertRaisesRegex(error_type, error_message):
+                deployment.deploy(host, *ARGS, suffix='123-456')
+            self.assertEqual(host.containers, {deployment.CURRENT: original})
+            if failed_url == candidate_url:
+                self.assertFalse(any(event[0] == 'stop' for event in host.events))
+
+    def test_enabled_birthday_requires_readonly_database_feed_health_at_each_url(self):
+        host = deployment.DockerHost(self.load())
+        expected = deployment.expected_health(GUI, BRANCH, PIPELINE)
+        for url in ['http://127.0.0.1:49152/api/health', deployment.LOCAL_HEALTH, deployment.PUBLIC_HEALTH]:
+            with self.subTest(url=url), patch.object(deployment, 'healthy', return_value=True), \
+                    patch.object(deployment, 'birthday_ready', return_value=False) as ready:
+                self.assertFalse(host.healthy(url, expected))
+                ready.assert_called_once_with(url, attempts=6 if url == deployment.PUBLIC_HEALTH else 40)
+        with patch.object(deployment, 'healthy', return_value=False), \
+                patch.object(deployment, 'birthday_ready') as ready:
+            self.assertFalse(host.healthy(deployment.LOCAL_HEALTH, expected))
+            ready.assert_not_called()
+        for config in [None, self.load(environment=b'BIRTHDAY_MEMO_ENABLED=false\n')]:
+            with patch.object(deployment, 'healthy', return_value=True), \
+                    patch.object(deployment, 'birthday_ready') as ready:
+                self.assertTrue(deployment.DockerHost(config).healthy(deployment.LOCAL_HEALTH, expected))
+                ready.assert_not_called()
+
+    def test_feed_probe_uses_readonly_oldest_path_and_fails_on_bad_database_response(self):
+        with patch.object(deployment, 'read_json', return_value={'ok': True, 'page': 0, 'entries': []}) as read:
+            self.assertTrue(deployment.birthday_ready(deployment.PUBLIC_HEALTH, attempts=1))
+            read.assert_called_once_with('https://undery.link/birthday/memo/feed?page=0&order=oldest', 1048576)
+        for response in [{'ok': False, 'page': 0, 'entries': []}, {'ok': True, 'page': 1, 'entries': []},
+                         {'ok': True, 'page': 0}, {'ok': True, 'page': False, 'entries': []}, [], 'not JSON object']:
+            with self.subTest(response=response), patch.object(deployment, 'read_json', return_value=response):
+                self.assertFalse(deployment.birthday_ready(deployment.LOCAL_HEALTH, attempts=1))
+        with patch.object(deployment, 'read_json', side_effect=OSError('unavailable')):
+            self.assertFalse(deployment.birthday_ready(deployment.LOCAL_HEALTH, attempts=1))
 
 
 if __name__ == '__main__':
