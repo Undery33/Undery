@@ -122,6 +122,61 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual((target / 'content/computer/post.md').read_text(), 'content')
         self.assertTrue(archive.with_suffix('.gz.sha256').exists())
 
+    def package_fixture(self):
+        runtime = self.root / 'source'
+        for name, data in [('server.js', '// runtime'), ('.next/BUILD_ID', 'build'),
+                           ('.next/static/site.css', 'body {}'), ('content/computer/post.md', 'content'),
+                           ('build-info.json', json.dumps(METADATA)),
+                           ('node_modules/pg/package.json', '{"main":"index.js"}'),
+                           ('node_modules/pg/index.js', 'module.exports = {};')]:
+            file = runtime / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text(data)
+        (runtime / '.next/node_modules').mkdir()
+        return runtime, self.root / 'artifacts/release.tar.gz'
+
+    def test_packages_internal_directory_aliases_under_both_names(self):
+        runtime, archive = self.package_fixture()
+        (runtime / '.next/node_modules/pg-hash').symlink_to('../../node_modules/pg', target_is_directory=True)
+        (runtime / '.next/node_modules/pg-second').symlink_to('pg-hash', target_is_directory=True)
+        packager.package(runtime, archive)
+        with tarfile.open(archive) as content:
+            for name in ('node_modules/pg/index.js', '.next/node_modules/pg-hash/index.js', '.next/node_modules/pg-second/index.js'):
+                self.assertTrue(content.getmember(name).isfile())
+                self.assertEqual(content.extractfile(name).read(), b'module.exports = {};')
+        target = self.root / 'unpacked'
+        target.mkdir()
+        release.extract(archive, target, COMMIT, BRANCH)
+        self.assertTrue((target / '.next/node_modules/pg-hash/package.json').is_file())
+
+    def test_packager_rejects_directory_link_escape_and_cycles(self):
+        runtime, archive = self.package_fixture()
+        link = runtime / '.next/node_modules/bad'
+        outside = self.root / 'outside'
+        outside.mkdir()
+        link.symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'escapes'):
+            packager.package(runtime, archive)
+        link.unlink()
+        link.symlink_to(runtime, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, 'cycle'):
+            packager.package(runtime, archive)
+
+    def test_packager_rejects_secret_targets_and_broken_links(self):
+        runtime, archive = self.package_fixture()
+        cache = runtime / '.next/cache'
+        cache.mkdir()
+        secret = cache / '.env.secret'
+        secret.write_text('fixture-secret')
+        link = runtime / '.next/node_modules/disguised'
+        link.symlink_to(secret)
+        with self.assertRaisesRegex(ValueError, 'Environment'):
+            packager.package(runtime, archive)
+        link.unlink()
+        link.symlink_to(runtime / 'missing')
+        with self.assertRaisesRegex(ValueError, 'Special file'):
+            packager.package(runtime, archive)
+
 
 if __name__ == '__main__':
     unittest.main()

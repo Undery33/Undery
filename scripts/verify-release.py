@@ -17,3 +17,5 @@ with tempfile.TemporaryDirectory(prefix='undery-verify-') as directory:
     release.extract(root / 'artifacts/release.tar.gz', Path(directory), commit, branch)
     subprocess.run(['node', 'scripts/verify-production.mjs'], cwd=root, check=True,
                    env={**os.environ, 'RUNTIME_DIRECTORY': directory, 'BUILD_COMMIT': commit, 'SOURCE_BRANCH': branch})
+    subprocess.run(['node', 'tests/birthday-memo-http.mjs'], cwd=root, check=True,
+                   env={**os.environ, 'RUNTIME_DIRECTORY': directory})

@@ -33,7 +33,7 @@ try {
   assert.ok(ready, "Temporary production server must become ready.");
   const page = await read("/birthday/memo");
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /방명록을 불러오지 못했어요/);
+  assert.match(await page.text(), /메시지를 불러오지 못했어요/);
   for (const route of ["/birthday/memo/prepare", "/birthday/memo/feed?page=0&order=oldest"]) {
     const response = await read(route);
     assert.equal(response.status, 503, route);
@@ -49,7 +49,17 @@ try {
   assert.equal((await read("/birthday/memo/submit", "HEAD")).status, 405);
   assert.equal((await read("/birthday/memo/submit", "POST")).status, 405);
   assert.equal((await read("/birthday/memo/feed?page=0&order=invalid")).status, 400);
+  const managementPage = await read("/birthday/memo/admin");
+  assert.equal(managementPage.status, 200);
+  assert.match(await managementPage.text(), /메시지 관리/);
+  const managementApi = await read("/birthday/memo/admin/entries");
+  assert.equal(managementApi.status, 503);
+  assert.equal((await managementApi.json()).error, "auth_unavailable");
+  assert.equal((await read("/api/auth/github", "GET")).status, 405);
+  assert.equal((await read("/api/auth/github", "POST")).status, 503);
+  assert.equal((await read("/api/auth/github/callback", "HEAD")).status, 405);
   console.log("PASS birthday subdirectory routes, no redirects/cache, blank nickname rejection, safe missing-DB failure and read-only HEAD/POST");
+  console.log("PASS message management renders and authentication endpoints fail closed without configuration");
   console.log("PostgreSQL persistence is deliberately not covered by this HTTP check.");
 } finally {
   if (server.exitCode === null) server.kill("SIGTERM");

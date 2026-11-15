@@ -77,6 +77,12 @@ JSON의 한국어 설명값은 그대로 사용할 설정값이 아닙니다. �
 
 두 파일이 모두 없으면 기존 배포 동작을 그대로 사용합니다. 하나만 있거나 권한·구문이 틀리면 운영 컨테이너를 변경하기 전에 중단합니다. 후보와 운영 컨테이너에는 같은 고정 env-file과 네트워크를 전달하며, 배포 중 설정이 바뀌면 중단하고 이전 런타임을 복원합니다. 이전 컨테이너의 DB 환경과 네트워크는 rollback 과정에서 그대로 보존됩니다.
 
+메시지 관리는 기존 GitHub 로그인 설정 `SITE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `ADMIN_GITHUB_ID` 네 개를 같은 보호된 env-file에 함께 전달합니다. 기존 `/etc/undery/app.env`의 값을 서버 안에서 재사용하며 새 계정이나 비밀번호를 만들지 않습니다. 일부 키만 있거나 비어 있으면 배포를 거부합니다. 이 고정 사이트의 `SITE_URL`은 `https://undery.link`(마지막 `/` 허용), 관리자 ID는 기존 GitHub 숫자 ID여야 합니다. 비밀 값은 이미지·저장소·빌드 인수에 넣지 않습니다.
+
+컨테이너는 GET/HEAD 외에 정확히 `/api/auth/github`, `/api/auth/logout`, `/birthday/memo/admin/entries` 세 경로의 POST만 허용하며 애플리케이션에서 Origin·세션·CSRF를 검사합니다. OAuth callback은 GET입니다. 호스트의 기존 `/api/auth/` location은 `deploy/admin-auth-host-location.conf`를 검토해 교체하고, 메시지 location은 `deploy/birthday-memo-host-location.conf`를 사용합니다. 중복 location을 추가하지 않고 백업·`nginx -t` 후 반영합니다. 두 계층 모두 해당 경로의 access/error 로그를 끄므로 OAuth 코드와 등록 URL이 로그에 남지 않습니다.
+
+관리 설정이 있으면 후보·loopback·공개 HTTPS 각각에서 `/admin`의 canonical URL 303, 메시지 관리 로그인 페이지 200, 비인증 관리 API 401을 읽기 요청으로 확인합니다. OAuth를 시작하거나 세션·메시지를 만들지 않습니다. 외부 HTTP smoke는 `SMOKE_ADMIN_ENABLED=true`로 같은 활성 상태를 기대합니다. 설정 없는 CI 컨테이너는 관리자 API 503과 정확한 POST 경로만 앱에 도달하는지 확인합니다. 실제 GitHub 계정 승인·callback 성공은 별도 브라우저 검증입니다.
+
 기능이 켜진 경우 기존 `/api/health`의 커밋 검증에 더해 후보·호스트 루프백·공개 HTTPS에서 `/birthday/memo/feed?page=0&order=oldest`를 읽어 HTTP 200과 정상 JSON 목록 응답을 확인합니다. DB 접속이나 테이블이 준비되지 않으면 새 운영 전환을 완료하지 않습니다. 이 검사는 글을 등록하지 않습니다. 기능을 명시적으로 `false`로 끈 경우 DB 목록 검사는 생략합니다.
 
 마지막으로 실제 URL 복사·붙여넣기 등록, 같은 토큰 재시도, 조회, 작성자가 없는 새 VRChat 인스턴스 표시를 별도 확인해야 합니다. 단위 테스트나 후보 목록 조회 성공만으로 이 검증까지 완료됐다고 판단하지 않습니다.

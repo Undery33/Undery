@@ -151,6 +151,18 @@ def verify(base, expected):
         assert 'noindex' in headers.get('X-Robots-Tag', ''), path
         assert not re.search(rb'<form\b', content, re.IGNORECASE), path
         assert read(path, method='POST')[0] == 405, path
+    html_page('/birthday/memo/admin')
+    # CI has no credentials. Exact POST routes reach the closed app, while every
+    # other write remains rejected by Nginx. No login attempts or messages created.
+    for path in ('/api/auth/github', '/api/auth/logout', '/birthday/memo/admin/entries'):
+        status, headers, content = read(path, method='POST')
+        assert status == 503 and json.loads(content)['error'] == 'auth_unavailable', path
+        assert 'no-store' in ','.join(headers.get_all('Cache-Control', [])), path
+        assert 'no-referrer' in ','.join(headers.get_all('Referrer-Policy', [])), path
+        assert read(path, method='DELETE')[0] == 405, path
+    for path in ('/birthday/memo/submit', '/birthday/memo/prepare', '/api/auth/github/callback',
+                 '/api/auth/github/extra', '/birthday/memo/admin/entries/extra'):
+        assert read(path, method='POST')[0] == 405, path
     sitemap_status, _, sitemap_body = read('/sitemap.xml')
     assert sitemap_status == 200
     assert b'/portfolio' not in sitemap_body and b'/admin' not in sitemap_body

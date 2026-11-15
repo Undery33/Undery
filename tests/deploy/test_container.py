@@ -241,6 +241,7 @@ class ContainerDeploymentTests(unittest.TestCase):
 
 class BirthdayRuntimeTests(unittest.TestCase):
     ENV = b'BIRTHDAY_MEMO_DATABASE_URL=postgresql://memo:local-test@existing-postgres/birthday\nBIRTHDAY_MEMO_TRUST_PROXY=true\n'
+    AUTH = b'SITE_URL=https://undery.link\nGITHUB_CLIENT_ID=example-client\nGITHUB_CLIENT_SECRET=private-example\nADMIN_GITHUB_ID=123456\n'
     SETTINGS = b'{"network":"undery-existing-data"}'
 
     def load(self, environment=None, settings=None):
@@ -336,6 +337,60 @@ class BirthdayRuntimeTests(unittest.TestCase):
                       b'{"network":"first","network":"second"}']:
             with self.subTest(settings=value), self.assertRaises(ValueError):
                 self.load(settings=value)
+
+    def test_existing_owner_auth_requires_complete_canonical_configuration_without_echoing_secrets(self):
+        self.assertFalse(self.load()['admin_enabled'])
+        valid = self.load(environment=self.ENV + self.AUTH)
+        self.assertTrue(valid['admin_enabled'])
+        self.assertNotIn('private-example', repr(valid))
+        self.assertNotIn('123456', repr(valid))
+        for invalid in [
+            self.AUTH.replace(b'ADMIN_GITHUB_ID=123456\n', b''),
+            self.AUTH.replace(b'https://undery.link', b'http://undery.link'),
+            self.AUTH.replace(b'https://undery.link', b'https://elsewhere.invalid'),
+            self.AUTH.replace(b'https://undery.link', b'https://undery.link/path'),
+            self.AUTH.replace(b'ADMIN_GITHUB_ID=123456', b'ADMIN_GITHUB_ID=0'),
+            self.AUTH.replace(b'ADMIN_GITHUB_ID=123456', b'ADMIN_GITHUB_ID=owner-name'),
+            self.AUTH.replace(b'GITHUB_CLIENT_SECRET=private-example', b'GITHUB_CLIENT_SECRET='),
+            self.AUTH.replace(b'GITHUB_CLIENT_SECRET=private-example', b'GITHUB_CLIENT_SECRET= private-example'),
+            self.AUTH + b'BIRTHDAY_MEMO_ENABLED=false\n',
+        ]:
+            with self.subTest(case=invalid.split(b'=')[0]), self.assertRaises(ValueError) as raised:
+                self.load(environment=self.ENV + invalid)
+            self.assertNotIn('private-example', str(raised.exception))
+
+    def test_admin_probes_check_canonical_redirect_login_page_and_closed_api_without_mutating(self):
+        responses = [
+            (303, {'Location': 'https://undery.link/birthday/memo/admin', 'Cache-Control': 'no-store'}, b''),
+            (200, {'Cache-Control': 'private, no-store'}, b'<button>GitHub login</button>'),
+            (401, {'Cache-Control': 'no-store'}, b'{"ok":false,"error":"login_required"}'),
+        ]
+        with patch.object(deployment, 'read_response', side_effect=responses) as read:
+            self.assertTrue(deployment.admin_ready(deployment.PUBLIC_HEALTH, attempts=1))
+            self.assertEqual([call.args[0] for call in read.call_args_list], [
+                'https://undery.link/admin', 'https://undery.link/birthday/memo/admin',
+                'https://undery.link/birthday/memo/admin/entries'])
+        for index, invalid in [
+            (0, (503, {'Cache-Control': 'no-store'}, b'')),
+            (0, (303, {'Location': 'https://elsewhere.invalid', 'Cache-Control': 'no-store'}, b'')),
+            (1, (200, {}, b'GitHub')),
+            (2, (200, {'Cache-Control': 'no-store'}, b'{"entries":[]}')),
+            (2, (503, {'Cache-Control': 'no-store'}, b'{"error":"auth_unavailable"}')),
+        ]:
+            broken = responses.copy()
+            broken[index] = invalid
+            with self.subTest(index=index, status=invalid[0]), patch.object(deployment, 'read_response', side_effect=broken):
+                self.assertFalse(deployment.admin_ready(deployment.LOCAL_HEALTH, attempts=1))
+
+    def test_configured_auth_is_checked_at_candidate_loopback_and_public_urls(self):
+        host = deployment.DockerHost(self.load(environment=self.ENV + self.AUTH))
+        expected = deployment.expected_health(GUI, BRANCH, PIPELINE)
+        for url in ['http://127.0.0.1:49152/api/health', deployment.LOCAL_HEALTH, deployment.PUBLIC_HEALTH]:
+            with self.subTest(url=url), patch.object(deployment, 'healthy', return_value=True), \
+                    patch.object(deployment, 'birthday_ready', return_value=True), \
+                    patch.object(deployment, 'admin_ready', return_value=False) as ready:
+                self.assertFalse(host.healthy(url, expected))
+                ready.assert_called_once_with(url, attempts=6 if url == deployment.PUBLIC_HEALTH else 40)
 
     def test_candidate_and_production_share_fixed_env_file_and_existing_bridge_network(self):
         settings = self.load()

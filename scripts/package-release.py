@@ -17,18 +17,35 @@ def package(root=Path('.next/standalone'), output=Path('artifacts/release.tar.gz
         if not (root / required).exists():
             raise ValueError(f'Incomplete runtime: {required}')
     output.parent.mkdir(parents=True, exist_ok=True)
-    # Dereference dependency symlinks into regular files, never paths outside runtime.
-    with tarfile.open(output, 'w:gz', dereference=True) as archive:
-        for file in sorted(root.rglob('*')):
+    def runtime_files(directory, ancestors=frozenset()):
+        resolved = directory.resolve(strict=True)
+        if not resolved.is_relative_to(root):
+            raise ValueError('Runtime symlink escapes standalone directory')
+        if resolved in ancestors:
+            raise ValueError('Runtime symlink directory cycle')
+        for file in sorted(directory.iterdir()):
             relative = file.relative_to(root)
             if any(part.startswith('.env') for part in relative.parts):
                 raise ValueError('Environment file in runtime')
             if not file.resolve().is_relative_to(root):
                 raise ValueError('Runtime symlink escapes standalone directory')
-            if relative.parts[:2] == ('.next', 'cache') or file.is_dir():
+            if any(part.startswith('.env') for part in file.resolve().relative_to(root).parts):
+                raise ValueError('Environment file in runtime')
+            if relative.parts[:2] == ('.next', 'cache'):
                 continue
-            if not file.is_file():
+            if file.is_dir():
+                # Turbopack creates directory aliases under .next/node_modules.
+                # rglob does not descend into symlink directories, so explicitly
+                # visit each lexical alias while rejecting ancestor cycles.
+                yield from runtime_files(file, ancestors | {resolved})
+            elif file.is_file():
+                yield file
+            else:
                 raise ValueError('Special file in runtime')
+    # Dereference dependency symlinks into regular files, never paths outside runtime.
+    with tarfile.open(output, 'w:gz', dereference=True) as archive:
+        for file in runtime_files(root):
+            relative = file.relative_to(root)
             archive.add(file, arcname=relative.as_posix(), recursive=False)
     with output.open('rb') as artifact:
         sha = hashlib.file_digest(artifact, 'sha256').hexdigest()

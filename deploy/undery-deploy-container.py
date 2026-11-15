@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import urllib.error
 
 IMAGE_REPOSITORY = 'ghcr.io/undery33/undery'
 DOCKER = '/usr/bin/docker'
@@ -30,7 +31,9 @@ BIRTHDAY_ENV_KEYS = frozenset({
     'BIRTHDAY_MEMO_DATABASE_URL', 'BIRTHDAY_MEMO_ENABLED', 'BIRTHDAY_MEMO_TRUST_PROXY',
     'DATABASE_URL', 'PGHOST', 'PGDATABASE', 'PGUSER', 'PGPORT', 'PGPASSWORD',
     'PGSSLMODE', 'PGCONNECT_TIMEOUT',
+    'SITE_URL', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'ADMIN_GITHUB_ID',
 })
+ADMIN_ENV_KEYS = frozenset({'SITE_URL', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'ADMIN_GITHUB_ID'})
 
 
 def require(condition, message):
@@ -66,16 +69,25 @@ def verify_image(info, commit, branch, pipeline_commit, image):
     require(not info.get('Config', {}).get('Volumes'), 'Image-declared volumes are not allowed')
 
 
-def read_json(url, limit):
+def read_response(url, limit):
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             return None
 
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
-    with opener.open(url, timeout=5) as response:
-        require(response.status == 200, 'Health endpoint must return HTTP 200')
+    try:
+        response = opener.open(url, timeout=5)
+    except urllib.error.HTTPError as error:
+        response = error
+    with response:
         body = response.read(limit + 1)
     require(len(body) <= limit, 'Oversized health response')
+    return response.status, response.headers, body
+
+
+def read_json(url, limit):
+    status, _, body = read_response(url, limit)
+    require(status == 200, 'Health endpoint must return HTTP 200')
     return json.loads(body)
 
 
@@ -105,6 +117,31 @@ def birthday_ready(health_url, attempts=40):
                     and type(result.get('page')) is int and result.get('page') == 0
                     and isinstance(result.get('entries'), list)):
                 return True
+        except (OSError, ValueError):
+            pass
+        if attempt + 1 < attempts:
+            time.sleep(0.5)
+    return False
+
+
+def admin_ready(health_url, attempts=40):
+    """Read-only probes: never create a login attempt or fabricate a session."""
+    require(health_url.endswith('/api/health'), 'Unexpected deployment health URL')
+    base = health_url[:-len('/api/health')]
+    for attempt in range(attempts):
+        try:
+            status, headers, _ = read_response(base + '/admin', 65536)
+            require(status == 303 and headers.get('Location') == 'https://undery.link/birthday/memo/admin'
+                    and 'no-store' in headers.get('Cache-Control', ''), 'Admin redirect unavailable')
+            status, headers, body = read_response(base + '/birthday/memo/admin', 1048576)
+            require(status == 200 and 'no-store' in headers.get('Cache-Control', '')
+                    and b'GitHub' in body, 'Admin login page unavailable')
+            status, headers, body = read_response(base + '/birthday/memo/admin/entries', 65536)
+            result = json.loads(body)
+            require(status == 401 and 'no-store' in headers.get('Cache-Control', '')
+                    and isinstance(result, dict) and result.get('error') == 'login_required',
+                    'Unauthenticated management API must remain closed')
+            return True
         except (OSError, ValueError):
             pass
         if attempt + 1 < attempts:
@@ -149,9 +186,24 @@ def validate_birthday_environment(data):
         require(bool(values.get('BIRTHDAY_MEMO_DATABASE_URL') or values.get('DATABASE_URL'))
                 or all(values.get(key) for key in ('PGHOST', 'PGDATABASE', 'PGUSER')),
                 'Birthday runtime requires the existing PostgreSQL connection settings')
+    configured_keys = ADMIN_ENV_KEYS.intersection(values)
+    require(not configured_keys or configured_keys == ADMIN_ENV_KEYS,
+            'Existing administrator authentication requires all four settings')
+    if configured_keys:
+        require(values.get('BIRTHDAY_MEMO_ENABLED') != 'false',
+                'Administrator authentication requires birthday messages to be enabled')
+        # This deployment helper serves one fixed production origin; no callbacks to other hosts.
+        require(values['SITE_URL'] in ('https://undery.link', 'https://undery.link/'),
+                'Administrator SITE_URL must be the canonical HTTPS origin')
+        require(all(values[key] and values[key] == values[key].strip()
+                    and not any(ord(char) < 32 or ord(char) == 127 for char in values[key])
+                    for key in ADMIN_ENV_KEYS), 'Administrator settings must be nonempty literal values')
+        require(bool(re.fullmatch(r'[1-9][0-9]*', values['ADMIN_GITHUB_ID'])),
+                'Administrator GitHub identifier must be numeric')
     # Do not return credentials; retain only a fingerprint for same-deployment consistency.
     return {'environment_sha256': hashlib.sha256(data).hexdigest(),
-            'enabled': values.get('BIRTHDAY_MEMO_ENABLED') != 'false'}
+            'enabled': values.get('BIRTHDAY_MEMO_ENABLED') != 'false',
+            'admin_enabled': bool(configured_keys)}
 
 
 def read_birthday_runtime():
@@ -290,8 +342,11 @@ class DockerHost:
         attempts = 6 if url == PUBLIC_HEALTH else 40
         if not healthy(url, expected, attempts=attempts):
             return False
-        return (self.birthday_runtime is None or not self.birthday_runtime['enabled']
-                or birthday_ready(url, attempts=attempts))
+        if self.birthday_runtime is None:
+            return True
+        if self.birthday_runtime['enabled'] and not birthday_ready(url, attempts=attempts):
+            return False
+        return not self.birthday_runtime.get('admin_enabled', False) or admin_ready(url, attempts=attempts)
 
 
 def deploy(host, commit, branch, pipeline_commit, image, suffix=None):

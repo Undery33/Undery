@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 const base = process.env.SMOKE_BASE_URL || "http://localhost:3000";
 const origin = new URL(base);
 if (!["http:", "https:"].includes(origin.protocol)) throw new Error("SMOKE_BASE_URL must be HTTP(S).");
+const adminEnabled = process.env.SMOKE_ADMIN_ENABLED === "true";
+if (process.env.SMOKE_ADMIN_ENABLED && !["true", "false"].includes(process.env.SMOKE_ADMIN_ENABLED)) {
+  throw new Error("SMOKE_ADMIN_ENABLED must be true or false.");
+}
 
 async function read(path, options) {
   const response = await fetch(new URL(path, origin), { redirect: "manual", signal: AbortSignal.timeout(15000), ...options });
@@ -53,12 +57,22 @@ console.log("PASS direct portfolio access and noindex");
 
 for (const path of ["/admin", "/admin/posts", "/admin/settings"]) {
   const { response, html } = await read(path);
-  assert.equal(response.status, 503, path);
+  assert.equal(response.status, path === "/admin" && adminEnabled ? 303 : 503, path);
+  if (path === "/admin" && adminEnabled) {
+    assert.equal(response.headers.get("location"), new URL("/birthday/memo/admin", process.env.SITE_URL || "https://undery.link").href);
+  }
   assert.equal(response.headers.get("cache-control"), "no-store", path);
   assert.doesNotMatch(html, /<form/, path);
   assert.equal((await read(path, { method: "POST" })).response.status, 405, `${path} POST`);
 }
-console.log("PASS unavailable admin and rejected writes");
+const adminPage = await read("/birthday/memo/admin");
+assert.equal(adminPage.response.status, 200);
+assert.match(adminPage.response.headers.get("cache-control") || "", /no-store/);
+if (adminEnabled) assert.match(adminPage.html, /GitHub/);
+const adminEntries = await read("/birthday/memo/admin/entries");
+assert.equal(adminEntries.response.status, adminEnabled ? 401 : 503);
+assert.equal(JSON.parse(adminEntries.html).error, adminEnabled ? "login_required" : "auth_unavailable");
+console.log("PASS expected admin login state and rejected unauthenticated access");
 
 for (const path of ["/missing-page", "/computer/not-a-real-post"]) {
   assert.equal((await read(path)).response.status, 404, path);

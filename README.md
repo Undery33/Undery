@@ -16,7 +16,9 @@
 | `/computer/[slug]` | 글 상세, Markdown 렌더링, 없는 글은 404 |
 | `/vrchat` | 컨테이너에서 선택한 브랜치의 VRChat GUI 제공. Profile·Pictures·Gallery 화면 |
 | `/valorant` | 준비 중 안내. 미디어 게시·댓글 없음 |
-| `/admin`, `/admin/*` | GET 요청에 HTTP 503. 인증·관리 기능 없이 닫힌 상태 |
+| `/birthday/memo` | 기존 PostgreSQL에 저장한 월드 메시지 공개 조회 |
+| `/birthday/memo/admin` | 기존 GitHub 관리자 인증으로 메시지 작성·수정·검색·숨김·휴지통·복구 |
+| `/admin`, `/admin/*` | 인증 설정 시 `/admin`은 메시지 관리로 이동. 미설정 및 미지원 하위 경로는 503 |
 | `/portfolio` | 공용 메뉴와 분리한 소개 페이지 틀. 직접 URL로 접근 가능, `noindex` 적용 |
 | `/api/health` | 컨테이너의 메인 앱 상태를 확인한 뒤 GUI·배포 설정 커밋 식별자 반환. `no-store` 적용 |
 
@@ -61,17 +63,18 @@ Smoke test는 서버를 자동으로 시작하지 않습니다. `SMOKE_BASE_URL`
 
 ## 아직 하지 않은 작업
 
-- 서버 측 GitHub OAuth 로그인, 소유자 권한 검사와 관리자 작성 화면
+- 메시지 관리 외의 다른 콘텐츠 관리자 작성 화면
 - VRChat·Valorant 미디어 게시, 업로드와 방문자 댓글
-- 기존 PostgreSQL 연결, 스키마 확인·마이그레이션
 - 최종 디자인, 실제 포트폴리오·운영 콘텐츠
 
-현재 DB 드라이버·ORM·OAuth 공급자·업로드 저장소는 연결하지 않았습니다. Jenkins는 `main` 병합 없이 메인 앱과 선택한 `feature/` 브랜치의 GUI를 함께 빌드합니다. `feature/vrchat-web-gui`의 새 커밋은 약 2분 SCM polling으로 감지한 뒤 검사·GHCR 게시·운영 배포를 자동 실행합니다. 배포 설정만 바뀌면 검사만 수행합니다. 수동 실행은 `DEPLOY=true`일 때 게시·배포하며 기본값 `false`는 검사 전용입니다. 실제 서버 적용에는 [Jenkins 설정과 배포 도우미 설치](docs/jenkins.md)가 필요합니다.
+생일 메시지는 기존 PostgreSQL과 기존 GitHub 관리자 인증을 재사용합니다. 업로드 저장소와 다른 콘텐츠 관리 기능은 연결하지 않았습니다. Jenkins는 `main` 병합 없이 메인 앱과 선택한 `feature/` 브랜치의 GUI를 함께 빌드합니다. `feature/vrchat-web-gui`의 새 커밋은 약 2분 SCM polling으로 감지한 뒤 검사·GHCR 게시·운영 배포를 자동 실행합니다. 배포 설정만 바뀌면 검사만 수행합니다. 수동 실행은 `DEPLOY=true`일 때 게시·배포하며 기본값 `false`는 검사 전용입니다. 실제 서버 적용에는 [Jenkins 설정과 배포 도우미 설치](docs/jenkins.md)가 필요합니다.
 
 ## 문서
 
 - [구조와 보안 경계](docs/architecture.md)
 - [실행·검증·향후 운영 절차](docs/operations.md)
 - [Markdown 글 작성](docs/content-authoring.md)
+- [메시지 관리·적용·복구](docs/birthday-message-management.md)
+- [기존 관리자 로그인 연결](docs/admin-auth.md)
 - [feature 브랜치 Jenkins 빌드·배포](docs/jenkins.md)
 

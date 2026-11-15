@@ -21,11 +21,14 @@ describe.skipIf(!connectionString)("birthday memo actual PostgreSQL integration"
     if (!/^birthday_memo_test_[a-f0-9]{12}$/u.test(schema)) throw new Error("Unsafe test schema");
     await pool.query(sql.replaceAll("birthday_memo", schema));
     created = true;
+    const managementSql = await readFile(new URL("../src/lib/birthday-memo-management-migration.sql", import.meta.url), "utf8");
+    await pool.query(managementSql.replaceAll("birthday_memo", schema));
     store = new BirthdayMemoStore(pool, schema);
   });
 
   beforeEach(async () => {
     await pool.query(`TRUNCATE ${qualified("tokens")}, ${qualified("entries")}, ${qualified("rate_limits")} RESTART IDENTITY CASCADE`);
+    await pool.query(`UPDATE ${qualified("board_state")} SET moderation_revision=0`);
   });
 
   afterAll(async () => {

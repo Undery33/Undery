@@ -7,6 +7,7 @@ type EntryRow = { id: string; nickname: string; message: string; created_at: Dat
 export type MemoFeed = {
   ok: true;
   revision: string;
+  moderationRevision: string;
   entries: MemoEntry[];
   page: number;
   pageSize: number;
@@ -66,13 +67,13 @@ export class BirthdayMemoStore {
     try {
       await client.query("BEGIN");
       await client.query("SET LOCAL lock_timeout = '5s'");
-      const found = await client.query<{ entry_id: string | null; expired: boolean }>(
-        `SELECT entry_id, expires_at <= now() AS expired FROM ${this.schema}.tokens WHERE token_hash = $1 FOR UPDATE`, [digest(token)],
+      const found = await client.query<{ entry_id: string | null; expired: boolean; receipt: MemoEntry | null }>(
+        `SELECT entry_id, receipt, expires_at <= now() AS expired FROM ${this.schema}.tokens WHERE token_hash = $1 FOR UPDATE`, [digest(token)],
       );
       const saved = found.rows[0];
       if (!saved) throw new MemoError("token_not_found", 410, "등록 주소가 만료되었거나 유효하지 않습니다. 생성 버튼을 다시 눌러 주세요.");
       if (saved.entry_id !== null) {
-        const entry = await this.findEntry(client, saved.entry_id);
+        const entry = saved.receipt ?? await this.findEntry(client, saved.entry_id);
         if (entry.nickname !== payload.nickname || entry.message !== payload.message) {
           throw new MemoError("token_used", 409, "이미 사용한 등록 주소입니다. 생성 버튼을 다시 눌러 주세요.");
         }
@@ -92,7 +93,7 @@ export class BirthdayMemoStore {
         [payload.nickname, payload.message],
       );
       const entry = entryFromRow(inserted.rows[0]);
-      await client.query(`UPDATE ${this.schema}.tokens SET entry_id = $1 WHERE token_hash = $2`, [entry.id, digest(token)]);
+      await client.query(`UPDATE ${this.schema}.tokens SET entry_id = $1, receipt = $3::jsonb WHERE token_hash = $2`, [entry.id, digest(token), JSON.stringify(entry)]);
       await client.query("COMMIT");
       return { ok: true as const, duplicate: false, entry };
     } catch (error) {
@@ -114,15 +115,16 @@ export class BirthdayMemoStore {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");
-      const counts = await client.query<{ total: string; revision: string }>(`SELECT count(*) AS total, COALESCE(max(id), 0)::text AS revision FROM ${this.schema}.entries`);
+      const counts = await client.query<{ total: string; revision: string }>(`SELECT count(*) FILTER (WHERE status='visible') AS total, COALESCE(max(id), 0)::text AS revision FROM ${this.schema}.entries`);
+      const board = await client.query<{ revision: string }>(`SELECT moderation_revision::text AS revision FROM ${this.schema}.board_state WHERE singleton=true`);
       const total = Number(counts.rows[0].total);
       const result = await client.query<EntryRow>(
-        `SELECT id, nickname, message, created_at FROM ${this.schema}.entries ORDER BY created_at ${order === "oldest" ? "ASC" : "DESC"}, id ${order === "oldest" ? "ASC" : "DESC"} LIMIT $1 OFFSET $2`,
+        `SELECT id, nickname, message, created_at FROM ${this.schema}.entries WHERE status='visible' ORDER BY created_at ${order === "oldest" ? "ASC" : "DESC"}, id ${order === "oldest" ? "ASC" : "DESC"} LIMIT $1 OFFSET $2`,
         [MEMO_PAGE_SIZE, page * MEMO_PAGE_SIZE],
       );
       await client.query("COMMIT");
       const totalPages = Math.ceil(total / MEMO_PAGE_SIZE);
-      return { ok: true, revision: counts.rows[0].revision, entries: result.rows.map(entryFromRow), page, pageSize: MEMO_PAGE_SIZE, total, totalPages, hasMore: page + 1 < totalPages, order };
+      return { ok: true, revision: counts.rows[0].revision, moderationRevision: board.rows[0].revision, entries: result.rows.map(entryFromRow), page, pageSize: MEMO_PAGE_SIZE, total, totalPages, hasMore: page + 1 < totalPages, order };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw error;
@@ -133,16 +135,21 @@ export class BirthdayMemoStore {
 }
 
 let store: BirthdayMemoStore | undefined;
-export function getBirthdayMemoStore() {
-  if (process.env.BIRTHDAY_MEMO_ENABLED === "false") throw new MemoError("service_unavailable", 503, "방명록 등록을 잠시 쉬고 있습니다.");
-  if (store) return store;
+let sharedPool: Pool | undefined;
+export function getBirthdayMemoPool() {
+  if (sharedPool) return sharedPool;
   const connectionString = process.env.BIRTHDAY_MEMO_DATABASE_URL || process.env.DATABASE_URL;
   if (!connectionString && !(process.env.PGHOST && process.env.PGDATABASE && process.env.PGUSER)) {
-    throw new MemoError("storage_unavailable", 503, "방명록 저장소가 아직 연결되지 않았습니다.");
+    throw new MemoError("storage_unavailable", 503, "메시지 저장소가 아직 연결되지 않았습니다.");
   }
   const pool = new Pool({ connectionString, max: 5, connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000, statement_timeout: 10000, lock_timeout: 5000, query_timeout: 12000, application_name: "undery-birthday-memo" });
   // Avoid an unhandled idle-connection error without ever logging DSNs or payloads.
   pool.on("error", () => { console.error("Birthday memo database connection unavailable."); });
-  store = new BirthdayMemoStore(pool);
-  return store;
+  sharedPool = pool;
+  return sharedPool;
+}
+
+export function getBirthdayMemoStore() {
+  if (process.env.BIRTHDAY_MEMO_ENABLED === "false") throw new MemoError("service_unavailable", 503, "메시지 등록을 잠시 쉬고 있습니다.");
+  return store ??= new BirthdayMemoStore(getBirthdayMemoPool());
 }
