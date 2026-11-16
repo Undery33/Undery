@@ -109,8 +109,11 @@ def verify(base, expected):
 
     _, home_resources = main_page('/', ('배우고, 즐기고,', '기록하는 공간.', '둘러보기'))
     assert {'/computer', '/vrchat', '/valorant'} <= home_resources.links
-    main_page('/computer', ('<h1>Computer</h1>', '기술 글 검색', '기술 기록을 시작하며'))
+    _, computer_resources = main_page('/computer', ('id="computer-title"', '이해를 연결합니다', '기술 글 검색', 'IP 주소의 기초'))
+    assert {'/computer?category=server', '/computer?category=network', '/computer?category=ai',
+            '/computer/ip-basics'} <= computer_resources.links
     main_page('/computer/getting-started', ('<h1>기술 기록을 시작하며</h1>', '이 글은 예제입니다', '글 작성 방법'))
+    main_page('/computer/ip-basics', ('<h1>IP 주소의 기초</h1>', '직접 바꾸는 IP 주소', '192.168.10.24'))
     main_page('/valorant', ('Valorant',))
 
     html, gui_resources, _ = html_page('/vrchat')
@@ -136,9 +139,13 @@ def verify(base, expected):
     assert b'href="/computer/getting-started"' not in filtered_body
     matched_status, _, matched_body = read('/computer?q=Markdown&tag=Markdown')
     assert matched_status == 200 and b'href="/computer/getting-started"' in matched_body
+    network_query = urllib.parse.urlencode({'category': 'network', 'q': '옥텟', 'tag': 'IPv4'})
+    network_status, _, network_body = read('/computer?' + network_query)
+    assert network_status == 200 and b'href="/computer/ip-basics"' in network_body
+    assert b'href="/computer/getting-started"' not in network_body
     escaped_status, _, escaped_body = read('/computer?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E')
     assert escaped_status == 200 and b'<script>alert(1)</script>' not in escaped_body
-    print('PASS dynamic Computer search, tag filtering and escaped input')
+    print('PASS dynamic Computer search, category and tag filtering, and escaped input')
 
     _, portfolio_resources, portfolio_headers = html_page('/portfolio')
     assert 'noindex' in portfolio_headers.get('X-Robots-Tag', '')
