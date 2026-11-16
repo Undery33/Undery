@@ -45,6 +45,16 @@ export function validateToken(token: string) {
   return token;
 }
 
+export type MemoOwnerDeletion = { entryId: string; token: string; requestId: string; confirm: "trash" };
+
+export function validateMemoOwnerDeletion(entryId: string, token: string, requestId: string, confirm: string): MemoOwnerDeletion {
+  if (!/^[1-9][0-9]{0,18}$/u.test(entryId) || BigInt(entryId) > 9223372036854775807n
+    || !/^[a-f0-9]{64}$/u.test(token) || !/^[a-f0-9]{32}$/u.test(requestId) || confirm !== "trash") {
+    throw new MemoError("invalid_delete_request", 400, "삭제 주소가 올바르지 않습니다. 비밀 코드를 확인하고 삭제 주소를 다시 만들어 주세요.");
+  }
+  return { entryId, token, requestId, confirm };
+}
+
 export function parseMemoUrl(requestUrl: string, allowedKeys: readonly string[]) {
   if (requestUrl.length > MEMO_MAX_URL_LENGTH) {
     throw new MemoError("url_too_long", 414, "등록 주소가 너무 깁니다.");

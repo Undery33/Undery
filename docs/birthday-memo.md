@@ -10,6 +10,7 @@
 | --- | --- |
 | `GET /birthday/memo/prepare` | `{ok:true, token, expiresAt}`. 암호학적 난수 32바이트를 64자리 소문자 hex로 반환합니다. 유효기간 10분. |
 | `GET /birthday/memo/submit?token=...&nickname=...&message=...` | URL의 각 값은 UTF-8 percent encoding. 성공 `{ok:true, duplicate, entry}`. `entry`는 `{id,nickname,message,createdAt}`. |
+| `GET /birthday/memo/delete?entryId=...&token=...&requestId=...&confirm=trash` | 등록 비밀 코드로 본인 메시지를 휴지통으로 이동. [삭제·재입장 복구 계약](birthday-memo-owner-deletion.md). |
 | `GET /birthday/memo/feed?page=0&order=oldest` | `{ok:true,revision,entries,page,pageSize,total,totalPages,hasMore,order}`. 0부터 시작, 페이지당 150개. |
 | `GET /birthday/memo` | 글 목록과 이전·다음 페이지. 웹 작성 기능은 제공하지 않습니다. |
 
@@ -46,13 +47,13 @@ psql -X -v ON_ERROR_STOP=1 -f src/lib/birthday-memo-migration.sql
 
 ## 프록시와 로그
 
-VRChat에서 사용자 입력 URL을 불러오는 제약 때문에 제출만 의도적으로 GET을 사용합니다. HEAD, 알려진 prefetch/prerender 요청은 제출과 토큰 생성을 실행하지 않습니다. 등록 주소는 외부에 공유하지 않습니다.
+VRChat에서 사용자 입력 URL을 불러오는 제약 때문에 제출과 본인 메시지 휴지통 이동에 의도적으로 GET을 사용합니다. HEAD, 알려진 prefetch/prerender 요청은 생성·제출·휴지통 이동을 실행하지 않습니다. 등록 주소, 삭제 주소, 비밀 코드는 외부에 공유하지 않습니다.
 
 제출 URL에는 공개 메모 내용과 토큰이 포함됩니다. **호스트 Nginx와 컨테이너 Nginx 모두** `/birthday/memo` 및 하위 경로의 query-bearing access log와 upstream error log를 남기지 않아야 합니다. 앱은 SQL 예외 원문·URL·메시지·토큰을 로그에 쓰지 않습니다. 이 경로를 외부 분석·추적 서비스에 보내지 않습니다.
 
 호스트 프록시는 `X-Undery-Client-IP`를 실제 연결의 `$remote_addr`로 덮어씁니다. 컨테이너 Nginx는 이 헤더만 내부 Next에 전달합니다. 컨테이너 공개 포트는 loopback 전용이어야 합니다. 외부에서 Next나 컨테이너 포트에 직접 접속할 수 있으면 `BIRTHDAY_MEMO_TRUST_PROXY=true`를 사용하면 안 됩니다. 앱은 임의 `X-Forwarded-For`를 신뢰하지 않습니다.
 
-요청 제한은 PostgreSQL에 보관하며 클라이언트 버킷당 분당 60회, 전체 분당 240회입니다. prepare와 submit은 별도입니다. IP 원문은 저장하지 않고 제한용 해시만 보관합니다. 미사용 만료 토큰은 하루 뒤, 제한 기록은 이틀 뒤 정리합니다. 게시글과 사용한 토큰 영수증은 자동 삭제하지 않습니다.
+요청 제한은 PostgreSQL에 보관하며 클라이언트 버킷당 분당 60회, 전체 분당 240회입니다. prepare, submit, delete는 각각 별도입니다. IP 원문은 저장하지 않고 제한용 해시만 보관합니다. 미사용 만료 토큰은 하루 뒤, 제한 기록은 이틀 뒤 정리합니다. 게시글, 사용한 토큰 영수증, 삭제 요청 영수증은 자동 삭제하지 않습니다.
 
 ## 검증
 

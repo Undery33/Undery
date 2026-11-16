@@ -48,6 +48,19 @@ try {
   assert.equal((await read("/birthday/memo/prepare", "HEAD")).status, 405);
   assert.equal((await read("/birthday/memo/submit", "HEAD")).status, 405);
   assert.equal((await read("/birthday/memo/submit", "POST")).status, 405);
+  const deletePath = `/birthday/memo/delete?entryId=1&token=${"a".repeat(64)}&requestId=${"b".repeat(32)}&confirm=trash`;
+  const deletion = await read(deletePath);
+  assert.equal(deletion.status, 503);
+  assert.equal(deletion.headers.get("location"), null);
+  assert.match(deletion.headers.get("cache-control") || "", /no-store/);
+  assert.equal(deletion.headers.get("referrer-policy"), "no-referrer");
+  assert.equal((await deletion.json()).error, "storage_unavailable");
+  assert.equal((await read("/birthday/memo/delete")).status, 400);
+  assert.equal((await read(deletePath, "HEAD")).status, 405);
+  assert.equal((await read(deletePath, "POST")).status, 405);
+  const prefetch = await fetch(new URL(deletePath, origin), { headers: { "sec-purpose": "prefetch" }, signal: AbortSignal.timeout(5000) });
+  assert.equal(prefetch.status, 400);
+  assert.equal((await prefetch.json()).error, "prefetch_rejected");
   assert.equal((await read("/birthday/memo/feed?page=0&order=invalid")).status, 400);
   const managementPage = await read("/birthday/memo/admin");
   assert.equal(managementPage.status, 200);
@@ -60,6 +73,7 @@ try {
   assert.equal((await read("/api/auth/github/callback", "HEAD")).status, 405);
   console.log("PASS birthday subdirectory routes, no redirects/cache, blank nickname rejection, safe missing-DB failure and read-only HEAD/POST");
   console.log("PASS message management renders and authentication endpoints fail closed without configuration");
+  console.log("PASS owner deletion routing, no-store/no-referrer, missing-DB failure, input validation and safe HEAD/POST/prefetch");
   console.log("PostgreSQL persistence is deliberately not covered by this HTTP check.");
 } finally {
   if (server.exitCode === null) server.kill("SIGTERM");
