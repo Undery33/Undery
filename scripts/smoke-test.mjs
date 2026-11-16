@@ -27,7 +27,7 @@ assert.ok(stylesheet, "Rendered page must reference a stylesheet");
 assert.equal((await read(stylesheet[1].replaceAll("&amp;", "&"))).response.status, 200);
 console.log("PASS build identity and standalone static assets");
 
-for (const path of ["/", "/computer", "/computer/getting-started", "/vrchat", "/valorant"]) {
+for (const path of ["/", "/computer", "/computer/getting-started", "/computer/ip-basics", "/vrchat", "/valorant"]) {
   const { response, html } = await read(path);
   assert.equal(response.status, 200, path);
   assert.equal(response.headers.get("x-content-type-options"), "nosniff", path);
@@ -47,6 +47,20 @@ assert.match(matched.html, /href="\/computer\/getting-started"/);
 const xss = await read("/computer?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E");
 assert.doesNotMatch(xss.html, /<script>alert\(1\)<\/script>/);
 console.log("PASS search, tag, empty state, and escaped input");
+
+const network = await read("/computer?category=network&q=" + encodeURIComponent("옥텟") + "&tag=IPv4");
+assert.match(network.html, /href="\/computer\/ip-basics"/);
+assert.doesNotMatch(network.html, /href="\/computer\/(?:getting-started|development-workflow)"/);
+assert.match(network.html, /name="category" value="network"/);
+assert.match(network.html, /name="tag" value="IPv4"/);
+const serverSearch = await read("/computer?category=server&q=IPv4");
+assert.match(serverSearch.html, /조건에 맞는 글이 없습니다/);
+const ipLesson = await read("/computer/ip-basics");
+assert.match(ipLesson.html, /직접 바꾸는 IP 주소/);
+assert.match(ipLesson.html, /192\.168\.10\.24/);
+assert.equal((ipLesson.html.match(/aria-pressed="(?:true|false)"/g) || []).length, 32);
+assert.doesNotMatch(ipLesson.html, /<!-- demo:ipv4 -->/);
+console.log("PASS combined category search and IPv4 lesson rendering");
 
 const portfolio = await read("/portfolio");
 assert.equal(portfolio.response.status, 200);

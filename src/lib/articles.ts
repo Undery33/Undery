@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
+import { getComputerCategory, type ComputerCategory } from "@/lib/computer-categories";
 
 export type Article = {
   slug: string;
@@ -8,6 +9,7 @@ export type Article = {
   description: string;
   publishedAt: string;
   tags: string[];
+  category?: ComputerCategory;
   body: string;
   draft: boolean;
   example: boolean;
@@ -47,6 +49,10 @@ export function parseArticle(slug: string, source: string): Article {
       throw new Error(`${slug}: ${field} must be a boolean.`);
     }
   }
+  const category = typeof data.category === "string" ? getComputerCategory(data.category) : undefined;
+  if (data.category !== undefined && !category) {
+    throw new Error(`${slug}: category must be server, network, or ai.`);
+  }
   if (!content.trim()) throw new Error(`${slug}: article body cannot be empty.`);
 
   return {
@@ -55,6 +61,7 @@ export function parseArticle(slug: string, source: string): Article {
     description: requiredText(data.description, "description", slug),
     publishedAt,
     tags: [...new Set((data.tags as string[]).map((tag) => tag.trim()))],
+    ...(category ? { category: category.id } : {}),
     body: content.trim(),
     draft: data.draft === true,
     example: data.example === true,
@@ -82,14 +89,15 @@ export function normalizeSearch(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase("ko-KR");
 }
 
-/** Search title, summary, tags, and Markdown body. Tag and query filters intersect. */
-export function filterArticles(articles: Article[], query: string, tag: string): Article[] {
+/** Search title, summary, tags, and Markdown body. All selected filters intersect. */
+export function filterArticles(articles: Article[], query: string, tag: string, category = ""): Article[] {
   const words = normalizeSearch(query).split(/\s+/).filter(Boolean);
   const normalizedTag = normalizeSearch(tag);
   return articles.filter((article) => {
+    const matchesCategory = !category || article.category === category;
     const matchesTag = !normalizedTag || article.tags.some((item) => normalizeSearch(item) === normalizedTag);
     const haystack = normalizeSearch([article.title, article.description, ...article.tags, article.body].join(" "));
-    return matchesTag && words.every((word) => haystack.includes(word));
+    return matchesCategory && matchesTag && words.every((word) => haystack.includes(word));
   });
 }
 
@@ -97,10 +105,11 @@ export function getTags(articles: Article[]): string[] {
   return [...new Set(articles.flatMap((article) => article.tags))].sort((a, b) => a.localeCompare(b, "ko"));
 }
 
-export function articleListHref(query = "", tag = ""): string {
+export function articleListHref(query = "", tag = "", category = ""): string {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (tag) params.set("tag", tag);
+  if (category) params.set("category", category);
   const search = params.toString();
   return `/computer${search ? `?${search}` : ""}`;
 }
