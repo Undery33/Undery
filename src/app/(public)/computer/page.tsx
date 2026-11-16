@@ -83,9 +83,9 @@ export default async function ComputerPage({ searchParams }: { searchParams: Sea
       ) : (
         <ComputerShowcase>
           <section id="overview" className={styles.intro} data-computer-section="overview" aria-labelledby="computer-title">
-            <p className={styles.eyebrow}><span className={styles.statusDot} />COMPUTER / NOTES & LEARNING</p>
+            <p className={styles.eyebrow}><span className={styles.statusDot} />COMPUTER / TECHNOLOGY NOTES</p>
             <h1 id="computer-title">기술을 나누고,<br />이해를 연결합니다<span className={styles.titleDot}>.</span></h1>
-            <p className={styles.introDescription}>서버를 이해하고 네트워크로 연결하고 AI로 확장합니다.<br />배운 내용을 세 갈래로 기록합니다.</p>
+            <p className={styles.introDescription}>서버 서비스, 네트워크 구성, AI 모델의 동작을 살펴봅니다.<br />필요한 기술을 찾고 직접 조작하며 이해합니다.</p>
             <SearchForm {...filters} id="hero-article-search" compact />
             <p className={styles.searchHint}>제목 · 본문 · 태그로 검색</p>
             <div className={styles.introActions}>

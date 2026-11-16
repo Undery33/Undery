@@ -1,24 +1,16 @@
 .page {
-  --paper: #f8f7f3;
-  --ink: #282923;
-  --muted: #6f7067;
-  --rule: #deddd5;
-  --orange: #a9512e;
-  --accent: #a9512e;
+  --paper: var(--computer-paper);
+  --ink: var(--computer-ink);
+  --muted: var(--computer-muted);
+  --rule: var(--computer-rule);
+  --orange: var(--computer-accent);
+  --accent: var(--computer-accent);
   color: var(--ink);
   font-size: 16px;
 }
 
-:global(body):has(.page) { background: #f8f7f3; }
 :global(.main-content):has(> .page) { width: min(100% - 88px, 1640px); padding-block: 0 72px; }
-:global(body):has(.page) :global(.site-header) { background: transparent; border-bottom: 0; }
-:global(body):has(.page) :global(.header-inner) { width: min(100% - 88px, 1640px); min-height: 88px; border-bottom: 1px solid #deddd5; }
-:global(body):has(.page) :global(.wordmark) { color: #282923; font-size: 25px; letter-spacing: -.06em; }
-:global(body):has(.page) :global(.wordmark) span { color: #bd6239; }
-:global(body):has(.page) :global(.site-header) nav { gap: 32px; }
-:global(body):has(.page) :global(.site-header) nav a { font-size: 13px; color: #6f7067; }
-:global(body):has(.page) :global(.site-header) nav a[href="/computer"] { color: #282923; }
-:global(body):has(.page) :global(.site-footer) { width: min(100% - 88px, 1640px); border-color: #deddd5; color: #6f7067; }
+:global(body):has(.page) :global(.site-footer) { width: min(100% - 88px, 1640px); border-color: var(--computer-rule); color: var(--computer-muted); }
 .page a { transition: color .18s, border-color .18s, background .18s; }
 .page a:hover { color: var(--orange); }
 .page :focus-visible { outline: 2px solid var(--orange); outline-offset: 5px; }
@@ -40,17 +32,17 @@
 .figureNav a > span:first-child { font: 10px/1 ui-monospace, SFMono-Regular, Consolas, monospace; }
 .figureNav a[aria-current] { color: var(--orange); }
 .story { min-width: 0; }
-.intro { display: flex; flex-direction: column; justify-content: center; min-height: calc(100svh - 88px); padding-block: 80px 60px; scroll-margin-top: 32px; }
+.intro { display: flex; flex-direction: column; justify-content: center; min-height: 100svh; padding-block: 100px 60px; scroll-margin-top: 32px; }
 .intro h1 { margin: 0 0 25px; font-size: clamp(32px, 3.15vw, 52px); font-weight: 650; line-height: 1.36; }
 .introDescription { color: var(--muted); margin-bottom: 36px; font-size: 16px; line-height: 1.9; letter-spacing: -.025em; }
-.searchForm { display: flex; align-items: center; gap: 15px; border: 1px solid #c8c7bd; padding: 6px 6px 6px 19px; background: rgba(255,255,255,.32); }
+.searchForm { display: flex; align-items: center; gap: 15px; border: 1px solid var(--computer-control-border); padding: 6px 6px 6px 19px; background: var(--computer-surface); }
 .searchForm > svg { flex-shrink: 0; color: var(--muted); }
 .searchForm input[type="search"] { display: block; flex: 1; min-width: 0; width: 100%; padding: 12px 0; min-height: 44px; border: 0; border-radius: 0; background: transparent; color: var(--ink); font-size: 14px; }
 .searchForm input[type="search"]::placeholder { color: var(--muted); }
 .searchForm:focus-within { border-color: var(--orange); }
 .searchForm input:focus-visible { outline-offset: 0; }
 .searchForm button { display: flex; align-items: center; gap: 18px; justify-content: center; padding: 12px 22px; min-height: 46px; flex-shrink: 0; border: 0; border-radius: 0; background: var(--ink); color: var(--paper); font-size: 13px; font-weight: 500; }
-.searchForm button:hover { background: var(--orange); }
+.searchForm button:hover { background: var(--orange); color: var(--computer-accent-ink); }
 .compactSearch { padding-left: 14px; gap: 10px; }
 .compactSearch button { padding-inline: 15px; gap: 8px; }
 .compactSearch input[type="search"] { font-size: 13px; }
@@ -70,9 +62,9 @@
 .fieldSection h2 { font-size: clamp(32px, 3vw, 46px); font-weight: 650; line-height: 1.3; margin-bottom: 27px; }
 .fieldSection h3 { font-size: 20px; font-weight: 550; margin: 0 0 13px; }
 .fieldDescription { max-width: 400px; color: var(--muted); font-size: 16px; line-height: 1.9; margin-bottom: 22px; }
-.topics { display: flex; flex-wrap: wrap; gap: 8px 17px; list-style: none; padding: 0; margin: 0 0 36px; color: #6f7067; font-size: 11px; }
+.topics { display: flex; flex-wrap: wrap; gap: 8px 17px; list-style: none; padding: 0; margin: 0 0 36px; color: var(--muted); font-size: 11px; }
 .topics li { display: flex; align-items: center; gap: 7px; }
-.topics li::before { content: ""; width: 3px; height: 3px; border-radius: 50%; background: #b7b7ac; }
+.topics li::before { content: ""; width: 3px; height: 3px; border-radius: 50%; background: var(--muted); }
 .fieldArticles { border-top: 1px solid var(--rule); padding-top: 17px; }
 .fieldArticlesHeading { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
 .fieldArticlesHeading > span:last-child { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -113,14 +105,14 @@
 .articleTags a { font-size: 10px; color: var(--muted); text-decoration: none; display: inline-block; padding-block: 5px; }
 .archiveFootnote { margin-top: 40px; color: var(--muted); font: 9px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .08em; }
 .archiveFootnote a { font-family: inherit; font-size: 10px; text-decoration: none; letter-spacing: 0; min-height: 32px; display: flex; align-items: center; }
-.searchIntro { max-width: 1080px; margin-inline: auto; padding-top: 42px; }
+.searchIntro { max-width: 1080px; margin-inline: auto; padding-top: 100px; }
 .backLink { display: inline-block; margin-bottom: 54px; font-size: 12px; color: var(--muted); text-decoration: none; min-height: 32px; }
 .searchIntro h1 { font-size: clamp(30px, 4vw, 48px); line-height: 1.4; font-weight: 600; margin: 0 0 18px; }
 .searchIntro > p:last-child { color: var(--muted); font-size: 15px; line-height: 1.8; }
 .filteredCatalogue { margin-top: 40px; padding-top: 28px; }
 .filteredCatalogue .catalogueHeading { display: none; }
 .emptyState { padding: 55px 24px 65px; text-align: center; border-bottom: 1px solid var(--rule); }
-.emptyMark { font: 32px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; color: #a9a89d; display: block; margin-bottom: 18px; }
+.emptyMark { font: 32px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; color: var(--muted); display: block; margin-bottom: 18px; }
 .emptyState h3 { font-size: 19px; font-weight: 550; margin-bottom: 12px; }
 .emptyState p { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
 .emptyState a { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; text-decoration: none; font-size: 12px; }
@@ -136,11 +128,10 @@
   .intro h1 { font-size: 33px; }
 }
 @media (max-width: 960px) {
-  :global(.main-content):has(> .page), :global(body):has(.page) :global(.header-inner), :global(body):has(.page) :global(.site-footer) { width: calc(100% - 48px); }
-  :global(body):has(.page) :global(.header-inner) { min-height: 76px; }
+  :global(.main-content):has(> .page), :global(body):has(.page) :global(.site-footer) { width: calc(100% - 48px); }
   .showcase { display: block; }
   .visual { z-index: 3; top: 0; height: 36svh; min-height: 215px; max-height: 360px; padding: 16px 0 12px; background: var(--paper); border-bottom: 1px solid var(--rule); }
-  .visualHeading { font-size: 8px; }
+  .visualHeading { font-size: 8px; padding-right: 108px; min-height: 52px; }
   .figureFrame { margin: -4px 0 -3px; }
   .visualCaption { border-top: 0; font-size: 9px; padding-top: 5px; }
   .figureNav { display: none; }
@@ -161,10 +152,7 @@
   .articleList { gap: 0 30px; }
 }
 @media (max-width: 560px) {
-  :global(.main-content):has(> .page), :global(body):has(.page) :global(.header-inner), :global(body):has(.page) :global(.site-footer) { width: calc(100% - 40px); }
-  :global(body):has(.page) :global(.site-header) nav { gap: 17px; }
-  :global(body):has(.page) :global(.site-header) nav a { font-size: 11px; }
-  :global(body):has(.page) :global(.wordmark) { font-size: 22px; }
+  :global(.main-content):has(> .page), :global(body):has(.page) :global(.site-footer) { width: calc(100% - 40px); }
   .intro h1 { font-size: 31px; }
   .introIndex { gap: 5px 28px; }
   .introIndex a { font-size: 10px; }
@@ -182,7 +170,7 @@
   .resultsHeading { gap: 12px; flex-wrap: wrap; }
   .articleList { grid-template-columns: minmax(0,1fr); }
   .articleRow h3 { font-size: 18px; }
-  .searchIntro { padding-top: 30px; }
+  .searchIntro { padding-top: 88px; }
   .backLink { margin-bottom: 34px; }
   .searchIntro h1 { font-size: 30px; }
   .searchIntro > p:last-child { font-size: 13px; }

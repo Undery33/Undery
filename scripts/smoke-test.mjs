@@ -27,7 +27,7 @@ assert.ok(stylesheet, "Rendered page must reference a stylesheet");
 assert.equal((await read(stylesheet[1].replaceAll("&amp;", "&"))).response.status, 200);
 console.log("PASS build identity and standalone static assets");
 
-for (const path of ["/", "/computer", "/computer/getting-started", "/computer/ip-basics", "/vrchat", "/valorant"]) {
+for (const path of ["/", "/computer", "/computer/getting-started", "/computer/vlan", "/computer/routing", "/computer/dns", "/computer/dhcp", "/computer/cnn", "/vrchat", "/valorant"]) {
   const { response, html } = await read(path);
   assert.equal(response.status, 200, path);
   assert.equal(response.headers.get("x-content-type-options"), "nosniff", path);
@@ -48,19 +48,29 @@ const xss = await read("/computer?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E");
 assert.doesNotMatch(xss.html, /<script>alert\(1\)<\/script>/);
 console.log("PASS search, tag, empty state, and escaped input");
 
-const network = await read("/computer?category=network&q=" + encodeURIComponent("옥텟") + "&tag=IPv4");
-assert.match(network.html, /href="\/computer\/ip-basics"/);
+const network = await read("/computer?category=network&q=" + encodeURIComponent("트렁크") + "&tag=VLAN");
+assert.match(network.html, /href="\/computer\/vlan"/);
 assert.doesNotMatch(network.html, /href="\/computer\/(?:getting-started|development-workflow)"/);
 assert.match(network.html, /name="category" value="network"/);
-assert.match(network.html, /name="tag" value="IPv4"/);
-const serverSearch = await read("/computer?category=server&q=IPv4");
+assert.match(network.html, /name="tag" value="VLAN"/);
+const serverSearch = await read("/computer?category=server&q=VLAN&tag=VLAN");
 assert.match(serverSearch.html, /조건에 맞는 글이 없습니다/);
-const ipLesson = await read("/computer/ip-basics");
-assert.match(ipLesson.html, /직접 바꾸는 IP 주소/);
-assert.match(ipLesson.html, /192\.168\.10\.24/);
-assert.equal((ipLesson.html.match(/aria-pressed="(?:true|false)"/g) || []).length, 32);
-assert.doesNotMatch(ipLesson.html, /<!-- demo:ipv4 -->/);
-console.log("PASS combined category search and IPv4 lesson rendering");
+for (const slug of ["vlan", "routing", "dns", "dhcp", "cnn"]) {
+  const technology = await read(`/computer/${slug}`);
+  assert.ok(technology.html.includes(`data-technology-demo="${slug}"`), slug);
+  assert.ok(!technology.html.includes(`<!-- demo:${slug} -->`), slug);
+  assert.match(technology.html, /aria-label="화면 테마"/);
+}
+console.log("PASS combined category search and five technology examples");
+
+const routingSearch = await read("/computer?category=network&q=OSPF");
+assert.match(routingSearch.html, /href="\/computer\/routing"/);
+const routingLab = await read("/computer/routing");
+for (const name of ["정적 실습", "RIP 실습", "OSPF 실습", "EIGRP 실습", "IS-IS 실습", "BGP 실습", "PBR 실습"]) {
+  assert.ok(routingLab.html.includes(`aria-label="${name}"`), name);
+}
+assert.match(routingLab.html, /라우팅 실습 화면 선택/);
+console.log("PASS Cisco routing catalogue search and seven interactive methods");
 
 const portfolio = await read("/portfolio");
 assert.equal(portfolio.response.status, 200);
@@ -88,12 +98,13 @@ assert.equal(adminEntries.response.status, adminEnabled ? 401 : 503);
 assert.equal(JSON.parse(adminEntries.html).error, adminEnabled ? "login_required" : "auth_unavailable");
 console.log("PASS expected admin login state and rejected unauthenticated access");
 
-for (const path of ["/missing-page", "/computer/not-a-real-post"]) {
+for (const path of ["/missing-page", "/computer/not-a-real-post", "/computer/ip-basics"]) {
   assert.equal((await read(path)).response.status, 404, path);
 }
 const sitemap = await read("/sitemap.xml");
 assert.equal(sitemap.response.status, 200);
 assert.doesNotMatch(sitemap.html, /\/portfolio|\/admin/);
+assert.doesNotMatch(sitemap.html, /\/computer\/ip-basics/);
 assert.equal((await read("/robots.txt")).response.status, 200);
 console.log("PASS 404, robots, and sitemap exclusions");
 console.log("All HTTP smoke checks passed.");

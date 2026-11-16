@@ -1,8 +1,62 @@
 .figure {
   --figure-line: #b6b3aa;
   --figure-detail: #bcb9b0;
-  --figure-accent: #d97846;
+  --figure-accent: var(--computer-accent, #d97846);
   --figure-accent-soft: #f4e2d5;
+  --figure-selected-line: #b59b85;
+  --figure-selected-detail: #b9a18e;
+  --figure-ground-shadow: #d8d4c9;
+  --figure-ground-line: #ddd9d1;
+  --figure-board-shadow: #a6a093;
+  --figure-board-top: #f7f6f1;
+  --figure-board-left: #eae7df;
+  --figure-board-right: #e2dfd7;
+  --figure-board-stroke: #ccc8be;
+  --figure-board-rim: #c7c2b7;
+  --figure-board-inset: #dfdcd3;
+  --figure-board-edge: #fffef9;
+  --figure-board-selected: #d2aa8d;
+  --figure-ruler: #c6c2b8;
+  --figure-bolt: #eceae2;
+  --figure-bolt-edge: #bcb8ad;
+  --figure-board-label: #989184;
+  --figure-pillar: #e6e2d9;
+  --figure-pillar-edge: #c4beb1;
+  --figure-pillar-glint: #fffef8;
+  --figure-device-top: #fbfaf5;
+  --figure-device-left: #ebe8de;
+  --figure-device-right: #dcd8cd;
+  --figure-chip-top: #eeede5;
+  --figure-pin: #a8a294;
+  --figure-contact: #f8f6ee;
+  --figure-contact-edge: #b9b2a3;
+  --figure-device-label: #9c9588;
+  --figure-vent: #c2bdb1;
+  --figure-port: #aaa598;
+  --figure-port-edge: #938d80;
+  --figure-port-pin: #e7e1d3;
+  --figure-led-edge: #c46f42;
+  --figure-led-off: #c6c1b6;
+  --figure-fan-ring: #eeece3;
+  --figure-fan-ring-edge: #b9b3a6;
+  --figure-fan-hub: #c9c3b6;
+  --figure-fan-hub-edge: #ada696;
+  --figure-fan-blade: #d9d4c8;
+  --figure-fan-blade-edge: #bdb6a8;
+  --figure-bay: #ded9cc;
+  --figure-bay-edge: #aca494;
+  --figure-drive: #eeebe2;
+  --figure-drive-edge: #aaa294;
+  --figure-drive-handle: #b8b1a3;
+  --figure-processor: #eeebe0;
+  --figure-processor-edge: #c0b8a8;
+  --figure-compute-cell: #ddd9cc;
+  --figure-compute-cell-edge: #bcb3a2;
+  --figure-compute-active: #efc4a4;
+  --figure-compute-active-edge: #cb936e;
+  --figure-inactive-opacity: .34;
+  --figure-ground-shadow-opacity: .13;
+  --figure-board-shadow-opacity: .12;
   display: block;
   width: 100%;
   height: 100%;
@@ -10,6 +64,67 @@
   pointer-events: none;
   user-select: none;
   shape-rendering: geometricPrecision;
+}
+
+:global(html[data-computer-theme="dark"]) .figure {
+  --figure-line: #737c6b;
+  --figure-detail: #7b866f;
+  --figure-accent: var(--computer-accent, #e6a17a);
+  --figure-accent-soft: #544133;
+  --figure-selected-line: #d4a582;
+  --figure-selected-detail: #b69a7e;
+  --figure-ground-shadow: #080b07;
+  --figure-ground-line: #3e4539;
+  --figure-board-shadow: #080b07;
+  --figure-board-top: #282e25;
+  --figure-board-left: #21271f;
+  --figure-board-right: #1c221b;
+  --figure-board-stroke: #626d59;
+  --figure-board-rim: #55604e;
+  --figure-board-inset: #3e4837;
+  --figure-board-edge: #6c775f;
+  --figure-board-selected: #c29575;
+  --figure-ruler: #67725d;
+  --figure-bolt: #3b4533;
+  --figure-bolt-edge: #737e68;
+  --figure-board-label: #a5ae99;
+  --figure-pillar: #343d2e;
+  --figure-pillar-edge: #748067;
+  --figure-pillar-glint: #8b967d;
+  --figure-device-top: #434d39;
+  --figure-device-left: #333d2c;
+  --figure-device-right: #283221;
+  --figure-chip-top: #3d4932;
+  --figure-pin: #9eaa8b;
+  --figure-contact: #35402d;
+  --figure-contact-edge: #7d886c;
+  --figure-device-label: #a9b499;
+  --figure-vent: #869274;
+  --figure-port: #151c10;
+  --figure-port-edge: #687456;
+  --figure-port-pin: #9ea98b;
+  --figure-led-edge: #f0bb98;
+  --figure-led-off: #566347;
+  --figure-fan-ring: #3b4730;
+  --figure-fan-ring-edge: #879575;
+  --figure-fan-hub: #6c795c;
+  --figure-fan-hub-edge: #99a884;
+  --figure-fan-blade: #506040;
+  --figure-fan-blade-edge: #85956f;
+  --figure-bay: #202a18;
+  --figure-bay-edge: #73825e;
+  --figure-drive: #48573a;
+  --figure-drive-edge: #7d8c67;
+  --figure-drive-handle: #a1b38a;
+  --figure-processor: #303e23;
+  --figure-processor-edge: #82946a;
+  --figure-compute-cell: #485d32;
+  --figure-compute-cell-edge: #809764;
+  --figure-compute-active: #aa754d;
+  --figure-compute-active-edge: #e6a17a;
+  --figure-inactive-opacity: .5;
+  --figure-ground-shadow-opacity: .35;
+  --figure-board-shadow-opacity: .3;
 }
 
 .figure path,
@@ -28,95 +143,95 @@
 }
 
 .figure:not([data-active="overview"]) .layer {
-  opacity: .34;
+  opacity: var(--figure-inactive-opacity);
 }
 
 .figure .layer[data-selected="true"] {
-  --figure-line: #b59b85;
-  --figure-detail: #b9a18e;
+  --figure-line: var(--figure-selected-line);
+  --figure-detail: var(--figure-selected-detail);
   opacity: 1;
 }
 
 .groundShadow {
-  fill: #d8d4c9;
-  opacity: .13;
+  fill: var(--figure-ground-shadow);
+  opacity: var(--figure-ground-shadow-opacity);
 }
 
 .groundLine {
   fill: none;
-  stroke: #ddd9d1;
+  stroke: var(--figure-ground-line);
   stroke-width: .65;
   opacity: .5;
 }
 
 .boardShadow {
-  fill: #a6a093;
-  opacity: .12;
+  fill: var(--figure-board-shadow);
+  opacity: var(--figure-board-shadow-opacity);
   stroke: none;
 }
 
 .boardTop {
-  fill: #f7f6f1;
-  stroke: #ccc8be;
+  fill: var(--figure-board-top);
+  stroke: var(--figure-board-stroke);
   stroke-width: 1.05;
 }
 
 .boardLeft {
-  fill: #eae7df;
-  stroke: #c7c2b7;
+  fill: var(--figure-board-left);
+  stroke: var(--figure-board-rim);
   stroke-width: .9;
 }
 
 .boardRight {
-  fill: #e2dfd7;
-  stroke: #c7c2b7;
+  fill: var(--figure-board-right);
+  stroke: var(--figure-board-rim);
   stroke-width: .9;
 }
 
 .boardInset {
   fill: none;
-  stroke: #dfdcd3;
+  stroke: var(--figure-board-inset);
   stroke-width: .65;
 }
 
 .boardEdge {
   fill: none;
-  stroke: #fffef9;
+  stroke: var(--figure-board-edge);
   stroke-width: 1.35;
   opacity: .9;
 }
 
 .layer[data-selected="true"] .boardTop {
-  stroke: #d2aa8d;
+  stroke: var(--figure-board-selected);
 }
 
 .ruler {
   fill: none;
-  stroke: #c6c2b8;
+  stroke: var(--figure-ruler);
   stroke-width: .65;
 }
 
 .bolt {
-  fill: #eceae2;
-  stroke: #bcb8ad;
+  fill: var(--figure-bolt);
+  stroke: var(--figure-bolt-edge);
   stroke-width: .7;
 }
 
 .boardLabel {
-  fill: #989184;
+  fill: var(--figure-board-label);
   font: 7.5px ui-monospace, SFMono-Regular, Consolas, monospace;
   letter-spacing: 1.05px;
 }
 
 .pillar {
-  fill: #e6e2d9;
-  stroke: #c4beb1;
+  fill: var(--figure-pillar);
+  stroke: var(--figure-pillar-edge);
   stroke-width: .8;
 }
 
 .pillarGlint {
   fill: none;
-  stroke: #fffef8;
+  stroke: var(--figure-pillar-glint);
   stroke-width: 1.5;
 }
 
@@ -127,19 +242,19 @@
 }
 
 .topFace {
-  fill: #fbfaf5;
+  fill: var(--figure-device-top);
 }
 
 .sideLeft {
-  fill: #ebe8de;
+  fill: var(--figure-device-left);
 }
 
 .sideRight {
-  fill: #dcd8cd;
+  fill: var(--figure-device-right);
 }
 
 .chip .topFace {
-  fill: #eeede5;
+  fill: var(--figure-chip-top);
 }
 
 .trace,
@@ -160,14 +275,14 @@
 
 .pin {
   fill: none;
-  stroke: #a8a294;
+  stroke: var(--figure-pin);
   stroke-width: 2.2;
 }
 
 .contact,
 .contactActive {
-  fill: #f8f6ee;
-  stroke: #b9b2a3;
+  fill: var(--figure-contact);
+  stroke: var(--figure-contact-edge);
   stroke-width: .8;
 }
 
@@ -178,7 +293,7 @@
 
 .deviceLabel,
 .aiLabel {
-  fill: #9c9588;
+  fill: var(--figure-device-label);
   font: 8px ui-monospace, SFMono-Regular, Consolas, monospace;
   letter-spacing: .8px;
 }
@@ -191,83 +306,83 @@
 .vent,
 .circuitDetail {
   fill: none;
-  stroke: #c2bdb1;
+  stroke: var(--figure-vent);
   stroke-width: 1.2;
 }
 
 .port {
-  fill: #aaa598;
-  stroke: #938d80;
+  fill: var(--figure-port);
+  stroke: var(--figure-port-edge);
   stroke-width: .6;
 }
 
 .portPins {
   fill: none;
-  stroke: #e7e1d3;
+  stroke: var(--figure-port-pin);
   stroke-width: .6;
 }
 
 .led {
   fill: var(--figure-accent);
-  stroke: #c46f42;
+  stroke: var(--figure-led-edge);
   stroke-width: .3;
 }
 
 .ledOff {
-  fill: #c6c1b6;
+  fill: var(--figure-led-off);
 }
 
 .fanRing {
-  fill: #eeece3;
-  stroke: #b9b3a6;
+  fill: var(--figure-fan-ring);
+  stroke: var(--figure-fan-ring-edge);
   stroke-width: 1.3;
 }
 
 .fanHub {
-  fill: #c9c3b6;
-  stroke: #ada696;
+  fill: var(--figure-fan-hub);
+  stroke: var(--figure-fan-hub-edge);
   stroke-width: .8;
 }
 
 .fanBlade {
-  fill: #d9d4c8;
-  stroke: #bdb6a8;
+  fill: var(--figure-fan-blade);
+  stroke: var(--figure-fan-blade-edge);
   stroke-width: .65;
 }
 
 .bay {
-  fill: #ded9cc;
-  stroke: #aca494;
+  fill: var(--figure-bay);
+  stroke: var(--figure-bay-edge);
   stroke-width: .9;
 }
 
 .drive {
-  fill: #eeebe2;
-  stroke: #aaa294;
+  fill: var(--figure-drive);
+  stroke: var(--figure-drive-edge);
   stroke-width: .6;
 }
 
 .driveHandle {
   fill: none;
-  stroke: #b8b1a3;
+  stroke: var(--figure-drive-handle);
   stroke-width: .65;
 }
 
 .processorInset {
-  fill: #eeebe0;
-  stroke: #c0b8a8;
+  fill: var(--figure-processor);
+  stroke: var(--figure-processor-edge);
   stroke-width: 1.2;
 }
 
 .computeCell {
-  fill: #ddd9cc;
-  stroke: #bcb3a2;
+  fill: var(--figure-compute-cell);
+  stroke: var(--figure-compute-cell-edge);
   stroke-width: .8;
 }
 
 .computeActive {
-  fill: #efc4a4;
-  stroke: #cb936e;
+  fill: var(--figure-compute-active);
+  stroke: var(--figure-compute-active-edge);
   stroke-width: .85;
 }
 

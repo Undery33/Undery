@@ -22,22 +22,27 @@ describe("public page states", () => {
     expect(html).not.toContain('id="main-content"');
   });
   it("combines network, tag and body search while retaining the selected filters", async () => {
-    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "network", tag: "IPv4", q: "옥텟" }) }));
-    expect(html).toContain('href="/computer/ip-basics"');
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "network", tag: "VLAN", q: "트렁크" }) }));
+    expect(html).toContain('href="/computer/vlan"');
     expect(html).not.toContain('href="/computer/getting-started"');
     expect(html).toContain('name="category" value="network"');
-    expect(html).toContain('name="tag" value="IPv4"');
+    expect(html).toContain('name="tag" value="VLAN"');
   });
-  it("places the bundled IP demo between the lesson text and preserves its category link", async () => {
-    const html = renderToStaticMarkup(await ArticlePage({ params: Promise.resolve({ slug: "ip-basics" }) }));
-    const demoPosition = html.indexOf("직접 바꾸는 IP 주소");
-    expect(demoPosition).toBeGreaterThan(html.indexOf("숫자와 비트를 직접 바꿔 봅시다"));
-    expect(demoPosition).toBeLessThan(html.indexOf("표기가 맞아도 연결된다는 뜻은 아닙니다"));
-    expect(html).toContain('href="/computer?category=network"');
-    expect(html).not.toContain("<!-- demo:ipv4 -->");
+  it.each([["vlan", "network"], ["routing", "network"], ["dns", "server"], ["dhcp", "server"], ["cnn", "ai"]])("renders the authored %s example with the correct category", async (slug, category) => {
+    const html = renderToStaticMarkup(await ArticlePage({ params: Promise.resolve({ slug }) }));
+    expect(html).toContain(`data-technology-demo="${slug}"`);
+    expect(html).toContain(`href="/computer?category=${category}"`);
+    expect(html).toContain('href="#technology-demo"');
+    expect(html).not.toContain(`<!-- demo:${slug} -->`);
   });
-  it("keeps ordinary articles free of the IP demo", async () => {
+  it.each(["정적 라우팅", "OSPF", "EIGRP", "IS-IS", "BGP", "RIPng", "PBR", "VRF"])("finds Cisco routing by technology name %s in the network archive", async (q) => {
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "network", q }) }));
+    expect(html).toContain('href="/computer/routing"');
+    expect(html).toContain('name="category" value="network"');
+    expect(html).not.toContain('href="/computer/dhcp"');
+  });
+  it("keeps ordinary articles free of interactive examples", async () => {
     const html = renderToStaticMarkup(await ArticlePage({ params: Promise.resolve({ slug: "getting-started" }) }));
-    expect(html).not.toContain("직접 바꾸는 IP 주소");
+    expect(html).not.toContain('data-technology-demo=');
   });
 });
