@@ -10,7 +10,7 @@ pipeline {
   parameters {
     booleanParam(name: 'DEPLOY', defaultValue: false, description: '수동 실행에서 검증한 main 이미지를 운영에 배포합니다.')
   }
-  triggers { pollSCM('H/2 * * * *') }
+  triggers { pollSCM('H/30 * * * *') }
   environment {
     SOURCE_BRANCH = 'main'
   }

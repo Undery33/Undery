@@ -87,7 +87,7 @@ JSON의 한국어 설명값은 그대로 사용할 설정값이 아닙니다. �
 
 ## Jenkins 실행
 
-[Jenkins 설정](jenkins.md)에 따라 기존 작업의 SCM을 `refs/heads/main`으로 바꾸고 main을 허용하는 호스트 도우미를 설치합니다. 2분 SCM 폴링으로 main 변경을 감지해 검사한 이미지를 자동 배포합니다. 수동 실행은 `DEPLOY=true`를 선택해야 운영에 반영됩니다.
+[Jenkins 설정](jenkins.md)에 따라 기존 작업의 SCM을 `refs/heads/main`으로 바꾸고 main을 허용하는 호스트 도우미를 설치합니다. 30분 SCM 폴링으로 main 변경을 감지해 검사한 이미지를 자동 배포합니다. 수동 실행은 `DEPLOY=true`를 선택해야 운영에 반영됩니다.
 
 ## 이미지 생성과 전환
 
