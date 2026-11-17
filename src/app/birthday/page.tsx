@@ -19,6 +19,12 @@ export default function BirthdayPage() {
         unoptimized
         preload
       />
+      <a
+        className={styles.worldLink}
+        href="https://vrchat.com/home/world/wrld_59673787-ac01-41bb-8d81-568a17ca6993/info"
+      >
+        VRChat 월드 구경하기
+      </a>
     </main>
   );
 }
