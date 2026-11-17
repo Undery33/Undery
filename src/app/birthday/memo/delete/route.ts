@@ -1,18 +1,9 @@
-import { getBirthdayMemoStore } from "@/lib/birthday-memo-store";
-import { memoClientAddress, memoFailure, memoJson, rejectMemoHead, rejectPrefetch } from "@/lib/birthday-memo-http";
-import { parseMemoUrl, validateMemoOwnerDeletion } from "@/lib/birthday-memo-validation";
+import { memoJson, rejectMemoHead } from "@/lib/birthday-memo-http";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export async function GET(request: Request) {
-  try {
-    const url = parseMemoUrl(request.url, ["entryId", "token", "requestId", "confirm"]);
-    rejectPrefetch(request);
-    const input = validateMemoOwnerDeletion(
-      url.searchParams.get("entryId") ?? "", url.searchParams.get("token") ?? "",
-      url.searchParams.get("requestId") ?? "", url.searchParams.get("confirm") ?? "",
-    );
-    return memoJson(await getBirthdayMemoStore().trashOwnEntry(input, memoClientAddress(request)));
-  } catch (error) { return memoFailure(error); }
+export function GET() {
+  // Retire old deletion URLs before parsing credentials or touching storage.
+  return memoJson({ ok: false, error: "owner_deletion_disabled", message: "메시지는 등록만 가능합니다." }, 403);
 }
 export const HEAD = rejectMemoHead;
