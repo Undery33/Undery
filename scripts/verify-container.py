@@ -109,7 +109,13 @@ def verify(base, expected):
 
     _, home_resources = main_page('/', ('배우고, 즐기고,', '기록하는 공간.', '둘러보기'))
     assert {'/computer', '/vrchat', '/valorant'} <= home_resources.links
-    main_page('/computer', ('<h1>Computer</h1>', '기술 글 검색', '기술 기록을 시작하며'))
+    computer, computer_resources = main_page('/computer', ('기술 글 검색',))
+    if 'id="computer-title"' in computer:
+        for slug in ('vlan', 'routing', 'dns', 'dhcp', 'cnn'):
+            assert '/computer/' + slug in computer_resources.links
+            main_page('/computer/' + slug, ('data-technology-demo="' + slug + '"',))
+    else:
+        assert '<h1>Computer</h1>' in computer and '기술 기록을 시작하며' in computer
     main_page('/computer/getting-started', ('<h1>기술 기록을 시작하며</h1>', '이 글은 예제입니다', '글 작성 방법'))
     main_page('/valorant', ('Valorant',))
 

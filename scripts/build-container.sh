@@ -23,6 +23,7 @@ PY
 )
 docker buildx build --builder "$builder" --pull --load --platform linux/amd64 \
   --build-arg "SOURCE_COMMIT=$BUILD_COMMIT" --build-arg "SOURCE_BRANCH=$SOURCE_BRANCH" \
+  --build-arg "APP_COMMIT=${APP_COMMIT:-$PIPELINE_COMMIT}" --build-arg "APP_BRANCH=${APP_BRANCH:-feature/site-foundation}" \
   --build-arg "PIPELINE_COMMIT=$PIPELINE_COMMIT" --tag "$image" "$context"
 python3 "$(dirname "$0")/verify-container.py" --image "$image" --metadata "$context/health.json"
 printf '%s\n' "$image" > "$artifacts/image-tag.txt"

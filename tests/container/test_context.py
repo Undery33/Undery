@@ -87,6 +87,23 @@ class ContextTests(unittest.TestCase):
             self.assertEqual((output / 'main' / name).read_bytes(),
                              (self.infra / name).read_bytes())
 
+    def test_full_feature_app_uses_selected_source_and_trusted_infrastructure(self):
+        app = self.root / 'app'
+        shutil.copytree(self.infra, app)
+        (app / 'src/app/layout.tsx').write_text('feature app layout')
+        (app / 'Dockerfile').write_text('must never be used')
+        (app / 'public').mkdir()
+        (app / 'public/icon.txt').write_text('feature asset')
+        app_commit = commit(app)
+        metadata = self.prepare(commit=app_commit, branch='feature/web-computer',
+                                app_source=app, app_commit=app_commit, gui_commit=self.sha)
+        output = self.root / 'context'
+        self.assertEqual(metadata['commit'], app_commit)
+        self.assertEqual((output / 'main/src/app/layout.tsx').read_text(), 'feature app layout')
+        self.assertEqual((output / 'main/public/icon.txt').read_text(), 'feature asset')
+        self.assertEqual((output / 'dist/app.js').read_bytes(), (self.source / 'dist/app.js').read_bytes())
+        self.assertEqual((output / 'Dockerfile').read_bytes(), (self.infra / 'Dockerfile').read_bytes())
+
     def test_gui_prefix_references_map_to_dist_and_keep_query(self):
         (self.source / 'dist/index.html').write_text(
             '<link href="/vrchat/styles.css?v=2" rel="stylesheet">'

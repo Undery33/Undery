@@ -6,7 +6,10 @@ COPY main/package.json main/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY main/ ./
 ARG PIPELINE_COMMIT
-RUN BUILD_COMMIT="$PIPELINE_COMMIT" SOURCE_BRANCH=feature/site-foundation npm run build
+ARG APP_COMMIT
+ARG APP_BRANCH=feature/site-foundation
+RUN BUILD_COMMIT="${APP_COMMIT:-$PIPELINE_COMMIT}" SOURCE_BRANCH="$APP_BRANCH" npm run build \
+    && if [ -d public ]; then mkdir -p .next/standalone/public && cp -R public/. .next/standalone/public/; fi
 
 FROM nginx:1.30.6-alpine3.24
 

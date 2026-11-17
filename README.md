@@ -1,10 +1,10 @@
 # Undery
 
-기술과 취미를 기록하는 개인 웹사이트입니다. `/`는 기존 Next.js 메인 화면을 제공하고 `/vrchat`에 선택한 GUI 브랜치의 화면을 적용합니다. Jenkins가 BuildKit으로 Next.js·Node.js·Nginx·VRChat GUI를 하나의 이미지로 빌드한 뒤 GHCR digest로 배포합니다. 실행·설정 방법은 [컨테이너 배포 문서](docs/container-deployment.md)를 기준으로 합니다.
+기술과 취미를 기록하는 개인 웹사이트입니다. `/`는 기존 Next.js 메인 화면을 제공하고 `/vrchat`에 선택한 GUI의 화면을 적용합니다. Jenkins가 BuildKit으로 Next.js·Node.js·Nginx·VRChat GUI를 하나의 이미지로 빌드한 뒤 GHCR digest로 배포합니다. 실행·설정 방법은 [컨테이너 배포 문서](docs/container-deployment.md)를 기준으로 합니다.
 
 - 저장소: [Undery33/Undery](https://github.com/Undery33/Undery) (공개)
 - 기반: Next.js App Router, React, TypeScript, 파일 기반 Markdown
-- 메인 앱·Dockerfile·Jenkinsfile: `feature/site-foundation`. VRChat GUI: `FEATURE_BRANCH`의 `dist/`이며 기본값은 `feature/vrchat-web-gui`입니다.
+- 자동 배포는 가장 최근에 생성되거나 변경된 `feature/` 브랜치의 버전을 사용합니다. Jenkins 설정은 `feature/site-foundation`에서 읽습니다. 앱 전용 브랜치는 기본 VRChat GUI를 포함하고 GUI 전용 브랜치는 기본 메인 앱을 포함합니다.
 - 모든 작업은 `feature/site-foundation`, `feature/article-search`처럼 목적이 드러나는 `feature/` 브랜치에서 진행합니다. `codex/` 접두사와 무작위 코드 이름은 사용하지 않습니다.
 
 ## 현재 구현

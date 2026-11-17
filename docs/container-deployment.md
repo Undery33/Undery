@@ -4,8 +4,8 @@
 
 | 대상 | 위치 | 역할 |
 | --- | --- | --- |
-| Next.js 메인 앱 · Dockerfile · Nginx · Jenkinsfile · 배포 스크립트 | `feature/site-foundation` | 메인 화면과 배포 설정의 단일 기준 |
-| VRChat HTML · CSS · JavaScript · 이미지 | `FEATURE_BRANCH`의 `dist/` | 기본 `feature/vrchat-web-gui`, `/vrchat`에 연결 |
+| Dockerfile · Nginx · Jenkinsfile · 배포 스크립트 | `feature/site-foundation` | Jenkins가 실행할 배포 설정의 기준 |
+| Next.js 앱과 VRChat 정적 GUI | 선택한 feature 브랜치의 `src/app` 및 `dist/` | 없는 구성 요소는 아래 기본 브랜치에서 보완 |
 | BuildKit | Jenkins `site-ci`의 rootless Docker | 이미지를 한 번 빌드하고 실제 컨테이너 검사 |
 | 이미지 저장소 | `ghcr.io/undery33/undery` | 검사한 이미지 게시 |
 | 운영 실행 | `site-deploy`가 호출하는 고정 root helper | GHCR digest를 pull해 Next.js·Nginx 컨테이너 실행 |
@@ -13,7 +13,7 @@
 
 Jenkins Job의 **Pipeline from SCM Branch Specifier**는 `refs/heads/feature/site-foundation`으로 고정합니다. GUI 브랜치를 Job SCM에 넣지 않습니다. Jenkinsfile은 메인 앱·배포 설정과 GUI의 작업 디렉터리를 나누고 각 checkout SHA를 기록합니다. GUI 브랜치의 Jenkinsfile·npm 스크립트·Dockerfile은 실행하지 않습니다.
 
-main을 checkout·merge·push하는 단계가 없습니다. PR #1도 초안·미병합으로 유지합니다. `FEATURE_BRANCH`는 유효한 `dist/index.html`과 로컬 정적 리소스를 가진 GUI 브랜치를 지정합니다. `feature/site-foundation`의 Next.js 메인은 항상 함께 포함되므로 GUI 브랜치 변경이 `/`를 대체하지 않습니다.
+선택한 커밋에 Next.js 앱이 있으면 해당 버전을 이미지에 넣습니다. GUI가 있으면 그 커밋의 `dist/`를 사용합니다. 앱 전용 브랜치에는 `feature/vrchat-web-gui`의 GUI를, GUI 전용 브랜치에는 `feature/site-foundation`의 앱을 함께 넣습니다. 두 구성 요소가 모두 없는 브랜치는 검증에 실패합니다. 앱 빌드는 rootless BuildKit 안에서 실행합니다. 각 구성 요소의 SHA는 빌드 아티팩트에 기록합니다.
 
 | URL | 제공 방식 |
 | --- | --- |
@@ -97,15 +97,15 @@ DEPLOY=false  # 수동 실행은 빌드와 검사만
 DEPLOY=true   # 수동 실행도 검사 후 GHCR 게시와 운영 반영
 ```
 
-`DEPLOY=false`는 수동 실행 기본값입니다. **SCM 자동 실행에서 `feature/vrchat-web-gui`가 직전 성공 빌드의 GUI 커밋과 달라지면 검증 후 자동 게시·배포합니다.** 배포 설정만 변경되었거나 GUI 비교 이력이 없으면 검사만 수행합니다. 수동 실행과 다른 feature 브랜치의 배포는 `DEPLOY=true`로 지정합니다. 메인 앱과 선택한 GUI를 포함한 운영 이미지 한 개를 교체하며 브랜치별 preview URL은 만들지 않습니다.
+자동 실행은 2분마다 [GitHub 저장소 활동](https://docs.github.com/en/rest/repos/repos#list-repository-activities)을 최신순으로 읽습니다. `refs/heads/feature/`의 생성·push·강제 push·병합을 대상으로 합니다. main·태그·삭제된 브랜치는 배포 대상에서 제외합니다. 같은 SHA로 새 브랜치를 생성해도 활동 ID가 다르므로 감지합니다.
 
-2분 SCM polling은 배포 설정과 고정된 `feature/vrchat-web-gui`의 변경을 감시합니다. 다른 feature 브랜치를 수동 빌드해도 GUI 감시 기준은 유지합니다. 두 checkout의 Git 이력이 섞이지 않도록 Job·배포 설정은 `.git`으로 끝나는 URL을 사용하고 GUI 감시는 같은 저장소의 `https://github.com/Undery33/Undery`와 `ScmName=undery-web-source`를 사용합니다. Git plugin의 `BuildData` 선택은 remote URL 문자열을 기준으로 하므로 remote 이름이나 `ScmName`만 분리해서는 충분하지 않습니다. 변경 없는 두 SHA가 반복 빌드를 일으키면 SCM Poll Log에서 각 checkout의 기준 SHA를 확인합니다.
+여러 변경이 있으면 GitHub에서 마지막으로 변경된 브랜치의 버전 하나가 `undery.link`에 반영됩니다. 브랜치를 합치지 않습니다. 배포 직전 활동 ID와 원격 HEAD를 다시 확인합니다. 빌드 도중 더 최신 변경이 생기면 다음 실행이 처리합니다. 배포가 성공한 활동만 `site-ci` 계정의 `~/.local/state/undery-jenkins/`에 원자적으로 기록합니다. 같은 작업은 동일한 영속 홈을 사용하는 전용 CI 에이전트에서 실행합니다. 실패하면 다음 주기에 최신 활동을 다시 시도합니다. 수동 실행은 `FEATURE_BRANCH`를 사용하며 `DEPLOY=false`이면 빌드와 검사만 수행합니다.
 
-`deploy/deployment-policy.py`가 실행 원인·브랜치·현재 및 이전 GUI SHA로 `auto`·`manual`·`check` 모드를 결정합니다. 자동 실행에는 GUI 비교 이력이 필요하며 수동 `DEPLOY=false`는 새 커밋이어도 게시하지 않습니다. GitHub webhook 추가 설정은 필요하지 않으며 push 후 다음 polling 주기와 빌드 시간이 지나면 반영됩니다.
+기존 작업은 설정 브랜치의 Jenkinsfile을 처음 읽을 때 타이머를 등록합니다. 초기 실행에서도 가장 최근의 유효한 feature 활동을 처리합니다. 운영 배포는 하나씩 진행하며 운영에 적용된 브랜치와 SHA는 `/api/health`에서 확인합니다.
 
 ## 이미지 생성과 전환
 
-1. GUI 소스 SHA와 메인 앱·배포 설정 SHA를 각각 고정합니다.
+1. 선택한 브랜치와 앱·GUI·배포 설정의 SHA를 고정합니다.
 2. `prepare-container-context.py`가 검증한 메인 앱·배포 설정과 GUI `dist/` 파일을 별도 이미지 컨텍스트로 복사합니다. `.env`·자격 증명·심볼릭 링크·외부 경로를 이미지에 포함하지 않습니다.
 3. `docker buildx build --load`로 BuildKit 빌드를 수행합니다. Node.js 24 빌드 단계에서 Next.js standalone을 생성하고 최종 이미지에 Node.js·Nginx·GUI를 함께 넣습니다. 고정 supervisor가 Next.js `127.0.0.1:3001`과 Nginx `8080`을 UID/GID `101:101`로 실행합니다.
 4. 동일 이미지에 read-only filesystem·cap-drop·no-new-privileges를 적용해 기존 메인·Computer·portfolio·관리자 차단과 `/vrchat` GUI·CSS·JS·PNG·health·404·HTTP 메서드를 검사합니다.
@@ -117,7 +117,7 @@ DEPLOY=true   # 수동 실행도 검사 후 GHCR 게시와 운영 반영
 
 컨테이너에 호스트 디렉터리나 Docker socket을 마운트하지 않습니다. 기존 Next 릴리스 파일은 삭제하지 않습니다. `/`의 메인 화면과 Computer·portfolio·관리자 차단 동작을 유지하며 새 GUI는 `/vrchat`에만 적용합니다. rollback은 보관한 이전 컨테이너를 원래 실행 명령으로 다시 시작하므로 기존 Nginx 전용 이미지도 복원할 수 있습니다.
 
-`/api/health` 응답은 GUI 소스의 `commit`·`branch`와 메인 앱·배포 설정의 `pipelineCommit`을 구분합니다. 내부 Next.js가 응답하지 않으면 Nginx도 성공 상태를 반환하지 않습니다. 이미지 digest는 별도 값이며 Jenkins `release.json`에서 확인합니다.
+`/api/health` 응답은 선택한 브랜치의 `commit`·`branch`와 배포 설정의 `pipelineCommit`을 구분합니다. 내부 Next.js가 응답하지 않으면 Nginx도 성공 상태를 반환하지 않습니다. 이미지 digest는 별도 값이며 Jenkins `release.json`에서 확인합니다.
 
 ## 검증 한계
 

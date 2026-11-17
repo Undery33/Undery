@@ -149,7 +149,8 @@ def validate_assets(files):
             reference_target(reference, name, files)
 
 
-def prepare_context(source, output, commit, branch, pipeline_commit, infrastructure=PROJECT_ROOT):
+def prepare_context(source, output, commit, branch, pipeline_commit, infrastructure=PROJECT_ROOT,
+                    app_source=None, app_commit=None, gui_commit=None):
     require(bool(SHA.fullmatch(commit)) and bool(SHA.fullmatch(pipeline_commit)),
             'Full lowercase commit SHAs are required')
     require(bool(BRANCH.fullmatch(branch)) and '..' not in branch, 'Only feature/ branches are allowed')
@@ -159,7 +160,11 @@ def prepare_context(source, output, commit, branch, pipeline_commit, infrastruct
     require(not output.exists(), 'Output must not exist; use a fresh context directory')
     require(not output.is_relative_to(source / 'dist'), 'Output must be outside source dist')
 
-    files = tracked_files(source, commit, 'dist')
+    app_source = Path(app_source).resolve(strict=True) if app_source is not None else infrastructure
+    app_commit = app_commit or pipeline_commit
+    gui_commit = gui_commit or commit
+    require(bool(SHA.fullmatch(app_commit)) and bool(SHA.fullmatch(gui_commit)), 'Invalid component SHA')
+    files = tracked_files(source, gui_commit, 'dist')
     validate_assets(files)
     infrastructure_files = {}
     for path in ('Dockerfile', 'deploy/container-nginx.conf', 'deploy/container-entrypoint.mjs'):
@@ -170,13 +175,14 @@ def prepare_context(source, output, commit, branch, pipeline_commit, infrastruct
     # checkout, local dependency tree, credentials, generated output or tests.
     main_files = {}
     for path in MAIN_FILES:
-        selected = tracked_files(infrastructure, pipeline_commit, path)
+        selected = tracked_files(app_source, app_commit, path)
         require(path in selected, f'Missing tracked main build input: {path}')
         main_files.update(selected)
     for path in MAIN_DIRECTORIES:
-        selected = tracked_files(infrastructure, pipeline_commit, path)
+        selected = tracked_files(app_source, app_commit, path)
         require(selected, f'Missing tracked main source directory: {path}')
         main_files.update(selected)
+    main_files.update(tracked_files(app_source, app_commit, 'public'))
     for path in MAIN_REQUIRED_SOURCE:
         require(path in main_files, f'Missing tracked main source file: {path}')
     require(len(files) + len(main_files) <= MAX_FILES
@@ -219,8 +225,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for option in ('source', 'output', 'commit', 'branch', 'pipeline-commit'):
         parser.add_argument('--' + option, required=True)
+    parser.add_argument('--app-source')
+    parser.add_argument('--app-commit')
+    parser.add_argument('--gui-commit')
     args = parser.parse_args()
-    result = prepare_context(args.source, args.output, args.commit, args.branch, args.pipeline_commit)
+    result = prepare_context(args.source, args.output, args.commit, args.branch, args.pipeline_commit,
+                             app_source=args.app_source, app_commit=args.app_commit, gui_commit=args.gui_commit)
     print(json.dumps(result, sort_keys=True))
 
 
