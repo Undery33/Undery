@@ -80,25 +80,19 @@ describe.skipIf(!connectionString)("birthday memo actual PostgreSQL integration"
     expect((await store.feed()).total).toBe(1);
   });
 
-  it("publishes an exact web name once to the world feed and retains its receipt", async () => {
-    const lookup = vi.fn(async () => Response.json([{ displayName: "별 Undery" }]));
-    vi.stubGlobal("fetch", lookup);
-    vi.stubEnv("VRCHAT_SERVICE_AUTH", "test-only");
-    const input = { nickname: "별 Undery", message: "생일 축하해!", requestId: crypto.randomUUID() };
+  it("publishes a self-entered nickname to the world feed once without an external lookup", async () => {
+    const lookup = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected external request"));
+    const input = { nickname: "오늘의 손님 🎂", message: "생일 축하해!", requestId: crypto.randomUUID() };
     try {
-      await expect(store.submitWeb({ ...input, nickname: "별 undery" }, "web-test")).rejects.toMatchObject({ status: 422 });
-      expect((await store.feed()).total).toBe(0);
       const receipts = await Promise.all([store.submitWeb(input, "web-test"), store.submitWeb(input, "web-test")]);
       expect(receipts.filter(item => item.duplicate)).toHaveLength(1);
       expect((await store.feed()).entries).toEqual([receipts[0].entry]);
       expect(receipts[0].entry).toMatchObject({ nickname: input.nickname, message: input.message });
-      lookup.mockClear();
       expect((await store.submitWeb(input, "web-test")).duplicate).toBe(true);
       await expect(store.submitWeb({ ...input, message: "다른 글" }, "web-test")).rejects.toMatchObject({ status: 409 });
       expect(lookup).not.toHaveBeenCalled();
     } finally {
-      vi.unstubAllGlobals();
-      vi.unstubAllEnvs();
+      lookup.mockRestore();
     }
   });
 

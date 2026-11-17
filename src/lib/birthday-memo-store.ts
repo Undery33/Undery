@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
-import { requireExactDisplayName } from "./vrchat-display-name";
 import { MemoError, MEMO_PAGE_SIZE, MEMO_TOKEN_LIFETIME_SECONDS, type MemoOrder, type MemoOwnerDeletion, validateMemo, validateMemoOwnerDeletion, validateToken } from "./birthday-memo-validation";
 
 export type MemoEntry = { id: string; nickname: string; message: string; createdAt: string };
@@ -72,10 +71,6 @@ export class BirthdayMemoStore {
     await this.rateLimit("web", address);
     // Separate from world tokens. A retried web submission reuses its original receipt.
     const hash = digest("web:" + input.requestId);
-    const prior = await this.pool.query<{ receipt: MemoEntry }>(
-      `SELECT receipt FROM ${this.schema}.tokens WHERE token_hash=$1 AND entry_id IS NOT NULL`, [hash],
-    );
-    if (!prior.rows[0]) await requireExactDisplayName(input.nickname);
     return this.saveMemo(hash, input, true);
   }
 

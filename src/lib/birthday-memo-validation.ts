@@ -21,10 +21,14 @@ function validateText(value: string, field: "nickname" | "message") {
   }
 }
 
+export function hasMemoText(value: string) {
+  return /[^\p{White_Space}\p{Default_Ignorable_Code_Point}]/u.test(value);
+}
+
 export function validateMemo(nickname: string, message: string) {
   validateText(nickname, "nickname");
   validateText(message, "message");
-  if (!nickname.replace(/[\p{White_Space}\p{Default_Ignorable_Code_Point}]/gu, "")) {
+  if (!hasMemoText(nickname)) {
     throw new MemoError("nickname_required", 400, "닉네임을 입력해 주세요.");
   }
   if ([...nickname].length > MEMO_NICKNAME_LIMIT) {
@@ -45,17 +49,22 @@ export function validateToken(token: string) {
   return token;
 }
 
+export function validateWebMemoText(nickname: string, message: string) {
+  const payload = validateMemo(nickname, message);
+  if (!hasMemoText(payload.message)) {
+    throw new MemoError("message_required", 400, "축하 메시지를 입력해 주세요.");
+  }
+  return payload;
+}
+
 export function parseWebMemo(input: unknown) {
   if (!input || typeof input !== "object" || !("requestId" in input) || typeof input.requestId !== "string"
       || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.requestId)
       || !("nickname" in input) || typeof input.nickname !== "string"
       || !("message" in input) || typeof input.message !== "string") {
-    throw new MemoError("invalid_request", 400, "표시 이름과 메시지를 확인해 주세요.");
+    throw new MemoError("invalid_request", 400, "닉네임과 메시지를 확인해 주세요.");
   }
-  const payload = validateMemo(input.nickname, input.message);
-  if (!payload.message.replace(/[\p{White_Space}\p{Default_Ignorable_Code_Point}]/gu, "")) {
-    throw new MemoError("message_required", 400, "축하 메시지를 입력해 주세요.");
-  }
+  const payload = validateWebMemoText(input.nickname, input.message);
   return { ...payload, requestId: input.requestId.toLowerCase() };
 }
 

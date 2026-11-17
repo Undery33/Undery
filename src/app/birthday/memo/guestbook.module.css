@@ -1,71 +1,141 @@
+@font-face {
+  font-family: "Freesentation";
+  src: url("./font/FreesentationVF.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+.page { font-family: "Freesentation", sans-serif; }
 .hero {
   position: relative;
   isolation: isolate;
-  min-height: max(28rem, 100svh);
+  min-height: max(30rem, 100svh);
   color: white;
   background: #18130f;
 }
-.photo { object-fit: cover; object-position: 50% 50%; z-index: -2; }
+.photo { object-fit: cover; object-position: center; z-index: -2; }
 .heading {
   position: absolute;
-  top: 50%;
+  top: 50.6%;
   right: 4.4%;
+  width: min(21.72%, 42svh);
   transform: translateY(-50%);
-  text-align: right;
-  text-shadow: 0 2px 12px #0006;
 }
-.heading h1 {
-  margin: 0;
-  font: 900 clamp(2.7rem, 4.85vw, 10rem)/.91 Arial, sans-serif;
-  letter-spacing: -.04em;
+.heading h1 { margin: 0; line-height: 1; }
+.heading img { display: block; width: 100%; height: auto; }
+.heading time {
+  display: block;
+  width: 37.17%;
+  margin: 3.25% 2.1% 0 auto;
 }
-.heading time { display: block; margin-top: .5em; font-size: clamp(1rem, 1.55vw, 3rem); font-weight: 300; }
-.invite { position: absolute; right: 3.6%; bottom: max(3.4%, env(safe-area-inset-bottom)); width: min(39%, 60rem); }
-.invite p { margin: 0 0 1.2em; text-align: center; font-size: clamp(.94rem, 1.4vw, 2.3rem); text-shadow: 0 1px 5px #000; }
-.open {
+.invite {
+  position: absolute;
+  right: max(3.6%, env(safe-area-inset-right));
+  bottom: max(3.4%, env(safe-area-inset-bottom));
+  width: min(38.55%, 73svh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  container-type: inline-size;
+  --field-border: clamp(1.5px, .17vw, 7px);
+  --field-bg: rgb(10 8 8 / 22%);
+}
+.feedback, .nickname, .messageRow {
+  font-size: clamp(1rem, 4.05cqi, 4.5rem);
+  line-height: 1.15;
+  font-weight: 300;
+}
+.feedback {
+  width: 94%;
+  margin: 0 0 3.6%;
+  padding-left: 3%;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: 0 1px 5px #000;
+}
+.nickname, .messageRow {
+  border: var(--field-border) solid white;
+  border-radius: 999px;
+  color: white;
+  background: var(--field-bg);
+  transition: background-color .22s ease, color .22s ease, border-color .15s ease;
+}
+.nickname {
+  width: 72.1%;
+  min-height: max(44px, 10.9cqi);
+  padding: .2em .8em;
+  margin: 0 0 1.95% 3%;
+  text-align: center;
+}
+.messageRow {
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 48px;
-  padding: .65em 1.55em;
-  border: 2px solid currentColor;
-  border-radius: 999px;
-  background: #100d0c9c;
-  color: white;
-  font-size: clamp(1rem, 1.5vw, 2.5rem);
-  font-weight: 450;
+  min-height: max(50px, 13.85cqi);
+  padding: .3em 3% .3em 6.6%;
 }
-.open:hover, .open:focus-visible { color: #211a14; background: #f8f1e5; }
-.open:focus-visible { outline: 3px solid white; outline-offset: 4px; }
-.open svg { width: 1.45em; height: 1.45em; }
-.dialog {
-  width: min(28rem, calc(100% - 2rem));
-  max-height: calc(100svh - 2rem);
-  overflow: auto;
-  padding: clamp(1.25rem, 4vw, 2rem);
-  border: 1px solid #d7cbbb;
-  border-radius: 14px;
-  color: #292017;
-  background: #fffcf6;
-  box-shadow: 0 18px 70px #0005;
+.messageRow textarea {
+  flex: 1;
+  min-width: 0;
+  field-sizing: content;
+  max-height: 3.45em;
+  resize: none;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
 }
-.dialog::backdrop { background: #100d0bd9; }
-.dialog h2 { margin: 0 0 1.3rem; }
-.dialog label { display: block; margin-bottom: .35rem; font-weight: 650; }
-.dialog input, .dialog textarea { display: block; width: 100%; padding: .65rem; font: inherit; border: 1px solid #9a887a; border-radius: 6px; background: white; color: #211a14; }
-.dialog textarea { resize: vertical; }
-.dialog p { margin: .35rem 0 1.1rem; font-size: .85rem; color: #675c50; }
-.dialog .error { color: #932f24; }
-.actions { display: flex; justify-content: end; gap: .6rem; }
-.actions button { color: #fff; background: #392a20; border: 1px solid #392a20; }
-.actions button:first-child { background: transparent; color: #392a20; }
-.actions button:disabled { opacity: .65; }
+.nickname::placeholder, .messageRow textarea::placeholder { color: currentColor; opacity: 1; }
+.nickname:focus-visible, .messageRow:focus-within {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+.messageRow textarea:focus { outline: none; }
+.nickname[aria-invalid="true"], .messageRow[data-invalid="true"] {
+  border-color: #ff575f;
+  outline-color: #ff575f;
+}
+.send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: max(44px, 10.4cqi);
+  min-height: max(44px, 10.4cqi);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  background: transparent;
+}
+.send:hover:enabled, .send:focus-visible { background: rgb(255 255 255 / 16%); }
+.send:focus-visible { outline: 2px solid white; outline-offset: 0; }
+.send:disabled { cursor: default; background: transparent; }
+.send img, .spinner, .check { width: max(22px, 6.25cqi); height: auto; }
+.spinner {
+  aspect-ratio: 1;
+  border: .11em solid rgb(255 255 255 / 35%);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(1turn); } }
+.invite[data-sent="true"] :is(.nickname, .messageRow) { background: white; color: #211b18; }
+.check {
+  width: max(18px, 4.4cqi);
+  aspect-ratio: 2 / 1;
+  border-left: .13em solid;
+  border-bottom: .13em solid;
+  transform: translateY(-15%) rotate(-45deg);
+}
 @media (max-width: 680px) {
-  .hero { min-height: max(34rem, 100svh); }
+  .hero { min-height: max(36rem, 100svh); }
   .photo { object-position: 37% center; }
-  .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, #100c0bec 0%, transparent 58%); }
-  .heading { top: auto; bottom: 27%; right: 6%; transform: none; }
-  .heading h1 { font-size: clamp(3rem, 12vw, 4.8rem); }
-  .invite { right: 6%; bottom: max(5%, env(safe-area-inset-bottom)); width: 88%; }
+  .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, #100c0bec, transparent 60%); }
+  .heading { top: auto; bottom: max(28%, 12.5rem); right: 6%; width: min(55%, 16rem); transform: none; }
+  .invite { right: 6%; bottom: max(4%, env(safe-area-inset-bottom)); width: 88%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nickname, .messageRow { transition: none; }
+  .spinner { animation: none; }
 }

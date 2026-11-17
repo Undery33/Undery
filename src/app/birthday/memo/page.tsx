@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import GuestbookHero from "./guestbook-hero";
+import styles from "./guestbook.module.css";
 import { getBirthdayMemoStore, type MemoFeed } from "@/lib/birthday-memo-store";
 import { parseMemoPage } from "@/lib/birthday-memo-validation";
 
@@ -14,7 +15,7 @@ export default async function BirthdayMemoPage({ searchParams }: { searchParams:
     feed = await getBirthdayMemoStore().feed(parseMemoPage(params.page ?? null));
   } catch { /* Render a clear unavailable state without exposing database details. */ }
   return <>
-    <main id="main-content">
+    <main id="main-content" className={styles.page}>
       <GuestbookHero />
       <section id="messages" className="shell main-content" aria-labelledby="message-heading">
       <header className="page-heading">
@@ -36,6 +37,6 @@ export default async function BirthdayMemoPage({ searchParams }: { searchParams:
         </>}
       </section>
     </main>
-    <footer className="site-footer shell">Undery · 생일을 함께 기억하는 공간 · <a href="/birthday/memo/admin">메시지 관리</a></footer>
+    <footer className={`site-footer shell ${styles.page}`}>Undery · 생일을 함께 기억하는 공간 · <a href="/birthday/memo/admin">메시지 관리</a></footer>
   </>;
 }
