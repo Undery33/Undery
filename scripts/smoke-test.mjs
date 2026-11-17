@@ -39,7 +39,9 @@ for (const path of ["/", "/computer", "/computer/getting-started", "/vrchat", "/
 const birthday = await read("/birthday");
 assert.equal(birthday.response.status, 200);
 assert.match(birthday.html, /Undery #26 생일 파티/);
-assert.match(birthday.html, /<a\b[^>]*href="https:\/\/vrchat\.com\/home\/world\/wrld_59673787-ac01-41bb-8d81-568a17ca6993\/info"[^>]*>VRChat 월드 구경하기<\/a>/);
+const worldLink = birthday.html.match(/<a\b[^>]*aria-label="VRChat 월드 구경하기"[^>]*>/)?.[0];
+assert.ok(worldLink, "The printed world link must have an accessible name");
+assert.match(worldLink, /href="https:\/\/vrchat\.com\/home\/world\/wrld_59673787-ac01-41bb-8d81-568a17ca6993\/info"/);
 const poster = birthday.html.match(/<img\b[^>]*\bsrc="(\/_next\/static\/media\/[^"<>]+\.webp)"/);
 assert.ok(poster, "The birthday page must reference its bundled poster");
 const posterResponse = await fetch(new URL(poster[1], origin), { signal: AbortSignal.timeout(15000) });
