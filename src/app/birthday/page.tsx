@@ -20,14 +20,15 @@ export default function BirthdayPage() {
           unoptimized
           preload
         />
-        <a className={`${styles.posterLink} ${styles.memoLink}`} href="/birthday/memo">
-          <span className={styles.memoLabel}>축하 메시지</span>
-        </a>
-        <a
-          className={`${styles.posterLink} ${styles.worldLink}`}
-          href="https://vrchat.com/home/world/wrld_59673787-ac01-41bb-8d81-568a17ca6993/info"
-          aria-label="VRChat 월드 구경하기"
-        />
+        <nav className={styles.links} aria-label="생일 포스터 링크">
+          <a href="/birthday/memo">축하 메시지</a>
+          <a
+            href="https://vrchat.com/home/world/wrld_59673787-ac01-41bb-8d81-568a17ca6993/info"
+            aria-label="VRChat 월드 구경하기"
+          >
+            월드 구경하기
+          </a>
+        </nav>
       </div>
     </main>
   );
