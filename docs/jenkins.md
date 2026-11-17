@@ -1,6 +1,6 @@
 # Jenkins main 배포
 
-`Undery_Feature`는 기존 작업 이름입니다. Jenkins는 `main`을 2분마다 폴링합니다. 새 커밋의 Next.js 앱과 `dist/`의 VRChat GUI를 단일 이미지로 빌드하고 검사합니다. 운영 전환 직전에 원격 `main`의 SHA를 다시 확인합니다.
+`Undery_Feature`는 기존 작업 이름입니다. Jenkins는 `main`을 30분마다 폴링합니다. 새 커밋의 Next.js 앱과 `dist/`의 VRChat GUI를 단일 이미지로 빌드하고 검사합니다. 운영 전환 직전에 원격 `main`의 SHA를 다시 확인합니다.
 
 ## 기존 서버 전환
 
