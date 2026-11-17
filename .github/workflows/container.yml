@@ -35,6 +35,23 @@ jobs:
           ref: feature/vrchat-web-gui
           path: web-source
           persist-credentials: false
+      - name: Check Jenkins feature selection with live GitHub activity
+        if: github.event_name == 'push'
+        working-directory: infrastructure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method GET repos/Undery33/Undery/activity -f direction=desc -F per_page=100 > "$RUNNER_TEMP/activity.json"
+          python3 - "$RUNNER_TEMP/activity.json" <<'PY'
+          import json, runpy, sys
+          from pathlib import Path
+          events = json.loads(Path(sys.argv[1]).read_text())
+          select = runpy.run_path("deploy/deployment-policy.py")["latest"]
+          selected = select(events)
+          if not selected:
+              sys.exit("No deployable feature revision found in repository activity")
+          print(selected["branch"], selected["sha"])
+          PY
       - name: Validate tooling and prepare isolated image context
         run: |
           cd infrastructure

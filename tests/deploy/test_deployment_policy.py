@@ -15,12 +15,31 @@ policy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(policy)
 
 
-def event(number, branch='feature/web-computer', sha='a' * 40, kind='normal'):
-    return dict(id=number, pushed_at=f'2026-11-17T00:00:{number:02d}Z',
-                ref='refs/heads/' + branch, after=sha, push_type=kind)
+def event(number, branch='feature/web-computer', sha='a' * 40, kind='push'):
+    return dict(id=number, timestamp=f'2026-11-17T00:00:{number:02d}Z',
+                ref='refs/heads/' + branch, after=sha, activity_type=kind)
 
 
 class DeploymentPolicyTests(unittest.TestCase):
+    def test_select_without_timestamps_and_resume_from_old_checkpoint(self):
+        old = event(1)
+        newer = event(2)
+        del old['timestamp'], newer['timestamp']
+        checkpoint = dict(id='1', pushed_at='2026-11-17T00:00:01Z',
+                          branch='feature/web-computer', sha='a' * 40)
+        self.assertIsNone(policy.latest([old], checkpoint))
+        self.assertEqual(policy.latest([newer, old], checkpoint)['id'], 2)
+
+    def test_legacy_push_shape_and_out_of_date_feed(self):
+        old = event(1)
+        old['pushed_at'] = old.pop('timestamp')
+        old['push_type'] = old.pop('activity_type')
+        self.assertEqual(policy.latest([old])['pushed_at'], old['pushed_at'])
+        self.assertIsNone(policy.latest([old], policy.latest([event(2)])))
+
+    def test_deletion_uses_activity_type_even_with_a_nonzero_sha(self):
+        self.assertIsNone(policy.latest([event(2, kind='branch_deletion'), event(1)]))
+
     def test_last_push_wins_in_github_order_even_with_an_older_commit(self):
         newest = event(4, 'feature/network/vlan', '1' * 40, 'force_push')
         selected = policy.latest([event(5, 'main'), newest, event(3)])

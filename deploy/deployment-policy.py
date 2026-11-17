@@ -36,22 +36,28 @@ def activities():
 
 def latest(events, completed=None):
     deleted = set()
+    completed_at = completed.get('pushed_at') if completed else None
     for event in events:
-        if completed and (event['id'] == completed['id'] or
-                          event['pushed_at'] < completed['pushed_at']):
+        # GitHub orders this feed newest first. The ID is the checkpoint even
+        # when a response or an existing checkpoint has no timestamp.
+        occurred_at = event.get('timestamp') or event.get('pushed_at')
+        if completed and str(event['id']) == str(completed['id']):
+            break
+        if occurred_at and completed_at and occurred_at < completed_at:
             break
         ref = event['ref']
         if not ref.startswith(PREFIX) or ref in deleted:
             continue
         sha = event['after']
-        if sha == ZERO or event.get('push_type') in ('branch_deletion', 'delete', 'branch_delete'):
+        activity_type = event.get('activity_type') or event.get('push_type')
+        if sha == ZERO or activity_type in ('branch_deletion', 'delete', 'branch_delete'):
             deleted.add(ref)
             continue
         branch = ref.removeprefix('refs/heads/')
         if (not re.fullmatch(r'feature/[A-Za-z0-9][A-Za-z0-9._/-]*', branch)
                 or '..' in branch or not re.fullmatch(r'[0-9a-f]{40}', sha)):
             raise ValueError(f'Unsupported deployment ref or revision: {ref}')
-        return {'id': event['id'], 'pushed_at': event['pushed_at'], 'branch': branch, 'sha': sha}
+        return {'id': event['id'], 'pushed_at': occurred_at, 'branch': branch, 'sha': sha}
     return None
 
 
@@ -78,7 +84,9 @@ def main():
         completed = json.loads(state_path().read_text())
     event = latest(activities(), completed)
     if args.action == 'current':
-        raise SystemExit(0 if event == json.loads(args.event_file.read_text()) else 3)
+        selected = json.loads(args.event_file.read_text())
+        matches = event and all(str(event[key]) == str(selected[key]) for key in ('id', 'branch', 'sha'))
+        raise SystemExit(0 if matches else 3)
     if event:
         args.event_file.write_text(json.dumps(event) + '\n')
         print(event['branch'], event['sha'])
