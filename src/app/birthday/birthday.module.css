@@ -1,44 +1,34 @@
 .page {
   display: grid;
-  justify-items: center;
-  grid-template-rows: 1fr auto;
-  gap: 12px;
-  min-height: 100svh;
-  padding: 24px;
-  background: radial-gradient(ellipse at 50% 10%, #5b3648 0%, #2c1428 64%, #1c0a1b 100%);
+  place-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+  background: #512b44;
+}
+
+.artwork {
+  position: relative;
+  width: min(100%, calc(100dvh * 2475 / 4398));
 }
 
 .poster {
-  align-self: center;
   display: block;
-  width: min(100%, clamp(18rem, calc(56svh - 60px), 40rem));
+  width: 100%;
   height: auto;
-  box-shadow: 0 16px 56px #10051099;
 }
 
 .worldLink {
-  justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 20px;
-  border: 1px solid #f1ced4;
-  border-radius: 999px;
-  background: #432139;
-  color: #fff8f6;
-  font-weight: 650;
-  text-decoration: none;
-}
-
-.worldLink:hover,
-.worldLink:focus-visible {
-  background: #ffe4d3;
-  color: #32182a;
+  /* Cover the printed label and arrow, relative to the poster at every size. */
+  position: absolute;
+  right: 2.5%;
+  bottom: .6%;
+  width: max(17%, 44px);
+  height: max(4%, 44px);
 }
 
 .worldLink:focus-visible {
-  outline: 3px solid white;
-  outline-offset: 3px;
+  outline: 2px solid white;
+  outline-offset: -2px;
 }
 
 .visuallyHidden {
@@ -50,21 +40,4 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-@media (max-width: 42rem) {
-  .page {
-    padding: 0;
-  }
-
-  .poster {
-    align-self: start;
-    width: 100%;
-    box-shadow: none;
-  }
-
-  .worldLink {
-    margin-right: max(16px, env(safe-area-inset-right));
-    margin-bottom: max(16px, env(safe-area-inset-bottom));
-  }
 }

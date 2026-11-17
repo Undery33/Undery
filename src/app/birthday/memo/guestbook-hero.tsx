@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { hasMemoText, MemoError, validateWebMemoText } from "@/lib/birthday-memo-validation";
 import photo from "./birthday-world.webp";
@@ -11,7 +10,6 @@ import plane from "./paper-plane.png";
 import styles from "./guestbook.module.css";
 
 export default function GuestbookHero() {
-  const router = useRouter();
   const title = useRef<HTMLHeadingElement>(null);
   const nicknameInput = useRef<HTMLInputElement>(null);
   const messageInput = useRef<HTMLTextAreaElement>(null);
@@ -67,7 +65,6 @@ export default function GuestbookHero() {
       }
       attempt.current = null;
       setSent(true);
-      router.refresh();
     } catch {
       setError({ text: "등록 결과를 확인하지 못했어요. 같은 내용으로 다시 시도해 주세요." });
     } finally {
