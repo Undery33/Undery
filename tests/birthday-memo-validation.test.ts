@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMemoOrder, parseMemoPage, parseMemoUrl, validateMemo, validateToken } from "@/lib/birthday-memo-validation";
+import { parseMemoOrder, parseMemoPage, parseMemoUrl, parseWebMemo, validateMemo, validateToken } from "@/lib/birthday-memo-validation";
 
 describe("birthday memo input validation", () => {
   it.each(["", "   ", "\u00a0\u3000", "\u200b\ufeff", "\u2060"])("rejects a visually blank nickname %j", nickname => {
@@ -28,6 +28,13 @@ describe("birthday memo input validation", () => {
 });
 
 describe("birthday memo request parsing", () => {
+  it("accepts a visitor's chosen nickname and requires a message and valid web request ID", () => {
+    const input = { nickname: "지나가던 별🎂", message: "생일 축하해!", requestId: crypto.randomUUID() };
+    expect(parseWebMemo(input)).toEqual(input);
+    expect(() => parseWebMemo({ ...input, nickname: " \u200b" })).toThrow("닉네임을 입력");
+    expect(() => parseWebMemo({ ...input, message: " \u200b" })).toThrow("축하 메시지를 입력");
+    expect(() => parseWebMemo({ ...input, requestId: "bad" })).toThrow();
+  });
   it("decodes Korean, line breaks, ampersands and literal plus signs once", () => {
     const payload = "축하 & + %\r\n🎂";
     const url = parseMemoUrl(`https://undery.link/birthday/memo/submit?message=${encodeURIComponent(payload)}`, ["message"]);

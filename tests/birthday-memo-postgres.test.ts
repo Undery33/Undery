@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { Pool } from "pg";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { BirthdayMemoStore } from "@/lib/birthday-memo-store";
 
 // Use the EXISTING PostgreSQL database through an explicitly supplied test URL.
@@ -78,6 +78,22 @@ describe.skipIf(!connectionString)("birthday memo actual PostgreSQL integration"
     await pool.query(`UPDATE ${qualified("tokens")} SET expires_at = now() - interval '1 day'`);
     expect((await store.submit(valid.token, "이름", "saved", "writer-three")).entry).toEqual(saved.entry);
     expect((await store.feed()).total).toBe(1);
+  });
+
+  it("publishes a self-entered nickname to the world feed once without an external lookup", async () => {
+    const lookup = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("unexpected external request"));
+    const input = { nickname: "오늘의 손님 🎂", message: "생일 축하해!", requestId: crypto.randomUUID() };
+    try {
+      const receipts = await Promise.all([store.submitWeb(input, "web-test"), store.submitWeb(input, "web-test")]);
+      expect(receipts.filter(item => item.duplicate)).toHaveLength(1);
+      expect((await store.feed()).entries).toEqual([receipts[0].entry]);
+      expect(receipts[0].entry).toMatchObject({ nickname: input.nickname, message: input.message });
+      expect((await store.submitWeb(input, "web-test")).duplicate).toBe(true);
+      await expect(store.submitWeb({ ...input, message: "다른 글" }, "web-test")).rejects.toMatchObject({ status: 409 });
+      expect(lookup).not.toHaveBeenCalled();
+    } finally {
+      lookup.mockRestore();
+    }
   });
 
   it("paginates oldest-first without dropping older entries when new entries arrive", async () => {

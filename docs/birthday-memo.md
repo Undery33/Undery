@@ -4,7 +4,7 @@
 
 ## 사용자 흐름과 API
 
-월드의 펜 위에서 닉네임과 메시지 입력 → 생성 → 등록용 URL 복사·붙여넣기 → 저장 영수증 확인 → 큰 벽 새로고침 순서입니다. 웹페이지는 조회 전용입니다. 입력한 닉네임은 인증된 VRChat 계정명이 아닙니다.
+월드에서는 펜으로 등록한 뒤 벽을 새로고침합니다. 웹에서는 첫 화면에 닉네임과 메시지를 입력하고 종이비행기 버튼을 누릅니다. 등록이 끝나면 흰색 입력란 위에 ‘전송 완료!’가 표시됩니다. 등록한 글은 입력한 닉네임으로 웹과 월드의 공용 게시판에 표시됩니다.
 
 | 요청 | 응답 / 동작 |
 | --- | --- |
@@ -12,7 +12,10 @@
 | `GET /birthday/memo/submit?token=...&nickname=...&message=...` | URL의 각 값은 UTF-8 percent encoding. 성공 `{ok:true, duplicate, entry}`. `entry`는 `{id,nickname,message,createdAt}`. |
 | `GET /birthday/memo/delete?entryId=...&token=...&requestId=...&confirm=trash` | 등록 비밀 코드로 본인 메시지를 휴지통으로 이동. [삭제·재입장 복구 계약](birthday-memo-owner-deletion.md). |
 | `GET /birthday/memo/feed?page=0&order=oldest` | `{ok:true,revision,entries,page,pageSize,total,totalPages,hasMore,order}`. 0부터 시작, 페이지당 150개. |
-| `GET /birthday/memo` | 글 목록과 이전·다음 페이지. 웹 작성 기능은 제공하지 않습니다. |
+| `GET /birthday/memo` | 생일 사진, 메시지 작성, 공개 목록과 페이지 이동 |
+| `POST /birthday/memo/web-submit` | 같은 출처에서 JSON으로 `requestId`(UUID v4), `nickname`, `message` 제출. 같은 요청으로 재시도하면 같은 영수증을 반환합니다. |
+
+웹 등록은 기존 DB 연결을 사용합니다. 운영 시 `SITE_URL=https://undery.link`를 설정하고 인프라 브랜치의 컨테이너 Nginx에서 `POST /birthday/memo/web-submit` 요청을 허용합니다.
 
 `id`와 `revision`은 문자열입니다. 날짜는 ISO 8601 UTC 문자열입니다. `order` 기본값은 `oldest`이며 `newest`도 허용합니다. 월드에는 `order=oldest`의 정적 URL 목록을 미리 넣습니다. 150개 초과 글은 다음 HTTP 페이지로 읽으며 서버에서 삭제하지 않습니다. 월드에 미리 넣은 URL 개수보다 페이지가 많아지면 추가 URL을 넣어 다시 업로드해야 합니다. 웹 목록에는 같은 제한이 없습니다.
 
@@ -20,7 +23,7 @@
 
 오류 형식은 `{ok:false,error:"코드",message:"한국어 안내"}`입니다. `error`는 문자열입니다. 429에는 `Retry-After: 60`이 있습니다. 입력을 보존하고 같은 등록 주소로 다시 확인하면 통신 실패 후 중복 저장을 피할 수 있습니다.
 
-닉네임은 공백 또는 보이지 않는 문자만 있으면 거절합니다. 닉네임 24자, 메시지 300자 제한은 Unicode scalar 기준입니다. 빈 메시지는 허용합니다. JS/.NET의 trim과 개행 처리 차이로 영수증 비교가 깨지지 않도록 서버는 유효한 닉네임·메시지의 원문을 바꾸지 않습니다. HTML은 글자로 표시합니다.
+닉네임은 공백 또는 보이지 않는 문자만 있으면 거절합니다. 닉네임 24자, 메시지 300자 제한은 Unicode scalar 기준입니다. 웹에서는 메시지에도 보이는 문자가 하나 이상 필요합니다. 월드의 등록 주소에서는 빈 메시지도 허용합니다. JS/.NET의 trim과 개행 처리 차이로 영수증 비교가 깨지지 않도록 서버는 유효한 닉네임·메시지의 원문을 바꾸지 않습니다. HTML은 글자로 표시합니다.
 
 ## 기존 DB 연결과 적용
 
@@ -53,7 +56,7 @@ VRChat에서 사용자 입력 URL을 불러오는 제약 때문에 제출과 본
 
 호스트 프록시는 `X-Undery-Client-IP`를 실제 연결의 `$remote_addr`로 덮어씁니다. 컨테이너 Nginx는 이 헤더만 내부 Next에 전달합니다. 컨테이너 공개 포트는 loopback 전용이어야 합니다. 외부에서 Next나 컨테이너 포트에 직접 접속할 수 있으면 `BIRTHDAY_MEMO_TRUST_PROXY=true`를 사용하면 안 됩니다. 앱은 임의 `X-Forwarded-For`를 신뢰하지 않습니다.
 
-요청 제한은 PostgreSQL에 보관하며 클라이언트 버킷당 분당 60회, 전체 분당 240회입니다. prepare, submit, delete는 각각 별도입니다. IP 원문은 저장하지 않고 제한용 해시만 보관합니다. 미사용 만료 토큰은 하루 뒤, 제한 기록은 이틀 뒤 정리합니다. 게시글, 사용한 토큰 영수증, 삭제 요청 영수증은 자동 삭제하지 않습니다.
+웹 등록은 클라이언트당 분당 6회, 전체 분당 20회까지 가능합니다. 월드의 prepare, submit, delete 요청은 각각 클라이언트당 분당 60회, 전체 분당 240회까지 가능합니다. 요청 제한은 PostgreSQL에 보관합니다. IP 원문은 저장하지 않고 제한용 해시만 보관합니다. 미사용 만료 토큰은 하루 뒤, 제한 기록은 이틀 뒤 정리합니다. 게시글, 사용한 토큰 영수증, 삭제 요청 영수증은 자동 삭제하지 않습니다.
 
 ## 검증
 
