@@ -9,7 +9,7 @@
 .artwork {
   position: relative;
   container-type: inline-size;
-  width: min(100%, calc(100dvh * 2475 / 4398));
+  width: min(100%, calc(100dvh * 941 / 1672));
 }
 
 .poster {
@@ -18,42 +18,52 @@
   height: auto;
 }
 
-.posterLink {
+.links {
   position: absolute;
-  bottom: .6%;
-  width: max(17%, 44px);
-  height: max(4%, 44px);
-}
-
-.memoLink { left: 2.5%; }
-.worldLink { right: 2.5%; }
-
-/* Mirror the white rule printed beneath the world link on the artwork. */
-.memoLabel {
-  position: absolute;
-  left: 1.3cqw;
-  bottom: 1.95cqw;
-  width: max(13.65cqw, 3.8em);
-  padding-bottom: 1.15cqw;
+  inset-inline: 3.8%;
+  bottom: 1.3%;
+  display: flex;
+  justify-content: space-between;
   color: white;
-  font: 300 max(8px, 1.95cqw)/1.15 system-ui, sans-serif;
-  white-space: nowrap;
-  text-align: center;
+  font: 400 clamp(10px, 2.5cqw, 24px)/1.2 system-ui, sans-serif;
 }
-.memoLabel::after {
+
+.links a {
+  position: relative;
+  display: grid;
+  align-content: end;
+  width: max(21cqw, 7em);
+  min-height: 44px;
+  padding-bottom: .5em;
+  color: inherit;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px #291329;
+}
+
+.links a::after {
   content: "";
   position: absolute;
   inset: auto 0 0;
-  height: 2.85cqw;
-  border-bottom: max(1px, .24cqw) solid currentColor;
-  border-left: max(1px, .24cqw) solid currentColor;
-  transform: skewX(-29deg);
-  transform-origin: bottom left;
+  height: .78em;
+  border-bottom: max(1px, .09em) solid currentColor;
+  transform-origin: bottom center;
 }
 
-.posterLink:focus-visible {
-  outline: 2px solid white;
-  outline-offset: -2px;
+.links a:first-child::after {
+  border-left: max(1px, .09em) solid currentColor;
+  transform: skewX(-30deg);
+}
+
+.links a:last-child::after {
+  border-right: max(1px, .09em) solid currentColor;
+  transform: skewX(30deg);
+}
+
+.links a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .visuallyHidden {
