@@ -8,6 +8,7 @@
 
 .artwork {
   position: relative;
+  container-type: inline-size;
   width: min(100%, calc(100dvh * 2475 / 4398));
 }
 
@@ -17,16 +18,40 @@
   height: auto;
 }
 
-.worldLink {
-  /* Cover the printed label and arrow, relative to the poster at every size. */
+.posterLink {
   position: absolute;
-  right: 2.5%;
   bottom: .6%;
   width: max(17%, 44px);
   height: max(4%, 44px);
 }
 
-.worldLink:focus-visible {
+.memoLink { left: 2.5%; }
+.worldLink { right: 2.5%; }
+
+/* Mirror the white rule printed beneath the world link on the artwork. */
+.memoLabel {
+  position: absolute;
+  left: 1.3cqw;
+  bottom: 1.95cqw;
+  width: max(13.65cqw, 3.8em);
+  padding-bottom: 1.15cqw;
+  color: white;
+  font: 300 max(8px, 1.95cqw)/1.15 system-ui, sans-serif;
+  white-space: nowrap;
+  text-align: center;
+}
+.memoLabel::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2.85cqw;
+  border-bottom: max(1px, .24cqw) solid currentColor;
+  border-left: max(1px, .24cqw) solid currentColor;
+  transform: skewX(-29deg);
+  transform-origin: bottom left;
+}
+
+.posterLink:focus-visible {
   outline: 2px solid white;
   outline-offset: -2px;
 }
