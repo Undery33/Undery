@@ -19,14 +19,14 @@ pipeline {
       steps {
         script {
           dir('source') {
-            def result = checkout([$class: 'GitSCM',
+            checkout([$class: 'GitSCM',
               branches: [[name: 'refs/heads/main']],
               userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery',
                 refspec: '+refs/heads/main:refs/remotes/origin/main']],
               extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CloneOption',
                 shallow: true, depth: 1, noTags: true, honorRefspec: true]]])
-            env.BUILD_COMMIT = result.GIT_COMMIT
-            sh 'test "$(git rev-parse HEAD)" = "$BUILD_COMMIT" && test "$(git rev-parse refs/remotes/origin/main)" = "$BUILD_COMMIT"'
+            env.BUILD_COMMIT = sh(script: 'git rev-parse --verify HEAD^{commit}', returnStdout: true).trim()
+            sh 'test "$(git rev-parse --verify refs/remotes/origin/main^{commit})" = "$BUILD_COMMIT"'
           }
           env.PIPELINE_COMMIT = env.BUILD_COMMIT
           def causes = currentBuild.getBuildCauses()
