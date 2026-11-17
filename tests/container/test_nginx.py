@@ -77,7 +77,7 @@ class NginxRoutingTests(unittest.TestCase):
                                 response.read()
                                 return response.status, response.headers
 
-                        allowed = ('/api/auth/github', '/api/auth/logout', '/birthday/memo/admin/entries')
+                        allowed = ('/api/auth/github', '/api/auth/logout', '/birthday/memo/admin/entries', '/birthday/memo/web-submit')
                         for path in allowed:
                             status, headers = read(path + '?private-query-marker=1', 'POST')
                             self.assertEqual(status, 503, path)

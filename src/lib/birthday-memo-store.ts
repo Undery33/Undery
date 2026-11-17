@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Pool, type PoolClient } from "pg";
+import { requireExactDisplayName } from "./vrchat-display-name";
 import { MemoError, MEMO_PAGE_SIZE, MEMO_TOKEN_LIFETIME_SECONDS, type MemoOrder, type MemoOwnerDeletion, validateMemo, validateMemoOwnerDeletion, validateToken } from "./birthday-memo-validation";
 
 export type MemoEntry = { id: string; nickname: string; message: string; createdAt: string };
@@ -30,11 +31,11 @@ export class BirthdayMemoStore {
     this.schema = schema;
   }
 
-  private async rateLimit(bucket: "prepare" | "submit" | "delete", address: string) {
+  private async rateLimit(bucket: "prepare" | "submit" | "delete" | "web", address: string) {
     // Shared database counters survive process restarts and work across replicas.
     // Do not store raw IP addresses. The trusted proxy contract is handled separately.
     const client = digest(`birthday-memo:${address}`);
-    for (const [key, limit] of [[client, 60], [digest("birthday-memo:global"), 240]] as const) {
+    for (const [key, limit] of [[client, bucket === "web" ? 6 : 60], [digest("birthday-memo:global"), bucket === "web" ? 20 : 240]] as const) {
       const result = await this.pool.query<{ hits: number }>(
         `INSERT INTO ${this.schema}.rate_limits(bucket, client_key, window_start, hits)
          VALUES ($1, $2, date_trunc('minute', now()), 1)
@@ -64,12 +65,33 @@ export class BirthdayMemoStore {
     validateToken(token);
     const payload = validateMemo(nickname, message);
     await this.rateLimit("submit", address);
+    return this.saveMemo(digest(token), payload, false);
+  }
+
+  async submitWeb(input: { requestId: string; nickname: string; message: string }, address: string) {
+    await this.rateLimit("web", address);
+    // Separate from world tokens. A retried web submission reuses its original receipt.
+    const hash = digest("web:" + input.requestId);
+    const prior = await this.pool.query<{ receipt: MemoEntry }>(
+      `SELECT receipt FROM ${this.schema}.tokens WHERE token_hash=$1 AND entry_id IS NOT NULL`, [hash],
+    );
+    if (!prior.rows[0]) await requireExactDisplayName(input.nickname);
+    return this.saveMemo(hash, input, true);
+  }
+
+  private async saveMemo(hash: string, payload: { nickname: string; message: string }, web: boolean) {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       await client.query("SET LOCAL lock_timeout = '5s'");
+      if (web) {
+        await client.query(
+          `INSERT INTO ${this.schema}.tokens(token_hash, expires_at) VALUES ($1, now() + interval '10 minutes')
+           ON CONFLICT (token_hash) DO NOTHING`, [hash],
+        );
+      }
       const found = await client.query<{ entry_id: string | null; expired: boolean; receipt: MemoEntry | null }>(
-        `SELECT entry_id, receipt, expires_at <= now() AS expired FROM ${this.schema}.tokens WHERE token_hash = $1 FOR UPDATE`, [digest(token)],
+        `SELECT entry_id, receipt, expires_at <= now() AS expired FROM ${this.schema}.tokens WHERE token_hash = $1 FOR UPDATE`, [hash],
       );
       const saved = found.rows[0];
       if (!saved) throw new MemoError("token_not_found", 410, "등록 주소가 만료되었거나 유효하지 않습니다. 생성 버튼을 다시 눌러 주세요.");
@@ -94,7 +116,7 @@ export class BirthdayMemoStore {
         [payload.nickname, payload.message],
       );
       const entry = entryFromRow(inserted.rows[0]);
-      await client.query(`UPDATE ${this.schema}.tokens SET entry_id = $1, receipt = $3::jsonb WHERE token_hash = $2`, [entry.id, digest(token), JSON.stringify(entry)]);
+      await client.query(`UPDATE ${this.schema}.tokens SET entry_id = $1, receipt = $3::jsonb WHERE token_hash = $2`, [entry.id, hash, JSON.stringify(entry)]);
       await client.query("COMMIT");
       return { ok: true as const, duplicate: false, entry };
     } catch (error) {

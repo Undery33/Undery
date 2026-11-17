@@ -4,7 +4,7 @@
 
 ## 사용자 흐름과 API
 
-월드의 펜 위에서 닉네임과 메시지 입력 → 생성 → 등록용 URL 복사·붙여넣기 → 저장 영수증 확인 → 큰 벽 새로고침 순서입니다. 웹페이지는 조회 전용입니다. 입력한 닉네임은 인증된 VRChat 계정명이 아닙니다.
+월드에서는 펜으로 등록한 뒤 벽을 새로고침합니다. 웹에서는 ‘축하 메시지 보내기’를 누르고 VRChat 표시 이름과 메시지를 입력합니다. 서버가 대소문자·공백·기호를 포함한 표시 이름 전체를 비교하고, 일치하면 월드와 같은 게시판에 저장합니다. 이 확인으로 알 수 있는 것은 해당 이름의 존재 여부입니다.
 
 | 요청 | 응답 / 동작 |
 | --- | --- |
@@ -12,7 +12,12 @@
 | `GET /birthday/memo/submit?token=...&nickname=...&message=...` | URL의 각 값은 UTF-8 percent encoding. 성공 `{ok:true, duplicate, entry}`. `entry`는 `{id,nickname,message,createdAt}`. |
 | `GET /birthday/memo/delete?entryId=...&token=...&requestId=...&confirm=trash` | 등록 비밀 코드로 본인 메시지를 휴지통으로 이동. [삭제·재입장 복구 계약](birthday-memo-owner-deletion.md). |
 | `GET /birthday/memo/feed?page=0&order=oldest` | `{ok:true,revision,entries,page,pageSize,total,totalPages,hasMore,order}`. 0부터 시작, 페이지당 150개. |
-| `GET /birthday/memo` | 글 목록과 이전·다음 페이지. 웹 작성 기능은 제공하지 않습니다. |
+| `GET /birthday/memo` | 생일 사진, 메시지 작성, 공개 목록과 페이지 이동 |
+| `POST /birthday/memo/web-submit` | 같은 출처에서 JSON으로 `requestId`(UUID v4), `nickname`, `message` 제출. 같은 요청으로 재시도하면 같은 영수증을 반환합니다. |
+
+웹 등록에는 기존 DB와 서버의 VRChat 검색용 운영 계정 세션이 필요합니다. 배포 시 보호된 `/etc/undery/birthday-memo.env`에 `VRCHAT_SERVICE_AUTH`(운영 계정의 auth 쿠키 값)와 `SITE_URL=https://undery.link`를 설정합니다. 방문자는 자신의 표시 이름만 입력합니다. 현재 배포 파이프라인에서 인프라 브랜치의 Nginx POST 허용 목록과 배포 도우미의 환경 변수 허용 목록에도 이 변경을 반영하고, 저장소의 기존 도우미 설치 절차를 따릅니다. 웹 등록은 기존 메시지 표와 영수증을 사용합니다.
+
+표시 이름이 일치하지 않으면 422, 요청 제한은 429, 검색 자격의 만료·검색 결과 미확정·연결 실패는 503을 반환합니다. 운영 확인 시 실제 표시 이름으로 등록한 뒤 공개 피드와 월드의 새로고침 결과를 확인합니다. [VRChat의 API 이용 지침](https://hello.vrchat.com/creator-guidelines) · [표시 이름 검색 명세](https://vrchat.community/reference/search-users)
 
 `id`와 `revision`은 문자열입니다. 날짜는 ISO 8601 UTC 문자열입니다. `order` 기본값은 `oldest`이며 `newest`도 허용합니다. 월드에는 `order=oldest`의 정적 URL 목록을 미리 넣습니다. 150개 초과 글은 다음 HTTP 페이지로 읽으며 서버에서 삭제하지 않습니다. 월드에 미리 넣은 URL 개수보다 페이지가 많아지면 추가 URL을 넣어 다시 업로드해야 합니다. 웹 목록에는 같은 제한이 없습니다.
 
