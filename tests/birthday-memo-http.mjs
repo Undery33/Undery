@@ -33,7 +33,10 @@ try {
   assert.ok(ready, "Temporary production server must become ready.");
   const page = await read("/birthday/memo");
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /메시지를 불러오지 못했어요/);
+  const html = await page.text();
+  assert.match(html, /<form\b[^>]*aria-label="생일 축하 메시지 작성"/);
+  assert.match(html, /<button\b[^>]*aria-label="축하 메시지 보내기"/);
+  assert.doesNotMatch(html, /id="messages"|id="message-heading"|<footer\b|메시지를 불러오지 못했어요/);
   for (const route of ["/birthday/memo/prepare", "/birthday/memo/feed?page=0&order=oldest"]) {
     const response = await read(route);
     assert.equal(response.status, 503, route);

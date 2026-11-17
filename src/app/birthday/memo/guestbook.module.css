@@ -9,7 +9,7 @@
 .hero {
   position: relative;
   isolation: isolate;
-  min-height: max(30rem, 100svh);
+  min-height: 100dvh;
   color: white;
   background: #18130f;
 }
@@ -128,8 +128,7 @@
   border-bottom: .13em solid;
   transform: translateY(-15%) rotate(-45deg);
 }
-@media (max-width: 680px) {
-  .hero { min-height: max(36rem, 100svh); }
+@media (max-width: 680px) and (orientation: portrait) {
   .photo { object-position: 37% center; }
   .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(0deg, #100c0bec, transparent 60%); }
   .heading { top: auto; bottom: max(28%, 12.5rem); right: 6%; width: min(55%, 16rem); transform: none; }

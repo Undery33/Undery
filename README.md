@@ -16,7 +16,7 @@
 | `/computer/[slug]` | 기술 문서, Markdown 렌더링, VLAN·라우팅 3D 및 DNS·DHCP·CNN 실습, 없는 글은 404 |
 | `/vrchat` | 컨테이너에서 main의 정적 VRChat GUI 제공. Profile·Pictures·Gallery 화면 |
 | `/valorant` | 준비 중 안내. 미디어 게시·댓글 없음 |
-| `/birthday/memo` | 기존 PostgreSQL에 저장한 월드 메시지 공개 조회 |
+| `/birthday/memo` | 생일 사진과 VRChat 월드에 보낼 축하 메시지 작성 폼 |
 | `/birthday/memo/admin` | 기존 GitHub 관리자 인증으로 메시지 작성·수정·검색·숨김·휴지통·복구 |
 | `/admin`, `/admin/*` | 인증 설정 시 `/admin`은 메시지 관리로 이동. 미설정 및 미지원 하위 경로는 503 |
 | `/portfolio` | 공용 메뉴와 분리한 소개 페이지 틀. 직접 URL로 접근 가능, `noindex` 적용 |

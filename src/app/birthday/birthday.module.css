@@ -1,44 +1,59 @@
 .page {
   display: grid;
-  justify-items: center;
-  grid-template-rows: 1fr auto;
-  gap: 12px;
-  min-height: 100svh;
-  padding: 24px;
-  background: radial-gradient(ellipse at 50% 10%, #5b3648 0%, #2c1428 64%, #1c0a1b 100%);
+  place-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+  background: #512b44;
+}
+
+.artwork {
+  position: relative;
+  container-type: inline-size;
+  width: min(100%, calc(100dvh * 2475 / 4398));
 }
 
 .poster {
-  align-self: center;
   display: block;
-  width: min(100%, clamp(18rem, calc(56svh - 60px), 40rem));
+  width: 100%;
   height: auto;
-  box-shadow: 0 16px 56px #10051099;
 }
 
-.worldLink {
-  justify-self: end;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 20px;
-  border: 1px solid #f1ced4;
-  border-radius: 999px;
-  background: #432139;
-  color: #fff8f6;
-  font-weight: 650;
-  text-decoration: none;
+.posterLink {
+  position: absolute;
+  bottom: .6%;
+  width: max(17%, 44px);
+  height: max(4%, 44px);
 }
 
-.worldLink:hover,
-.worldLink:focus-visible {
-  background: #ffe4d3;
-  color: #32182a;
+.memoLink { left: 2.5%; }
+.worldLink { right: 2.5%; }
+
+/* Mirror the white rule printed beneath the world link on the artwork. */
+.memoLabel {
+  position: absolute;
+  left: 1.3cqw;
+  bottom: 1.95cqw;
+  width: max(13.65cqw, 3.8em);
+  padding-bottom: 1.15cqw;
+  color: white;
+  font: 300 max(8px, 1.95cqw)/1.15 system-ui, sans-serif;
+  white-space: nowrap;
+  text-align: center;
+}
+.memoLabel::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2.85cqw;
+  border-bottom: max(1px, .24cqw) solid currentColor;
+  border-left: max(1px, .24cqw) solid currentColor;
+  transform: skewX(-29deg);
+  transform-origin: bottom left;
 }
 
-.worldLink:focus-visible {
-  outline: 3px solid white;
-  outline-offset: 3px;
+.posterLink:focus-visible {
+  outline: 2px solid white;
+  outline-offset: -2px;
 }
 
 .visuallyHidden {
@@ -50,21 +65,4 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
-}
-
-@media (max-width: 42rem) {
-  .page {
-    padding: 0;
-  }
-
-  .poster {
-    align-self: start;
-    width: 100%;
-    box-shadow: none;
-  }
-
-  .worldLink {
-    margin-right: max(16px, env(safe-area-inset-right));
-    margin-bottom: max(16px, env(safe-area-inset-bottom));
-  }
 }
