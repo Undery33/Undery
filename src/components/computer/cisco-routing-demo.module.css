@@ -1,0 +1,95 @@
+.workbench { margin-block: 32px 46px; color: var(--computer-ink); scroll-margin-top: 96px; }
+.views { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--computer-rule); }
+.views button { cursor: pointer; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--computer-muted); padding: 14px 20px; font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1.5; }
+.views button[aria-pressed="true"] { color: var(--computer-accent); border-bottom-color: var(--computer-accent); }
+.views button:hover { background: var(--computer-soft); color: var(--computer-ink); }
+.views button:focus-visible { outline: 2px solid var(--computer-accent); outline-offset: 3px; }
+.methods { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--lab-border); border-left: 1px solid var(--lab-border); }
+.methods button { display: flex; align-items: flex-start; flex-direction: column; text-align: left; gap: 3px; min-width: 0; padding: 14px 12px; border: 0; border-right: 1px solid var(--lab-border); border-bottom: 1px solid var(--lab-border); background: var(--lab-surface); color: var(--lab-ink); }
+.methods button small { font: 10px/1.5 ui-monospace, monospace; color: var(--lab-muted); }
+.methods button strong { font-size: 16px; font-weight: 600; }
+.methods button span { font-size: 10px; color: var(--lab-muted); }
+.methods button[aria-pressed="true"] { box-shadow: inset 0 -3px 0 var(--lab-accent); background: var(--lab-soft); }
+.methods button[aria-pressed="true"] strong { color: var(--lab-accent); }
+.methods button:hover { background: var(--lab-soft); }
+.methodIntro { display: flex; align-items: center; gap: 15px; padding: 19px 0 25px; }
+.protocolCode { flex-shrink: 0; min-width: 46px; padding: 8px; border: 1px solid var(--lab-border); text-align: center; font: 13px/1.5 ui-monospace, monospace; color: var(--lab-accent); }
+.methodIntro p { color: var(--lab-muted); font-size: 12px; line-height: 1.8; }
+.methodIntro p strong { color: var(--lab-ink); margin-right: 10px; }
+.methodIntro a { flex-shrink: 0; margin-left: auto; color: var(--lab-muted); text-decoration: none; font-size: 10px; }
+.methodIntro a:hover { color: var(--lab-accent); }
+.pathLegend { display: flex; flex-wrap: wrap; gap: 5px 18px; padding: 10px 0; color: var(--lab-muted); font: 10px/1.8 ui-monospace, monospace; }
+.pathLegend b { font-weight: 500; color: var(--lab-ink); margin-right: 6px; }
+.rangeField { margin-bottom: 17px; }
+.rangeField label { display: flex; justify-content: space-between; gap: 8px; color: var(--lab-muted); font-size: 11px; margin-bottom: 10px; }
+.rangeField output { color: var(--lab-accent); font: 12px/1.5 ui-monospace, monospace; white-space: nowrap; }
+.rangeField input { display: block; width: 100%; height: 19px; margin: 0; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 15px; }
+.presets button { border: 1px solid var(--lab-rule); background: var(--lab-soft); color: var(--lab-ink); padding: 7px 9px; min-height: 33px; font-size: 10px; line-height: 1.6; }
+.presets button:hover { border-color: var(--lab-accent); color: var(--lab-accent); }
+.metricNote { border-block: 1px solid var(--lab-rule); padding-block: 14px; }
+.metricNote > span { font: 10px/1.5 ui-monospace, monospace; color: var(--lab-muted); }
+.metricNote strong { display: block; margin: 7px 0 9px; font-size: 16px; font-weight: 500; }
+.metricNote p { font-size: 11px; color: var(--lab-muted); line-height: 1.9; }
+.metricFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.metricFields > fieldset { margin-bottom: 0; }
+.metricFields select { padding-inline: 7px; }
+.asPaths { padding: 12px; border: 1px solid var(--lab-rule); background: var(--lab-soft); }
+.asPaths span { display: block; color: var(--lab-muted); font-size: 10px; }
+.asPaths span + span { margin-top: 8px; }
+.asPaths b { display: block; color: var(--lab-ink); font: 11px/1.7 ui-monospace, monospace; }
+.policyField { margin-top: 18px; }
+.decision { border-left: 2px solid var(--lab-accent); background: var(--lab-soft); margin-top: 20px; padding: 14px 18px; }
+.decision p { font-size: 12px; line-height: 1.8; margin-top: 6px; }
+.decision .ecmp { color: var(--lab-accent); }
+.candidateTable { min-width: 600px; }
+.candidateTable td:last-child { white-space: normal; min-width: 210px; }
+.candidateTable td:last-child p { font-size: 11px; line-height: 1.8; color: var(--lab-muted); margin-top: 5px; }
+.candidateTable td:nth-child(3) { white-space: normal; max-width: 240px; font-size: 11px; }
+.assumptions { margin-top: 22px; border-block: 1px solid var(--lab-rule); font-size: 11px; color: var(--lab-muted); }
+.assumptions summary { padding: 15px 4px; cursor: pointer; color: var(--lab-ink); }
+.assumptions ul { padding-left: 22px; margin: 0 0 10px; }
+.assumptions li { margin-bottom: 7px; line-height: 1.8; }
+.assumptions p { line-height: 1.8; padding: 0 4px 16px; }
+.catalogFilters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 240px); gap: 14px; }
+.catalogFilters label { display: block; color: var(--lab-muted); font-size: 11px; margin-bottom: 8px; }
+.catalogFilters input, .catalogFilters select { width: 100%; min-height: 46px; border: 1px solid var(--lab-border); border-radius: 0; padding: 10px 12px; background: var(--lab-surface); color: var(--lab-ink); font-size: 13px; }
+.catalogFilters input::placeholder { color: var(--lab-muted); }
+.catalogCount { padding: 18px 0 13px; color: var(--lab-muted); font: 11px/1.6 ui-monospace, monospace; }
+.catalogGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.catalogCard { display: flex; flex-direction: column; border: 1px solid var(--lab-rule); padding: 22px; background: var(--lab-surface); }
+.catalogCard h4 { margin: 7px 0 12px; font-size: 20px; line-height: 1.5; font-weight: 550; letter-spacing: -.03em; }
+.catalogCard > p:not(:first-child) { color: var(--lab-muted); font-size: 12px; line-height: 1.9; }
+.variants { display: flex; flex-wrap: wrap; gap: 5px; margin: 16px 0; }
+.variants span { background: var(--lab-soft); color: var(--lab-muted); padding: 3px 7px; font-size: 10px; line-height: 1.6; }
+.catalogCard dl { padding: 13px 0; border-top: 1px solid var(--lab-rule); margin: auto 0 0; }
+.catalogCard dl > div { display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 10px; font-size: 11px; line-height: 1.9; }
+.catalogCard dt { color: var(--lab-muted); }
+.catalogCard dd { margin: 0; overflow-wrap: anywhere; }
+.catalogCard footer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding-top: 12px; border-top: 1px solid var(--lab-rule); }
+.catalogCard button { background: transparent; color: var(--lab-accent); border: 0; padding: 4px 0; text-align: left; font-size: 12px; }
+.catalogCard footer a { margin-left: auto; color: var(--lab-muted); text-decoration: none; font-size: 10px; }
+.catalogCard footer a:hover { color: var(--lab-accent); }
+.empty { display: flex; flex-direction: column; align-items: center; gap: 16px; border: 1px dashed var(--lab-border); padding: 48px 20px; color: var(--lab-muted); }
+.empty button { padding: 8px 14px; border: 1px solid var(--lab-border); background: var(--lab-surface); color: var(--lab-ink); }
+
+@media (max-width: 1000px) {
+  .methods { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .methods button { min-height: 92px; }
+  .methodIntro { flex-wrap: wrap; }
+  .methodIntro p { flex: 1; }
+  .methodIntro a { width: 100%; text-align: right; }
+}
+@media (max-width: 600px) {
+  .views button { padding: 12px 10px; font-size: 11px; }
+  .methods button { padding: 10px 8px; min-height: 85px; }
+  .methods button strong { font-size: 14px; }
+  .methods button span { font-size: 9px; }
+  .catalogFilters { grid-template-columns: 1fr; }
+  .catalogGrid { grid-template-columns: 1fr; }
+  .catalogCard { padding: 19px; }
+  .methodIntro { gap: 10px; }
+  .protocolCode { min-width: 38px; }
+  .methodIntro p { font-size: 11px; }
+  .decision { padding: 12px 14px; }
+}
