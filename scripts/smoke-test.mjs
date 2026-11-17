@@ -36,6 +36,16 @@ for (const path of ["/", "/computer", "/computer/getting-started", "/vrchat", "/
   console.log(`PASS ${path}`);
 }
 
+const birthday = await read("/birthday");
+assert.equal(birthday.response.status, 200);
+assert.match(birthday.html, /Undery #26 생일 파티/);
+const poster = birthday.html.match(/<img\b[^>]*\bsrc="(\/_next\/static\/media\/[^"<>]+\.webp)"/);
+assert.ok(poster, "The birthday page must reference its bundled poster");
+const posterResponse = await fetch(new URL(poster[1], origin), { signal: AbortSignal.timeout(15000) });
+assert.equal(posterResponse.status, 200);
+assert.match(posterResponse.headers.get("content-type") || "", /^image\/webp\b/);
+console.log("PASS /birthday and its bundled poster");
+
 const search = await read("/computer?q=PostgreSQL&tag=Markdown");
 assert.equal(search.response.status, 200);
 assert.match(search.html, /조건에 맞는 글이 없습니다/);

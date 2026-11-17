@@ -1,0 +1,38 @@
+.page {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 100svh;
+  padding: 24px;
+  background: radial-gradient(ellipse at 50% 10%, #5b3648 0%, #2c1428 64%, #1c0a1b 100%);
+}
+
+.poster {
+  display: block;
+  width: min(100%, clamp(22rem, 52svh, 40rem));
+  height: auto;
+  box-shadow: 0 16px 56px #10051099;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 42rem) {
+  .page {
+    align-content: start;
+    padding: 0;
+  }
+
+  .poster {
+    width: 100%;
+    box-shadow: none;
+  }
+}
