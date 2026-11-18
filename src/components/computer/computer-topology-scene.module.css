@@ -1,0 +1,105 @@
+.scene {
+  --glass-height: clamp(278px, min(28vw, 42svh), 410px);
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  container-type: inline-size;
+  scroll-margin-block-start: .4rem;
+  color: var(--computer-ink, #282923);
+}
+.scene:is([data-topology-view="entering"], [data-topology-view="linux"]) { min-height: calc(var(--glass-height) * 2.19 + 55px); }
+.scene:not([data-topology-view="overview"]) :is(.labels, .controls, .srOnly) { visibility: hidden; }
+.glass {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - var(--glass-height) * .41);
+  width: min(87%, calc(var(--glass-height) * 1.48 / .72));
+  height: var(--glass-height);
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+  color: var(--computer-ink, #282923);
+  background: var(--computer-paper, #f8f7f3);
+}
+.scene[data-topology-view="linux"] .glass { visibility: visible; }
+.scene[data-topology-renderer="svg"][data-topology-view="linux"] .glass {
+  box-shadow: 0 0 0 6px #454a4d, 0 0 0 9px #8c9090;
+}
+.scene[data-topology-renderer="svg"][data-topology-view="linux"] .glass::after {
+  content: "";
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 30%;
+  width: 40%;
+  height: calc(var(--glass-height) * .45);
+  background: linear-gradient(#8c9090, #8c9090) center top / 20% 89% no-repeat,
+    linear-gradient(#707674, #707674) center bottom / 100% 12% no-repeat;
+}
+.glass:focus-visible { outline: 2px solid var(--computer-accent); outline-offset: 3px; }
+.returnLink {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 36px;
+  color: var(--computer-ink);
+  background: var(--computer-paper);
+  text-decoration: none;
+}
+.returnLink:hover { color: var(--computer-accent, currentColor); }
+.fallback { position: absolute; inset: 0; display: grid; align-content: center; }
+.fallback[hidden] { display: none; }
+.live, .host, .labels { position: absolute; inset: 0; }
+.scene[data-topology-renderer="svg"] .live { visibility: hidden; }
+.host canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+.host canvas:active { cursor: grabbing; }
+.host:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+.labels { pointer-events: none; overflow: hidden; }
+.label {
+  position: absolute;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  white-space: nowrap;
+  padding-inline: .24em;
+  background: var(--computer-paper, #fff);
+  color: inherit;
+  font-size: clamp(.75rem, 1.2vw, 1.05rem);
+  line-height: 1.3;
+  text-decoration: none;
+  font-weight: 500;
+}
+.label:is(:hover, :focus-visible, [aria-current="true"]) { color: inherit; text-decoration: underline; text-underline-offset: .2em; }
+.controls {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  display: flex;
+  border: 1px solid var(--computer-rule, #ccc);
+  background: var(--computer-paper, #fff);
+}
+.controls button {
+  min-height: 28px;
+  min-width: 30px;
+  border: 0;
+  padding: 0 .4rem;
+  border-radius: 0;
+  line-height: 1.1;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: .75rem;
+  color: inherit;
+  background: transparent;
+}
+.controls button:hover { background: var(--computer-soft, #eee); }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 700px) {
+  .scene { aspect-ratio: 375 / 292; --glass-height: 290px; }
+  .label { font-size: .75rem; }
+  .controls button { min-width: 32px; min-height: 30px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .scene { min-height: 0; transition: min-height .65s ease; }
+  .scene[data-topology-view="linux"] .glass { animation: reveal .13s ease-out; }
+  @keyframes reveal { from { opacity: .2; } to { opacity: 1; } }
+}

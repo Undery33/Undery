@@ -1,0 +1,81 @@
+.icon, .figure {
+  --device-case: #ece9e3;
+  --device-panel: #bfb8ae;
+  --device-front: #e5e0d8;
+  --device-side: #d0c9be;
+  --device-ink: #655f57;
+  --device-edge: #938a7d;
+  --device-screen: #f2dccb;
+  --device-light: #faf7f1;
+  --device-metal: #b4ab9d;
+  --device-accent: #ba623f;
+  --trace-line: #a17800;
+  --trace-fill: #ffdc48;
+}
+:global(html[data-computer-theme="dark"]) :is(.icon, .figure) {
+  --device-case: #746e65;
+  --device-panel: #514b43;
+  --device-front: #6e685f;
+  --device-side: #59544d;
+  --device-ink: #272521;
+  --device-edge: #b6ac9f;
+  --device-screen: #514139;
+  --device-light: #b9b1a5;
+  --device-metal: #868077;
+  --device-accent: #efad84;
+  --trace-line: #ffdc48;
+  --trace-fill: #c0a33b;
+}
+.icon { display: block; width: 100%; height: 100%; }
+.figure { position: relative; container-type: inline-size; width: 100%; color: var(--computer-ink, currentColor); }
+.definitions { position: absolute; pointer-events: none; }
+.wide, .compact { display: block; width: 100%; height: auto; overflow: hidden; }
+.compact { display: none; }
+.camera {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transform: var(--frame, translate(0, 0) scale(1));
+}
+:global([data-topology-view="overview"][data-scroll-highlight="router"]) .camera { --frame: var(--frame-router); --label-scale: var(--label-router); }
+:global([data-topology-view="overview"][data-scroll-highlight="asa"]) .camera { --frame: var(--frame-asa); --label-scale: var(--label-asa); }
+:global([data-topology-view="overview"][data-scroll-highlight="switch"]) .camera { --frame: var(--frame-switch); --label-scale: var(--label-switch); }
+:global([data-topology-view="overview"][data-scroll-highlight="server"]) .camera { --frame: var(--frame-server); --label-scale: var(--label-server); }
+:global([data-topology-view="overview"][data-scroll-highlight="linux"]) .camera { --frame: var(--frame-linux); --label-scale: var(--label-linux); }
+:global([data-topology-view="overview"][data-scroll-highlight="windows-server"]) .camera { --frame: var(--frame-windows-server); --label-scale: var(--label-windows-server); }
+.cables { fill: none; stroke-linejoin: round; }
+.cables path { stroke: var(--device-edge); stroke-width: var(--wire-width, 1.4); }
+.device { color: inherit; text-decoration: none; }
+.device text { fill: currentColor; stroke: var(--computer-paper, white); stroke-width: 4px; paint-order: stroke; font-family: inherit; font-size: 17px; font-weight: 500; }
+.camera text { transform-box: fill-box; transform-origin: center bottom; transform: scale(var(--label-scale, 1)); }
+/* A keyboard user can still tab through every device in the full map. */
+.camera:has(a:focus-visible), .camera:has(a:focus-visible) text { transform: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .camera, .camera text { transition: transform 620ms cubic-bezier(.4, 0, .2, 1); }
+}
+a.device:is(:hover, :focus-visible, [aria-current]) text { text-decoration: underline; text-underline-offset: 4px; font-weight: 700; }
+a.device:focus-visible { outline: 2px solid currentColor; }
+
+:global([data-scroll-highlight="router"]) .figure :is([data-topology-device="router"], [data-cable-from="router"]),
+:global([data-scroll-highlight="asa"]) .figure :is([data-topology-device="asa"], [data-cable-to="asa"]),
+:global([data-scroll-highlight="switch"]) .figure :is([data-topology-device="switch"], [data-cable-to="switch"]),
+:global([data-scroll-highlight="server"]) .figure :is([data-topology-device="server"], [data-cable-to="server"]),
+:global([data-scroll-highlight="linux"]) .figure :is([data-topology-device="linux"], [data-cable-to="linux"]),
+:global([data-scroll-highlight="windows-server"]) .figure :is([data-topology-device="windows-server"], [data-cable-to="windows-server"]) {
+  --device-case: color-mix(in srgb, var(--computer-surface) 63%, var(--trace-fill));
+  --device-light: color-mix(in srgb, var(--computer-surface) 80%, var(--trace-fill));
+  --device-front: color-mix(in srgb, var(--computer-surface) 55%, var(--trace-fill));
+  --device-side: color-mix(in srgb, var(--computer-surface) 38%, var(--trace-fill));
+  --device-panel: color-mix(in srgb, var(--computer-paper) 38%, var(--trace-line));
+  --device-metal: color-mix(in srgb, var(--computer-paper) 30%, var(--trace-line));
+  --device-screen: color-mix(in srgb, var(--computer-surface) 52%, var(--trace-fill));
+  --device-edge: var(--trace-line);
+  --device-accent: var(--trace-line);
+  --wire-width: 2.8;
+}
+
+@container (max-width: 650px) {
+  .wide { display: none; }
+  .compact { display: block; }
+  .device text { font-size: 14px; }
+  .cables { --wire-width: 1.25; }
+}

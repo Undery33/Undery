@@ -1,0 +1,53 @@
+@import "../../../fonts/freesentation.css";
+
+body:has(.page) {
+  --background: #262626;
+  --surface: #262626;
+  --ink: #fafafa;
+  --muted: #c5c5c5;
+  --accent: #fff;
+  --line: #595959;
+  --soft: #353535;
+  color-scheme: dark;
+}
+
+body:has(.page) > :global(.skip-link) { color: #262626; }
+
+.page {
+  container-type: inline-size;
+  max-width: 54rem;
+  margin-inline: auto;
+  font-family: "Freesentation", "Malgun Gothic", sans-serif;
+}
+
+.archiveTitle {
+  margin: 0;
+  padding-bottom: .35em;
+  border-bottom: 1px solid currentColor;
+  font-size: clamp(2.3rem, 6vw, 3.8rem);
+  font-weight: 800;
+  letter-spacing: -.025em;
+  line-height: 1.05;
+}
+
+.archive form[role="search"] {
+  min-height: 44px;
+  font-size: max(.95rem, 1.5cqw);
+}
+.archive form[role="search"] button { min-width: 44px; min-height: 44px; }
+.archive form[role="search"] svg { width: clamp(18px, 2.5cqw, 24px); height: auto; }
+.archive table { font-size: max(.95rem, 1.62cqw); }
+.archive table :is(th, td):first-child { width: max(4.25rem, 10.4%); }
+.archive table :is(th, td):nth-child(2) { width: max(4.5rem, 9.6%); }
+
+article.page { max-width: 44rem; }
+.back { display: inline-block; padding-block: .55rem; color: var(--muted); font-size: 1rem; }
+.articleHeading { margin-block: clamp(1.75rem, 5vw, 3rem) 2rem; padding-bottom: 1.65rem; border-bottom: 1px solid var(--line); }
+.articleHeading h1 { margin: .65rem 0 0; font-size: clamp(2rem, 5.2vw, 3.25rem); line-height: 1.2; }
+.articleHeading p { margin: .85rem 0 0; color: var(--muted); font-size: 1.15rem; }
+.meta, .tags { display: flex; flex-wrap: wrap; gap: .35rem 1rem; color: var(--muted); font-size: .95rem; }
+.meta time { font-variant-numeric: tabular-nums; }
+.tags { list-style: none; margin: .8rem 0 0; padding: 0; }
+.page :global(.prose) { font-size: clamp(1rem, 1.75vw, 1.14rem); }
+.page :global(.prose) pre { background: #1b1b1b; }
+.page :global(.prose) blockquote { border-color: var(--line); }

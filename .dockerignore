@@ -1,0 +1,10 @@
+**
+!Dockerfile
+!nginx.conf
+!container-entrypoint.mjs
+!health.json
+!asset-manifest.json
+!dist/
+!dist/**
+!main/
+!main/**

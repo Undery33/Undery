@@ -1,0 +1,94 @@
+import path from "node:path";
+import matter from "gray-matter";
+import { computerCategories, getComputerCategory, type ComputerCategory } from "@/lib/computer-categories";
+import { markdownSlug, publishedDate, readPublishedMarkdown, requiredText } from "@/lib/markdown-collection";
+
+export type Article = {
+  slug: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+  tags: string[];
+  category?: ComputerCategory;
+  body: string;
+  draft: boolean;
+  example: boolean;
+};
+
+const contentDirectory = path.join(process.cwd(), "content", "computer");
+
+/** Validate author-owned Markdown at build/read time; never trust URL input as a file path. */
+export function parseArticle(slug: string, source: string): Article {
+  if (!markdownSlug.test(slug)) throw new Error(`Invalid article slug: ${slug}`);
+  const { data, content } = matter(source);
+  const publishedAt = publishedDate(data.publishedAt, slug);
+  if (
+    !Array.isArray(data.tags) ||
+    data.tags.length === 0 ||
+    data.tags.some((tag: unknown) => typeof tag !== "string" || !tag.trim())
+  ) {
+    throw new Error(`${slug}: tags must contain at least one non-empty string.`);
+  }
+  for (const field of ["draft", "example"]) {
+    if (data[field] !== undefined && typeof data[field] !== "boolean") {
+      throw new Error(`${slug}: ${field} must be a boolean.`);
+    }
+  }
+  const category = typeof data.category === "string" ? getComputerCategory(data.category) : undefined;
+  if (data.category !== undefined && !category) {
+    throw new Error(`${slug}: category must be one of ${computerCategories.map(({ id }) => id).join(", ")}.`);
+  }
+  if (!content.trim()) throw new Error(`${slug}: article body cannot be empty.`);
+
+  return {
+    slug,
+    title: requiredText(data.title, "title", slug),
+    description: requiredText(data.description, "description", slug),
+    publishedAt,
+    tags: [...new Set((data.tags as string[]).map((tag) => tag.trim()))],
+    ...(category ? { category: category.id } : {}),
+    body: content.trim(),
+    draft: data.draft === true,
+    example: data.example === true,
+  };
+}
+
+export async function getArticles(): Promise<Article[]> {
+  return readPublishedMarkdown(contentDirectory, parseArticle);
+}
+
+export async function getArticle(slug: string): Promise<Article | undefined> {
+  if (!markdownSlug.test(slug)) return undefined;
+  return (await getArticles()).find((article) => article.slug === slug);
+}
+
+export function normalizeSearch(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase("ko-KR");
+}
+
+/** Search title, summary, tags, and Markdown body. All selected filters intersect. */
+export function filterArticles(articles: Article[], query: string, tag: string, category = ""): Article[] {
+  const words = normalizeSearch(query).split(/\s+/).filter(Boolean);
+  const normalizedTag = normalizeSearch(tag);
+  // Keep shared links to the former network group usable after splitting its subjects.
+  const categories = category === "network" ? ["router", "switch", "asa"] : [category];
+  return articles.filter((article) => {
+    const matchesCategory = !category || (article.category !== undefined && categories.includes(article.category));
+    const matchesTag = !normalizedTag || article.tags.some((item) => normalizeSearch(item) === normalizedTag);
+    const haystack = normalizeSearch([article.title, article.description, ...article.tags, article.body].join(" "));
+    return matchesCategory && matchesTag && words.every((word) => haystack.includes(word));
+  });
+}
+
+export function getTags(articles: Article[]): string[] {
+  return [...new Set(articles.flatMap((article) => article.tags))].sort((a, b) => a.localeCompare(b, "ko"));
+}
+
+export function articleListHref(query = "", tag = "", category = ""): string {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (tag) params.set("tag", tag);
+  if (category) params.set("category", category);
+  const search = params.toString();
+  return `/computer${search ? `?${search}` : ""}`;
+}

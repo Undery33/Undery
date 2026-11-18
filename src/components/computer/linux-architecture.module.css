@@ -1,0 +1,50 @@
+.screen {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-content: center;
+  gap: clamp(4px, 1cqi, 12px);
+  padding: clamp(6px, 1.6cqi, 20px);
+  color: var(--computer-ink, #282923);
+  --paper: var(--computer-paper, #f8f7f3);
+  --case: var(--computer-surface, #fffefa);
+  --side: color-mix(in srgb, currentColor 14%, var(--case));
+  --line: color-mix(in srgb, currentColor 72%, var(--paper));
+  --carrier: color-mix(in srgb, var(--computer-soft) 58%, var(--paper));
+  --trace-line: #a17800;
+  --trace-fill: #ffdc48;
+}
+:global(html[data-computer-theme="dark"]) .screen { --trace-line: #ffdc48; --trace-fill: #c0a33b; }
+.diagram { display: block; width: 100%; height: 100%; overflow: visible; }
+.diagram:first-child { grid-column: 1 / -1; }
+.equipment { stroke: var(--line); stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; fill: var(--case); }
+.shade { fill: var(--side); }
+.detail { fill: none; stroke: var(--line); stroke-width: 1.4; }
+.indicator { fill: var(--indicator, var(--computer-accent)); stroke: none; }
+.carrier { fill: var(--carrier); stroke: color-mix(in srgb, var(--line) 62%, var(--paper)); stroke-width: .85; }
+.sidewall { fill: color-mix(in srgb, var(--carrier) 83%, var(--line)); }
+.fastener { fill: var(--paper); stroke-width: .7; }
+.wire { fill: none; stroke: var(--line); stroke-width: var(--wire-width, 1.4); stroke-linejoin: round; marker-end: var(--arrow); }
+.junction { fill: var(--line); stroke: none; }
+
+:global([data-scroll-highlight="kubernetes"]) .diagram[data-architecture="kubernetes"],
+:global([data-scroll-highlight="jenkins"]) .diagram[data-architecture="jenkins"],
+:global([data-scroll-highlight="docker"]) .diagram[data-architecture="docker"] {
+  --line: var(--trace-line);
+  --carrier: color-mix(in srgb, var(--paper) 87%, var(--trace-fill));
+  --case: color-mix(in srgb, var(--computer-surface) 62%, var(--trace-fill));
+  --side: color-mix(in srgb, var(--computer-surface) 34%, var(--trace-fill));
+  --indicator: var(--trace-line);
+  --wire-width: 2.1;
+}
+
+@media (max-width: 640px) {
+  .screen {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1.08fr) repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    padding: 6px;
+  }
+}
