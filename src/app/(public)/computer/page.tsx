@@ -30,14 +30,14 @@ export default async function ComputerPage({ searchParams }: { searchParams: Sea
   const tags = getTags(articles);
   const hasFilters = Boolean(query || tag || category);
   const deviceLinks = Object.fromEntries(computerCategories.map(({ id }) =>
-    [id, articleListHref(query, tag, id) + "#articles"])) as Record<ComputerCategory, string>;
+    [id, articleListHref(query, tag, id) + (id === "linux" ? "#computer-screen" : "#articles")])) as Record<ComputerCategory, string>;
 
   return (
     <div className={styles.page}>
       <nav className={styles.siteNav} aria-label="홈으로 이동">
         <Link href="/" aria-label="Undery 홈"><span aria-hidden="true">←</span> Undery</Link>
       </nav>
-      <ComputerTopologyScene hrefs={deviceLinks} selected={category} />
+      <ComputerTopologyScene hrefs={deviceLinks} selected={category} returnHref={articleListHref(query, tag) + "#computer-screen"} />
 
       <header className={styles.heading}>
         <h1 id="computer-title">Computer</h1>
@@ -55,7 +55,7 @@ export default async function ComputerPage({ searchParams }: { searchParams: Sea
 
       <nav className={styles.categories} aria-label="기술 분류">
         {computerCategories.map(({ id, label }) => (
-          <Link key={id} href={articleListHref(query, tag, id)} scroll={false} aria-current={id === category ? "true" : undefined}>
+          <Link key={id} href={id === "linux" ? deviceLinks.linux : articleListHref(query, tag, id)} scroll={id === "linux"} aria-current={id === category ? "true" : undefined}>
             <span className={styles.thumbnail}><ComputerDeviceIcon device={id} /></span>
             <span className={styles.cardTitle}>{label}</span>
           </Link>
