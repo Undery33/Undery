@@ -39,9 +39,6 @@ export default async function ComputerPage({ searchParams }: { searchParams: Sea
 
   return (
     <div className={styles.page}>
-      <nav className={styles.siteNav} aria-label="홈으로 이동">
-        <Link href="/" aria-label="Undery 홈"><span aria-hidden="true">←</span> Undery</Link>
-      </nav>
       <div className={styles.scrollTrack} data-topology-track="">
         <div className={styles.pinnedPanel} data-topology-panel="">
           <ComputerTopologyScene hrefs={deviceLinks} selected={category} linuxNotes={linuxNotes} returnHref={articleListHref(query, tag) + "#computer-screen"} />

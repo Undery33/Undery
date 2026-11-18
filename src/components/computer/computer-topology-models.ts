@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import { deviceDrawing, type Finish, type TopologyDevice } from "./computer-topology-devices";
+import { deviceDrawing, type DevicePart, type Finish, type Mark, type TopologyDevice } from "./computer-topology-devices";
 
 export const topologyYellow = 0xfdc41f;
 const finishes = {
@@ -9,11 +9,8 @@ const finishes = {
   dark: { case: 0x777777, panel: 0x515151, ink: 0x222222, light: 0xb3b3b3, metal: 0x909090, screen: 0x323232, accent: topologyYellow },
 };
 
-/** Local +Z is the front panel, +Y is up. Combine casework by finish to keep draw calls low. */
-export function createTopologyDevice(device: TopologyDevice, dark: boolean): THREE.Group {
-  const group = new THREE.Group();
-  group.name = device;
-  const { parts, marks } = deviceDrawing(device);
+/** Combine casework by finish, retaining independent materials for assemblies that fade separately. */
+function addCasework(group: THREE.Group, parts: DevicePart[], marks: Mark[], dark: boolean) {
   const byFinish = new Map<Finish, THREE.BufferGeometry[]>();
   const strokes: Record<"ink" | "light" | "accent", THREE.Vector3[]> = { ink: [], light: [], accent: [] };
 
@@ -48,8 +45,8 @@ export function createTopologyDevice(device: TopologyDevice, dark: boolean): THR
     const combined = mergeGeometries(geometries, false);
     for (const geometry of geometries) geometry.dispose();
     const face = new THREE.Mesh(combined, new THREE.MeshStandardMaterial({
-      color: palette[finish], roughness: finish === "screen" ? .61 : .89,
-      metalness: finish === "metal" ? .14 : 0,
+      color: palette[finish], roughness: finish === "metal" ? .57 : finish === "screen" ? .61 : .86,
+      metalness: finish === "metal" ? .22 : 0,
       polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
     }));
     face.material.userData.finish = finish;
@@ -69,6 +66,19 @@ export function createTopologyDevice(device: TopologyDevice, dark: boolean): THR
     material.userData.finish = finish;
     material.userData.topologyOutline = finish === "ink";
     group.add(new THREE.LineSegments(geometry, material));
+  }
+}
+
+export function createTopologyDevice(device: TopologyDevice, dark: boolean): THREE.Group {
+  const group = new THREE.Group();
+  group.name = device;
+  const { parts, marks } = deviceDrawing(device);
+  addCasework(group, parts.filter(part => !part.assembly), marks.filter(mark => !mark.assembly), dark);
+  if (device === "linux" || device === "windows-server") {
+    const tower = new THREE.Group();
+    tower.name = "workstation-tower";
+    addCasework(tower, parts.filter(part => part.assembly === "tower"), marks.filter(mark => mark.assembly === "tower"), dark);
+    group.add(tower);
   }
   return group;
 }

@@ -3,6 +3,7 @@ import { computerCategories } from "@/lib/computer-categories";
 import { deviceDrawing, type Point3, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
 import { patchLinks } from "./computer-topology-ports";
+import { routePatchCable, type CableSocket, type Footprint } from "./computer-topology-routing";
 import styles from "./computer-topology.module.css";
 
 type Point = [number, number];
@@ -74,7 +75,14 @@ function projectDevice(device: TopologyDevice) {
   const xs = bounds.map(p => p[0]), ys = bounds.map(p => p[1]);
   const x = Math.min(...xs), y = Math.min(...ys), padding = 4;
   const frame = { x: x - padding, y: y - padding, w: Math.max(...xs) - x + 2 * padding, h: Math.max(...ys) - y + 2 * padding };
-  return { surfaces, frame, viewBox: `${frame.x} ${frame.y} ${frame.w} ${frame.h}` };
+  const footprint: Footprint = { left: Infinity, right: -Infinity, back: Infinity, front: -Infinity };
+  for (const { position: [x, , z], size: [w, , d] } of drawing.parts) {
+    footprint.left = Math.min(footprint.left, x - w / 2);
+    footprint.right = Math.max(footprint.right, x + w / 2);
+    footprint.back = Math.min(footprint.back, z - d / 2);
+    footprint.front = Math.max(footprint.front, z + d / 2);
+  }
+  return { surfaces, frame, footprint, viewBox: `${frame.x} ${frame.y} ${frame.w} ${frame.h}` };
 }
 
 const devices = computerCategories.map(category => category.id);
@@ -98,27 +106,17 @@ export function ComputerDeviceIcon({ device }: { device: TopologyDevice }) {
 }
 
 type Placement = [device: TopologyDevice, centerX: number, top: number, width: number, height: number];
-type Layout = { compact: boolean; width: number; height: number; devices: Placement[]; bends: Partial<Record<TopologyDevice, Point[]>> };
+type Layout = { compact: boolean; width: number; height: number; devices: Placement[] };
 const layouts: Layout[] = [
   {
     compact: false, width: 1040, height: 330,
     devices: [["router", 79, 190, 135, 78], ["asa", 263, 111, 144, 82], ["switch", 510, 115, 162, 82],
       ["server", 767, 0, 88, 123], ["linux", 740, 199, 140, 103], ["windows-server", 957, 107, 142, 104]],
-    bends: {
-      asa: [[51, 274], [109, 269], [153, 234]], switch: [[247, 198], [340, 197]],
-      server: [[447, 194], [424, 173], [432, 113], [520, 103], [651, 103]], linux: [[486, 201], [567, 219], [641, 248]],
-      "windows-server": [[524, 202], [629, 196], [763, 181]],
-    },
   },
   {
     compact: true, width: 375, height: 292,
     devices: [["router", 54, 10, 87, 58], ["asa", 188, 12, 93, 53], ["switch", 315, 61, 100, 58],
       ["server", 53, 173, 59, 76], ["linux", 180, 177, 95, 72], ["windows-server", 310, 177, 97, 72]],
-    bends: {
-      asa: [[39, 65], [98, 62]], switch: [[186, 71], [238, 79]],
-      server: [[256, 137], [123, 140], [39, 154], [17, 186], [18, 218]],
-      linux: [[265, 148], [205, 155], [135, 189]], "windows-server": [[298, 146], [270, 179]],
-    },
   },
 ];
 
@@ -139,38 +137,29 @@ function cameraFrames({ width, height, compact, devices }: Layout) {
   }
   return frames as CSSProperties;
 }
-function socketPlacement([id, cx, top, w, h]: Placement, local: Point3) {
-  const frame = projections.get(id)!.frame;
+// Invert the projection at desk height so this layout uses the same physical routing as WebGL.
+function physicalPlacement([id, cx, top, w, h]: Placement) {
+  const { frame, footprint: local } = projections.get(id)!;
   const scale = Math.min(w / frame.w, h / frame.h);
-  const [px, py] = project(local);
-  const x = cx + (px - frame.x - frame.w / 2) * scale;
-  const y = top + h / 2 + (py - frame.y - frame.h / 2) * scale;
-  const outward = (z: number): Point => {
-    const [dx, dy] = project([0, 0, z]);
-    return [x + scale * dx, y + scale * dy];
-  };
-  return { x, y, scale, boot: outward(.43), lead: outward(.82) };
-}
-
-function cablePath(points: Point[]) {
-  let d = `M${points[0].join(" ")}`;
-  for (let i = 1; i < points.length - 1; i++) {
-    const [x, y] = points[i];
-    const trim = ([nx, ny]: Point) => {
-      const ratio = Math.min(.42, 22 / (Math.hypot(nx - x, ny - y) || 1));
-      return `${(x + (nx - x) * ratio).toFixed(2)} ${(y + (ny - y) * ratio).toFixed(2)}`;
-    };
-    d += `L${trim(points[i - 1])}Q${x} ${y} ${trim(points[i + 1])}`;
+  const u = (cx - (frame.x + frame.w / 2) * scale) / 52;
+  const v = (top + h / 2 - (frame.y + frame.h / 2) * scale) / 52;
+  const determinant = .86 * .40 + .52 * .24;
+  const x = (.40 * u + .52 * v) / determinant, z = (-.24 * u + .86 * v) / determinant;
+  const footprint = { left: x + local.left * scale, right: x + local.right * scale, back: z + local.back * scale, front: z + local.front * scale };
+  function socket([lx, ly, lz]: Point3, normal: Point3): CableSocket {
+    return { position: [x + lx * scale, ly * scale, z + lz * scale], normal, scale, footprint };
   }
-  return d + `L${points[points.length - 1].join(" ")}`;
+  return { footprint, socket };
 }
 
 const scenes = layouts.map(layout => {
-  const positions = new Map(layout.devices.map(placement => [placement[0], placement]));
-  const cables = patchLinks.map(({ from, to, start, end }) => {
-    const a = socketPlacement(positions.get(from)!, start);
-    const b = socketPlacement(positions.get(to)!, end);
-    const d = cablePath([a.boot, a.lead, ...(layout.bends[to] ?? []), b.lead, b.boot]);
+  const mounts = new Map(layout.devices.map(p => [p[0], physicalPlacement(p)]));
+  const footprints = [...mounts.values()].map(mount => mount.footprint);
+  const xy = (point: Point3) => project(point).map(v => v.toFixed(2)).join(" ");
+  const cables = patchLinks.map(({ from, to, start, end, startNormal, endNormal }, i) => {
+    const a = mounts.get(from)!.socket(start, startNormal), b = mounts.get(to)!.socket(end, endNormal);
+    const route = routePatchCable(a, b, footprints, Math.max(0, i - 2));
+    const d = "M" + xy(route.start) + route.segments.map(({ corner, end }) => (corner ? "Q" + xy(corner) + " " : "L") + xy(end)).join("");
     return { from, to, a, b, d };
   });
   return { ...layout, cables, frames: cameraFrames(layout) };
@@ -187,22 +176,42 @@ function PlugSection({ width, height, front, back, tone }: { width: number; heig
   </g>;
 }
 
-function PlugDefinitions({ id }: { id: string }) {
+function PlugDefinitions({ id, sign }: { id: string; sign: 1 | -1 }) {
+  const projection = ([x, y, z]: Point3): Point => project([x * sign, y, z * sign]);
+  const section = (width: number, height: number, a: number, b: number, tone: string) => (
+    <PlugSection width={width} height={height} back={Math.min(a * sign, b * sign)} front={Math.max(a * sign, b * sign)} tone={tone} />
+  );
   return <>
     <g id={id + "-plug"} className={styles.plugShell}>
-      <PlugSection width={.165} height={.115} back={0} front={.208} tone="var(--plug-shell)" />
+      {section(.14, .095, 0, .15, "var(--plug-shell)")}
       {Array.from({ length: 8 }, (_, i) => {
-        const x = -.063 + i * .018;
-        return <path key={i} d={path([project([x,.061,.015]), project([x,.061,.089])], false)} className={styles.contact} />;
+        const x = (i - 3.5) * .014;
+        return <path key={i} d={path([projection([x,.052,.015]), projection([x,.052,.076])], false)} className={styles.contact} />;
       })}
-      <path className={styles.latch} d={path([[0,.065,.055],[0,.092,.107],[0,.11,.205],[0,.074,.243]].map(p => project(p as Point3)), false)} />
+      <path className={styles.latch} d={path([[0,.052,.035],[0,.076,.075],[0,.09,.145],[0,.06,.182]].map(p => projection(p as Point3)), false)} />
     </g>
     <g id={id + "-boot"} className={styles.plugBoot}>
-      <PlugSection width={.184} height={.137} back={.191} front={.272} tone="currentColor" />
-      <PlugSection width={.143} height={.10} back={.272} front={.351} tone="currentColor" />
-      <PlugSection width={.109} height={.083} back={.351} front={.438} tone="currentColor" />
+      {section(.158, .125, .146, .207, "currentColor")}
+      {section(.126, .099, .207, .263, "currentColor")}
+      {section(.090, .076, .263, .332, "currentColor")}
     </g>
   </>;
+}
+
+type Cable = (typeof scenes)[number]["cables"][number];
+function Connectors({ cables, id, rear }: { cables: Cable[]; id: string; rear: boolean }) {
+  const facing = rear ? "rear" : "front";
+  return <g className={styles.connectors} aria-hidden="true">
+    {cables.map(({ from, to, a, b }) => [a, b].map(({ position, normal, scale }, i) => {
+      if ((normal[2] < 0) !== rear) return null;
+      const [x, y] = project(position);
+      return <g key={to + i} data-cable-from={from} data-cable-to={to} data-rj45-plug={i ? "to" : "from"} data-plug-facing={facing}
+        transform={`translate(${x} ${y}) scale(${scale})`}>
+        <use data-plug-shell="" href={`#${id}-${facing}-plug`} />
+        <use data-plug-boot="" href={`#${id}-${facing}-boot`} className={styles.bootColor} />
+      </g>;
+    }))}
+  </g>;
 }
 
 export function ComputerTopology({ hrefs, selected }: Props) {
@@ -212,7 +221,8 @@ export function ComputerTopology({ hrefs, selected }: Props) {
     <div data-topology-fallback="" className={styles.figure}>
       <svg width="0" height="0" aria-hidden="true" className={styles.definitions}>
         <defs>
-          <PlugDefinitions id={id} />
+          <PlugDefinitions id={id + "-front"} sign={1} />
+          <PlugDefinitions id={id + "-rear"} sign={-1} />
           {devices.map(device => (
             <symbol key={device} id={`${id}-${device}`} viewBox={projections.get(device)!.viewBox}>
               <DevicePaths device={device} />
@@ -234,6 +244,7 @@ export function ComputerTopology({ hrefs, selected }: Props) {
                 </g>
               ))}
             </g>
+            <Connectors id={id} cables={cables} rear />
             {positions.map(([device, x, y, w, h]) => {
               const href = hrefs?.[device];
               const label = deviceLabels.get(device);
@@ -248,15 +259,7 @@ export function ComputerTopology({ hrefs, selected }: Props) {
                 <g key={device} data-topology-device={device} className={styles.device} role="img" aria-label={label}>{picture}</g>
               );
             })}
-            <g className={styles.connectors} aria-hidden="true">
-              {cables.map(({ from, to, a, b }) => [a, b].map(({ x, y, scale }, i) => (
-                <g key={to + i} data-cable-from={from} data-cable-to={to} data-rj45-plug={i ? "to" : "from"}
-                  transform={`translate(${x} ${y}) scale(${scale})`}>
-                  <use data-plug-shell="" href={`#${id}-plug`} />
-                  <use data-plug-boot="" href={`#${id}-boot`} className={styles.bootColor} />
-                </g>
-              )))}
-            </g>
+            <Connectors id={id} cables={cables} rear={false} />
           </g>
         </svg>
       ))}

@@ -5,7 +5,7 @@
 :global(body):has(.page) :global(.site-footer) {
   width: min(95%, 1800px);
 }
-:global(.main-content):has(> .page) { padding-block: 0 5rem; }
+:global(.main-content):has(> .page) { padding-block: 60px 5rem; }
 :global(body):has(.page) :global(.computer-theme-controls) {
   position: absolute;
   top: max(.6rem, env(safe-area-inset-top));
@@ -16,9 +16,6 @@
   width: 38px;
   height: 36px;
 }
-.siteNav { height: 60px; display: flex; align-items: center; }
-.siteNav a { display: inline-flex; align-items: center; gap: .5em; min-height: 44px; font-size: .88rem; font-weight: 650; text-decoration: none; }
-.siteNav a span { font-size: 1.16rem; font-weight: 400; }
 .page :focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 3px; }
 .scrollTrack[data-scroll-ready] { min-height: 550svh; }
 .scrollTrack[data-scroll-ready]:has([data-navigation-mode="linux"]) { min-height: 250svh; }

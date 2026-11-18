@@ -1,15 +1,32 @@
 import type { Point3, TopologyDevice } from "./computer-topology-devices";
 
-type PatchLink = { from: TopologyDevice; to: TopologyDevice; start: Point3; end: Point3 };
+type PatchLink = {
+  from: TopologyDevice;
+  to: TopologyDevice;
+  start: Point3;
+  end: Point3;
+  startNormal: Point3;
+  endNormal: Point3;
+};
 
-// Socket openings in device-local coordinates. All front panels face +Z.
-export const serverPort: Point3 = [-.17, .39, .50];
-export const workstationPort: Point3 = [-.59, .47, -.048];
+// Center of the connector mouth on each chassis, in device-local coordinates.
+const front: Point3 = [0, 0, 1];
+const rear: Point3 = [0, 0, -1];
+export const routerPort: Point3 = [.15, .39, .527];
+export const serverPort: Point3 = [-.21, .90, -.608];
+export const workstationPort: Point3 = [-1.35, .79, -.56];
+
+export function asaPort(index: number): Point3 {
+  return [-.60 + index * .16, .242, .635];
+}
+export function switchPort(column: number, row: number): Point3 {
+  return [-1.03 + column * .157 + (column >= 6 ? .048 : 0), .157 + row * .145, .647];
+}
 
 export const patchLinks: readonly PatchLink[] = [
-  { from: "router", to: "asa", start: [.13, .278, .779], end: [-.60, .285, .565] },
-  { from: "asa", to: "switch", start: [0, .285, .565], end: [-.76, .285, .565] },
-  { from: "switch", to: "server", start: [-.38, .285, .565], end: serverPort },
-  { from: "switch", to: "linux", start: [0, .285, .565], end: workstationPort },
-  { from: "switch", to: "windows-server", start: [.57, .285, .565], end: workstationPort },
+  { from: "router", to: "asa", start: routerPort, end: asaPort(0), startNormal: front, endNormal: front },
+  { from: "asa", to: "switch", start: asaPort(7), end: switchPort(0, 1), startNormal: front, endNormal: front },
+  { from: "switch", to: "server", start: switchPort(3, 1), end: serverPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "linux", start: switchPort(7, 1), end: workstationPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "windows-server", start: switchPort(10, 1), end: workstationPort, startNormal: front, endNormal: rear },
 ];

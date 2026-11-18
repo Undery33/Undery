@@ -40,6 +40,8 @@ describe("public page states", () => {
   });
   it("keeps the network map wordless with named links and two plugs per cable on either layout", async () => {
     const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({}) }));
+    expect(html).not.toContain('aria-label="Undery 홈"');
+    expect(html).toContain('aria-label="Router부터 보기"');
     const layouts = html.match(/<svg\b[^>]*aria-label="컴퓨터 네트워크 구성도"[^>]*>[\s\S]*?<\/svg>/g) ?? [];
     expect(layouts).toHaveLength(2);
     for (const map of layouts) {

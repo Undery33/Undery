@@ -3,17 +3,8 @@ import { getComputerCategory } from "@/lib/computer-categories";
 import type { TopologyDevice } from "./computer-topology-devices";
 import styles from "./computer-device-notes.module.css";
 
-export type OverviewChapter = TopologyDevice | "network-basics";
 type Question = { title: string; answer: string; article?: { href: string; label: string } };
-const notes: Record<OverviewChapter, { role: string; questions: Question[] }> = {
-  "network-basics": {
-    role: "IPv4 주소와 통신 범위",
-    questions: [
-      { title: "IP 주소란", answer: "IP 주소는 네트워크에서 패킷을 주고받는 인터페이스의 주소입니다. 예를 들어 장비에 192.0.2.34/24가 설정되어 있다면 이 인터페이스의 IPv4 주소는 192.0.2.34입니다." },
-      { title: "서브넷이란", answer: "같은 네트워크 접두사를 공유하는 주소 범위입니다. 192.0.2.34/24에서 /24는 앞 24비트가 네트워크를 나타낸다는 뜻이며, 이 장비가 속한 서브넷은 192.0.2.0/24입니다." },
-      { title: "기본 게이트웨이란", answer: "목적지에 맞는 더 구체적인 경로가 없을 때 패킷을 넘겨줄 라우터입니다. 192.0.2.34/24 장비에 기본 게이트웨이를 192.0.2.1로 설정하면, 별도 경로가 없는 외부 주소로 보낼 패킷은 먼저 이 라우터로 갑니다." },
-    ],
-  },
+const notes: Record<TopologyDevice, { role: string; questions: Question[] }> = {
   router: {
     role: "데이터 패킷 전송",
     questions: [
@@ -62,16 +53,15 @@ const notes: Record<OverviewChapter, { role: string; questions: Question[] }> = 
   },
 };
 
-export function ComputerDeviceNotes({ device }: { device: OverviewChapter | null }) {
+export function ComputerDeviceNotes({ device }: { device: TopologyDevice | null }) {
   const entry = device && notes[device];
-  const basics = device === "network-basics";
   return (
     <section className={styles.notes} data-device-notes={device ?? ""} hidden={!device}
       aria-labelledby={device ? `device-notes-${device}` : undefined}>
       {device && entry && <>
         <header className={styles.heading}>
-          <h2 lang={basics ? "ko" : "en"} id={`device-notes-${device}`}>
-            {basics ? "네트워크 기초" : getComputerCategory(device)?.label}
+          <h2 lang="en" id={`device-notes-${device}`}>
+            {getComputerCategory(device)?.label}
           </h2>
           <p>{entry.role}</p>
         </header>
