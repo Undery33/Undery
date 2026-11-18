@@ -5,9 +5,11 @@ const noIndex = { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" };
 const config: NextConfig = {
   output: "standalone",
   outputFileTracingIncludes: {
+    "/posts": ["./content/posts/**/*.md"],
+    "/posts/*": ["./content/posts/**/*.md"],
     "/computer": ["./content/computer/**/*.md"],
     "/computer/*": ["./content/computer/**/*.md"],
-    "/sitemap.xml": ["./content/computer/**/*.md"],
+    "/sitemap.xml": ["./content/computer/**/*.md", "./content/posts/**/*.md"],
     "/api/health": ["./build-info.json"],
   },
   poweredByHeader: false,

@@ -108,9 +108,10 @@ def verify(base, expected):
         return html, resources
 
     _, home_resources = main_page('/', ('UNDER + RESTART', 'CONTENT', 'POST', 'STACK'))
-    assert {'/computer', '/vrchat', '/valorant'} <= home_resources.links
+    assert {'/posts', '/computer', '/vrchat', '/valorant'} <= home_resources.links
     assert {'https://discord.gg/gub', 'https://instagram.com/_undery.pth/',
             'https://github.com/Undery33', 'https://x.com/VRC_UDR'} <= home_resources.links
+    main_page('/posts', ('id="post-archive-heading"', 'action="/posts"'))
     _, computer_resources = main_page('/computer', ('id="computer-title"', '이해를 연결합니다', '기술 글 검색', 'VLAN', 'DNS', 'CNN'))
     assert {'/computer?category=server', '/computer?category=network', '/computer?category=ai',
             '/computer/vlan', '/computer/routing', '/computer/dns', '/computer/dhcp', '/computer/cnn'} <= computer_resources.links
