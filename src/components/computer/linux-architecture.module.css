@@ -11,20 +11,19 @@
   --paper: var(--computer-paper, #f8f7f3);
   --case: var(--computer-surface, #fffefa);
   --side: color-mix(in srgb, currentColor 14%, var(--case));
-  --line: color-mix(in srgb, currentColor 78%, var(--paper));
+  --line: color-mix(in srgb, currentColor 72%, var(--paper));
+  --carrier: color-mix(in srgb, var(--computer-soft) 58%, var(--paper));
 }
 .diagram { display: block; width: 100%; height: 100%; overflow: visible; }
 .diagram:first-child { grid-column: 1 / -1; }
-.equipment { stroke: var(--line); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; fill: var(--case); }
+.equipment { stroke: var(--line); stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; fill: var(--case); }
 .shade { fill: var(--side); }
-.detail { fill: none; stroke: currentColor; stroke-width: 1.65; }
-.enclosure {
-  fill: none;
-  stroke: color-mix(in srgb, currentColor 48%, var(--paper));
-  stroke-width: 1;
-  stroke-dasharray: 3 3.5;
-}
-.wire { fill: none; stroke: currentColor; stroke-width: 1.45; stroke-linejoin: round; marker-end: var(--arrow); }
+.detail { fill: none; stroke: var(--line); stroke-width: 1.4; }
+.indicator { fill: var(--computer-accent); stroke: none; }
+.carrier { fill: var(--carrier); stroke: color-mix(in srgb, var(--line) 62%, var(--paper)); stroke-width: .85; }
+.sidewall { fill: color-mix(in srgb, var(--carrier) 83%, var(--line)); }
+.fastener { fill: var(--paper); stroke-width: .7; }
+.wire { fill: none; stroke: var(--line); stroke-width: 1.4; stroke-linejoin: round; marker-end: var(--arrow); }
 .junction { fill: currentColor; stroke: none; }
 
 @media (max-width: 640px) {

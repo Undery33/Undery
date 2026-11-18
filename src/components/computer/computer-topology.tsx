@@ -14,6 +14,18 @@ function path(points: Point[], closed = true) {
   return points.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join("") + (closed ? "Z" : "");
 }
 
+function beveledPolygon(points: Point[], radius: number) {
+  const toward = (a: Point, b: Point): string => {
+    const distance = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const fraction = Math.min(.24, radius / distance);
+    return [a[0] + (b[0] - a[0]) * fraction, a[1] + (b[1] - a[1]) * fraction].map(n => n.toFixed(2)).join(" ");
+  };
+  return points.map((p, i) => {
+    const previous = points[(i + points.length - 1) % points.length], next = points[(i + 1) % points.length];
+    return `${i ? "L" : "M"}${toward(p, previous)}Q${p[0].toFixed(2)} ${p[1].toFixed(2)} ${toward(p, next)}`;
+  }).join("") + "Z";
+}
+
 function projectDevice(device: TopologyDevice) {
   const drawing = deviceDrawing(device);
   const bounds: Point[] = [];
@@ -24,18 +36,23 @@ function projectDevice(device: TopologyDevice) {
     const point = (x: number, y: number, z: number) => project([cx + x * w, cy + y * h, cz + z * d]);
     const surface = (points: Point[], tone: string) => {
       bounds.push(...points);
-      surfaces.push({ d: path(points), tone, outline: part.outlined });
+      surfaces.push({ d: part.bevel ? beveledPolygon(points, part.bevel * 38) : path(points), tone, outline: part.outlined });
     };
     const top = part.finish;
     const side = part.outlined ? "side" : top;
-    if (part.shape === "drum") {
-      const topRing = Array.from({ length: 48 }, (_, i) => {
-        const angle = (i / 48) * Math.PI * 2;
+    if (part.shape === "dome") {
+      const left = point(-.86, 0, .52), right = point(.86, 0, -.52);
+      bounds.push(left, right, point(0, 2, 0));
+      surfaces.push({ tone: top, outline: true, d: `M${left.join(" ")}Q${point(-.4, 3.35, .2).join(" ")} ${right.join(" ")}Q${point(.47, -.1, 1.5).join(" ")} ${left.join(" ")}Z` });
+    } else if (part.shape === "drum") {
+      const segments = part.size[0] < .25 ? 12 : 48;
+      const topRing = Array.from({ length: segments }, (_, i) => {
+        const angle = (i / segments) * Math.PI * 2;
         return point(Math.cos(angle), 1, Math.sin(angle));
       });
       const order = [...topRing.keys()].sort((a, b) => topRing[a][0] - topRing[b][0]);
       const left = order[0], right = order[order.length - 1];
-      const front = Array.from({ length: (left - right + 48) % 48 + 1 }, (_, i) => topRing[(right + i) % 48]);
+      const front = Array.from({ length: (left - right + segments) % segments + 1 }, (_, i) => topRing[(right + i) % segments]);
       const lower = front.map(([x, y]): Point => [x, y + .90 * part.size[1] * 52]);
       surface([...front, ...lower.reverse()], side);
       surface(topRing, top);
@@ -65,7 +82,7 @@ function DevicePaths({ device }: { device: TopologyDevice }) {
   return projections.get(device)!.surfaces.map(({ d, tone, stroke, outline }, i) => (
     <path key={i} d={d} fill={stroke ? "none" : `var(--device-${tone})`}
       stroke={stroke ? `var(--device-${tone})` : outline ? "var(--device-edge)" : "none"}
-      strokeWidth={stroke ? 1.9 : 1.05} strokeLinejoin="round" strokeLinecap="round" />
+      strokeWidth={stroke ? 1.02 : .57} strokeLinejoin="round" strokeLinecap="round" />
   ));
 }
 

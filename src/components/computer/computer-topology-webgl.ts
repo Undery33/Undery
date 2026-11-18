@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import type { TopologyDevice } from "./computer-topology-devices";
+import { deviceDrawing, type TopologyDevice } from "./computer-topology-devices";
 import { createTopologyDevice } from "./computer-topology-models";
 
 export type TopologyView = {
@@ -22,6 +22,7 @@ const connections: [TopologyDevice, TopologyDevice][] = [
 ];
 const startAzimuth = .54;
 const startElevation = .50;
+const monitorElevation = .23;
 const ids = Object.keys(wide) as TopologyDevice[];
 
 // Place the equipment on one ground plane from its intended coordinates in the opening view.
@@ -31,6 +32,72 @@ function groundPoint([across, down]: Position) {
     across * Math.cos(startAzimuth) + depth * Math.sin(startAzimuth), 0,
     -across * Math.sin(startAzimuth) + depth * Math.cos(startAzimuth),
   );
+}
+
+// Bake broad cast shadows and tighter contact shadows from the same physical parts as the models.
+// All six footprints share one texture and each equipment group owns one ground quad.
+function createShadowAtlas() {
+  const cell = 192;
+  const sheet = document.createElement("canvas");
+  sheet.width = cell * 3; sheet.height = cell * 2;
+  const painter = sheet.getContext("2d")!;
+  const layer = document.createElement("canvas");
+  layer.width = layer.height = cell;
+  const mask = layer.getContext("2d")!;
+  mask.fillStyle = "#fff";
+  const texture = new THREE.CanvasTexture(sheet);
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  const footprints = ids.map((id, index) => {
+    const { parts } = deviceDrawing(id);
+    const bounds = new THREE.Box2();
+    for (const { position: [x, y, z], size: [w, h, d] } of parts) {
+      const top = y + h / 2;
+      bounds.expandByPoint(new THREE.Vector2(x - w / 2, z - d / 2 - top * .20));
+      bounds.expandByPoint(new THREE.Vector2(x + w / 2 + top * .13, z + d / 2));
+    }
+    bounds.expandByScalar(.28);
+    const size = bounds.getSize(new THREE.Vector2());
+    const center = bounds.getCenter(new THREE.Vector2());
+    const column = index % 3, row = Math.floor(index / 3);
+    painter.save();
+    painter.beginPath(); painter.rect(column * cell, row * cell, cell, cell); painter.clip();
+    for (const contact of [false, true]) {
+      mask.clearRect(0, 0, cell, cell);
+      for (const { shape, position: [x, y, z], size: [w, h, d] } of parts) {
+        if (contact && y - h / 2 > .115) continue;
+        const castHeight = contact ? 0 : y + h / 2;
+        const cx = (x + castHeight * .13 - bounds.min.x) * cell / size.x;
+        const cy = (z - castHeight * .20 - bounds.min.y) * cell / size.y;
+        const px = w * cell / size.x, py = d * cell / size.y;
+        mask.beginPath();
+        if (shape === "drum") mask.ellipse(cx, cy, px / 2, py / 2, 0, 0, Math.PI * 2);
+        else mask.roundRect(cx - px / 2, cy - py / 2, px, py, Math.min(px, py) * .09);
+        mask.fill();
+      }
+      painter.filter = contact ? "blur(3.3px)" : "blur(8px)";
+      painter.globalAlpha = contact ? .68 : .47;
+      painter.drawImage(layer, column * cell, row * cell);
+    }
+    painter.restore();
+    return { id, column, row, size, center };
+  });
+  return {
+    texture,
+    mesh(id: TopologyDevice, dark: boolean) {
+      const { size, center, column, row } = footprints.find(entry => entry.id === id)!;
+      const shape = new THREE.PlaneGeometry(size.x, size.y);
+      const uv = shape.getAttribute("uv");
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, (column + uv.getX(i)) / 3, (1 - row + uv.getY(i)) / 2);
+      const material = new THREE.MeshBasicMaterial({ map: texture, color: dark ? 0x070709 : 0x74665a, transparent: true, depthWrite: false });
+      const mesh = new THREE.Mesh(shape, material);
+      mesh.position.set(center.x, -.009, center.y);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.renderOrder = -1;
+      mesh.raycast = () => {};
+      return mesh;
+    },
+  };
 }
 
 function disposeObjects(parent: THREE.Object3D) {
@@ -58,12 +125,19 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   host.appendChild(canvas);
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 120);
-  const key = new THREE.DirectionalLight(0xffffff, 2.1);
-  key.position.set(-5, 11, 8);
-  scene.add(key, new THREE.HemisphereLight(0xffffff, 0xb5bbc0, 1.65));
+  const key = new THREE.DirectionalLight(0xfff4e6, 1.72);
+  key.position.set(-4, 8, 6);
+  const fill = new THREE.DirectionalLight(0xf1f4fc, .35);
+  fill.position.set(6, 4, -5);
+  const sky = new THREE.HemisphereLight(0xfffcf5, 0xb0a79d, 1.58);
+  scene.add(key, fill, sky);
+  const ground = createShadowAtlas();
   const equipment = new THREE.Group();
   scene.add(equipment);
-  const nodes = new Map<TopologyDevice, { model: THREE.Group; corners: THREE.Vector3[]; link: HTMLAnchorElement }>();
+  const nodes = new Map<TopologyDevice, {
+    model: THREE.Group; corners: THREE.Vector3[]; link: HTMLAnchorElement; shadow: THREE.MeshBasicMaterial;
+  }>();
+  let shadowStrength = .5;
   const cableMaterial = new THREE.MeshBasicMaterial();
   const peripheralMaterials = new Set<THREE.Material>();
   const cables = connections.map(() => {
@@ -92,9 +166,8 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     }
     const wideWeight = 1 - linuxProgress;
     const yaw = Math.atan2(Math.sin(azimuth), Math.cos(azimuth)) * wideWeight;
-    const finalTilt = .055;
-    const tilt = THREE.MathUtils.lerp(finalTilt, elevation, wideWeight);
-    const screenScale = glass.offsetHeight / (.72 * Math.cos(finalTilt));
+    const tilt = THREE.MathUtils.lerp(monitorElevation, elevation, wideWeight);
+    const screenScale = glass.offsetHeight / (.72 * Math.cos(monitorElevation));
     const linuxModel = nodes.get("linux")!.model;
     // The front view uses a taller monitor on narrow screens so the case and its readable display both fit.
     const screenWidth = Math.min(1, glass.offsetWidth / (1.48 * screenScale));
@@ -105,7 +178,10 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
       material.transparent = peripheralOpacity < 1;
       material.depthWrite = peripheralOpacity === 1;
     }
-    for (const [id, { model }] of nodes) model.visible = id === "linux" || peripheralOpacity > 0;
+    for (const [id, { model, shadow }] of nodes) {
+      model.visible = id === "linux" || peripheralOpacity > 0;
+      shadow.opacity = shadowStrength * (id === "linux" ? 1 : peripheralOpacity);
+    }
     for (const cable of cables) cable.visible = peripheralOpacity > 0;
     const visible = [...nodes].filter(([, { model }]) => model.visible).map(([id]) => id).join(" ");
     if (canvas.dataset.visibleDevices !== visible) {
@@ -185,7 +261,11 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     peripheralMaterials.clear();
     peripheralMaterials.add(cableMaterial);
     const dark = document.documentElement.dataset.computerTheme === "dark";
-    cableMaterial.color.setHex(dark ? 0xadb4b4 : 0x50585a);
+    key.intensity = dark ? 2.05 : 1.72;
+    fill.intensity = dark ? .58 : .35;
+    sky.intensity = dark ? 1.34 : 1.58;
+    shadowStrength = dark ? .75 : .5;
+    cableMaterial.color.setHex(dark ? 0xb1aba0 : 0x777068);
     for (const id of ids) {
       const model = createTopologyDevice(id, dark);
       const box = new THREE.Box3().setFromObject(model);
@@ -200,7 +280,9 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
           for (const material of Array.isArray(object.material) ? object.material : [object.material]) peripheralMaterials.add(material);
         }
       });
-      nodes.set(id, { model, link, corners });
+      const shadow = ground.mesh(id, dark);
+      model.add(shadow);
+      nodes.set(id, { model, link, corners, shadow: shadow.material });
       equipment.add(model);
     }
     arrange();
@@ -281,6 +363,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     cancelAnimationFrame(frame);
     nodes.clear();
     disposeObjects(scene);
+    ground.texture.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
     canvas.remove();
