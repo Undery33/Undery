@@ -51,6 +51,7 @@ export function createTopologyDevice(device: TopologyDevice, dark: boolean): THR
       metalness: finish === "metal" ? .14 : 0,
       polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
     }));
+    face.material.userData.finish = finish;
     group.add(face);
   }
   for (const mark of marks) {
@@ -63,7 +64,10 @@ export function createTopologyDevice(device: TopologyDevice, dark: boolean): THR
     if (!strokes[finish].length) continue;
     const geometry = new THREE.BufferGeometry().setFromPoints(strokes[finish]);
     const color = finish === "ink" ? (dark ? 0xb6ac9f : 0x91897d) : palette[finish];
-    group.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color })));
+    const material = new THREE.LineBasicMaterial({ color });
+    material.userData.finish = finish;
+    material.userData.topologyOutline = finish === "ink";
+    group.add(new THREE.LineSegments(geometry, material));
   }
   return group;
 }

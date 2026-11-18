@@ -95,20 +95,27 @@ export function ComputerDeviceIcon({ device }: { device: TopologyDevice }) {
 }
 
 type Placement = [device: TopologyDevice, centerX: number, top: number, width: number, height: number];
-const layouts: { compact: boolean; viewBox: string; devices: Placement[]; cables: string[] }[] = [
+type Cable = [from: TopologyDevice, to: TopologyDevice, path: string];
+const layouts: { compact: boolean; viewBox: string; devices: Placement[]; cables: Cable[] }[] = [
   {
     compact: false, viewBox: "0 0 1040 330",
     devices: [["router", 79, 190, 135, 78], ["asa", 263, 111, 144, 82], ["switch", 510, 115, 162, 82],
       ["server", 767, 0, 88, 123], ["linux", 740, 199, 140, 103], ["windows-server", 957, 107, 142, 104]],
-    cables: ["M101 221 142 194 223 162", "M298 154 343 149 456 164", "M543 143 621 105 745 84",
-      "M556 160 653 150 791 165 942 156", "M550 176 604 198 644 231 732 252"],
+    cables: [
+      ["router", "asa", "M101 221 142 194 223 162"], ["asa", "switch", "M298 154 343 149 456 164"],
+      ["switch", "server", "M543 143 621 105 745 84"], ["switch", "windows-server", "M556 160 653 150 791 165 942 156"],
+      ["switch", "linux", "M550 176 604 198 644 231 732 252"],
+    ],
   },
   {
     compact: true, viewBox: "0 0 375 292",
     devices: [["router", 54, 10, 87, 58], ["asa", 188, 12, 93, 53], ["switch", 315, 61, 100, 58],
       ["server", 53, 173, 59, 76], ["linux", 180, 177, 95, 72], ["windows-server", 310, 177, 97, 72]],
-    cables: ["M84 36 110 28 157 35", "M219 40 252 54 282 80", "M302 108 268 146 117 146 59 195",
-      "M310 109 281 157 229 157 192 192", "M323 110 333 151 315 190"],
+    cables: [
+      ["router", "asa", "M84 36 110 28 157 35"], ["asa", "switch", "M219 40 252 54 282 80"],
+      ["switch", "server", "M302 108 268 146 117 146 59 195"], ["switch", "linux", "M310 109 281 157 229 157 192 192"],
+      ["switch", "windows-server", "M323 110 333 151 315 190"],
+    ],
   },
 ];
 
@@ -130,7 +137,9 @@ export function ComputerTopology({ hrefs, selected }: Props) {
         <svg key={viewBox} className={compact ? styles.compact : styles.wide} viewBox={viewBox}
           role={interactive ? "group" : "img"} aria-label="컴퓨터 네트워크 구성도">
           <desc>Router와 ASA를 거쳐 Switch에 연결됩니다. Switch는 Server, Linux, Windows Server에 연결됩니다.</desc>
-          <g className={styles.cables} aria-hidden="true">{cables.map(d => <path key={d} d={d} />)}</g>
+          <g className={styles.cables} aria-hidden="true">
+            {cables.map(([from, to, d]) => <path key={to} data-cable-from={from} data-cable-to={to} d={d} />)}
+          </g>
           {positions.map(([device, x, y, w, h]) => {
             const href = hrefs?.[device];
             const label = deviceLabels.get(device);

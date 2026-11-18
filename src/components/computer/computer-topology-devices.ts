@@ -128,11 +128,11 @@ export function deviceDrawing(device: TopologyDevice) {
     for (let row = 0; row < 3; row++) {
       const z = .414 + row * .081;
       for (let key = 0; key < 11; key++) {
-        box([-.623 + key * .103 + row * .009, .111, z], [.089, .043, .067], "light", false, .011);
+        box([-.623 + key * .103 + row * .009, .111, z], [.089, .043, .067], "light", true, .011);
       }
     }
     for (const [x, width] of [[-.60, .14], [-.432, .14], [-.073, .54], [.28, .12], [.438, .15]]) {
-      box([x, .111, .659], [width, .043, .072], "light", false, .011);
+      box([x, .111, .659], [width, .043, .072], "light", true, .011);
     }
     drum([.755, .026, .53], [.184, .049, .273], "panel");
     parts.push({ shape: "dome", position: [.755, .045, .53], size: [.185, .084, .273], finish: "case", outlined: true });

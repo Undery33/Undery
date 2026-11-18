@@ -11,6 +11,8 @@ import styles from "./computer-topology-scene.module.css";
 
 type Props = { hrefs: Record<ComputerCategory, string>; selected: string; returnHref?: string };
 type Phase = "overview" | "entering" | "linux" | "leaving";
+const deviceStages = ["router", "asa", "switch", "server", "linux", "windows-server"] as const satisfies readonly ComputerCategory[];
+const linuxStages = ["kubernetes", "jenkins", "docker"] as const;
 
 export function ComputerTopologyScene({ hrefs, selected, returnHref = "/computer#computer-screen" }: Props) {
   const router = useRouter();
@@ -72,10 +74,47 @@ export function ComputerTopologyScene({ hrefs, selected, returnHref = "/computer
   }, [selected, travel]);
 
   useEffect(() => {
+    const scene = root.current;
+    const track = scene?.closest<HTMLElement>("[data-topology-track]");
+    const panel = scene?.closest<HTMLElement>("[data-topology-panel]");
+    if (!scene || !panel || !track) return;
+    track.dataset.scrollReady = "";
+    let frame = 0;
+    let previous: string | null | undefined = null;
+    const paint = () => {
+      frame = 0;
+      const distance = -track.getBoundingClientRect().top;
+      const travel = track.offsetHeight - panel.offsetHeight;
+      const steps = phase === "linux" ? linuxStages : deviceStages;
+      const index = Math.min(steps.length - 1, Math.floor(distance * steps.length / Math.max(travel, 1)));
+      const active = travel > 0 && distance > 2 && (phase === "linux" || phase === "overview");
+      const stage = active ? steps[index] : undefined;
+      if (previous === stage) return;
+      previous = stage;
+      if (stage) scene.dataset.scrollHighlight = stage;
+      else delete scene.dataset.scrollHighlight;
+      view.current?.setHighlight(active && phase === "overview" ? deviceStages[index] : null);
+    };
+    function schedule() { if (!frame) frame = requestAnimationFrame(paint); }
+    paint();
+    const observer = new ResizeObserver(schedule);
+    observer.observe(panel);
+    observer.observe(track);
+    window.addEventListener("scroll", schedule, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      delete track.dataset.scrollReady;
+      delete scene.dataset.scrollHighlight;
+    };
+  }, [phase, ready]);
+
+  useEffect(() => {
     // Finish the camera trip before a route replacement can discard the active Three.js scene.
     // The underlying links still handle new tabs, no-JS navigation and the static fallback.
     function activate(event: MouseEvent) {
-      if (!view.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
       if (!anchor || (anchor.target && anchor.target !== "_self") || anchor.hasAttribute("download")) return;
       const url = new URL(anchor.href, window.location.href);
@@ -90,8 +129,8 @@ export function ComputerTopologyScene({ hrefs, selected, returnHref = "/computer
         return;
       }
       event.preventDefault();
-      const bounds = root.current?.getBoundingClientRect();
-      if (bounds && (bounds.top < -2 || bounds.bottom > innerHeight)) root.current?.scrollIntoView({ block: "start", behavior: "instant" });
+      const track = root.current?.closest<HTMLElement>("[data-topology-track]");
+      if (track && Math.abs(track.getBoundingClientRect().top) > 2) track.scrollIntoView({ block: "start", behavior: "instant" });
       if (destination.current === linux) {
         if (pendingNavigation.current) { focusAfter.current = true; return; }
         if (url.href !== window.location.href) router.replace(url.pathname + url.search + url.hash, { scroll: false });

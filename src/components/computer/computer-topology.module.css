@@ -9,6 +9,8 @@
   --device-light: #faf7f1;
   --device-metal: #b4ab9d;
   --device-accent: #ba623f;
+  --trace-line: #a17800;
+  --trace-fill: #ffdc48;
 }
 :global(html[data-computer-theme="dark"]) :is(.icon, .figure) {
   --device-case: #746e65;
@@ -21,21 +23,42 @@
   --device-light: #b9b1a5;
   --device-metal: #868077;
   --device-accent: #efad84;
+  --trace-line: #ffdc48;
+  --trace-fill: #c0a33b;
 }
 .icon { display: block; width: 100%; height: 100%; }
 .figure { position: relative; container-type: inline-size; width: 100%; color: var(--computer-ink, currentColor); }
 .definitions { position: absolute; pointer-events: none; }
 .wide, .compact { display: block; width: 100%; height: auto; overflow: visible; }
 .compact { display: none; }
-.cables { fill: none; stroke: var(--device-edge); stroke-width: 1.4; stroke-linejoin: round; }
+.cables { fill: none; stroke-linejoin: round; }
+.cables path { stroke: var(--device-edge); stroke-width: var(--wire-width, 1.4); }
 .device { color: inherit; text-decoration: none; }
 .device text { fill: currentColor; stroke: var(--computer-paper, white); stroke-width: 4px; paint-order: stroke; font-family: inherit; font-size: 17px; font-weight: 500; }
 a.device:is(:hover, :focus-visible, [aria-current]) text { text-decoration: underline; text-underline-offset: 4px; font-weight: 700; }
 a.device:focus-visible { outline: 2px solid currentColor; }
 
+:global([data-scroll-highlight="router"]) .figure :is([data-topology-device="router"], [data-cable-from="router"]),
+:global([data-scroll-highlight="asa"]) .figure :is([data-topology-device="asa"], [data-cable-to="asa"]),
+:global([data-scroll-highlight="switch"]) .figure :is([data-topology-device="switch"], [data-cable-to="switch"]),
+:global([data-scroll-highlight="server"]) .figure :is([data-topology-device="server"], [data-cable-to="server"]),
+:global([data-scroll-highlight="linux"]) .figure :is([data-topology-device="linux"], [data-cable-to="linux"]),
+:global([data-scroll-highlight="windows-server"]) .figure :is([data-topology-device="windows-server"], [data-cable-to="windows-server"]) {
+  --device-case: color-mix(in srgb, var(--computer-surface) 63%, var(--trace-fill));
+  --device-light: color-mix(in srgb, var(--computer-surface) 80%, var(--trace-fill));
+  --device-front: color-mix(in srgb, var(--computer-surface) 55%, var(--trace-fill));
+  --device-side: color-mix(in srgb, var(--computer-surface) 38%, var(--trace-fill));
+  --device-panel: color-mix(in srgb, var(--computer-paper) 38%, var(--trace-line));
+  --device-metal: color-mix(in srgb, var(--computer-paper) 30%, var(--trace-line));
+  --device-screen: color-mix(in srgb, var(--computer-surface) 52%, var(--trace-fill));
+  --device-edge: var(--trace-line);
+  --device-accent: var(--trace-line);
+  --wire-width: 2.8;
+}
+
 @container (max-width: 650px) {
   .wide { display: none; }
   .compact { display: block; }
   .device text { font-size: 14px; }
-  .cables { stroke-width: 1.25; }
+  .cables { --wire-width: 1.25; }
 }

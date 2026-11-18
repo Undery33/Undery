@@ -15,7 +15,7 @@ function Diagram({ name, label, viewBox, children }: {
     <svg data-architecture={name} role="img" aria-label={label} viewBox={viewBox}
       className={styles.diagram} style={{ "--arrow": `url(#${arrow})` } as CSSProperties}>
       <defs><marker id={arrow} markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
-        <path d="m0 .4 4 2.1-4 2.1" fill="none" stroke="currentColor" strokeWidth=".9" />
+        <path d="m0 .4 4 2.1-4 2.1" fill="none" stroke="var(--line)" strokeWidth=".9" />
       </marker></defs>
       {children}
     </svg>
