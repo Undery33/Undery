@@ -37,6 +37,8 @@
 }
 
 .search input::placeholder { color: #ccc; opacity: 1; }
+.search:focus-within { background: #333; }
+.search input:focus, .search button:focus { outline: none; box-shadow: none; }
 
 .search button {
   display: grid;
@@ -51,6 +53,7 @@
 }
 
 .search button:hover { color: #fff; }
+.search button:focus-visible { background: #fff; color: #262626; }
 .search button svg { width: 2.5cqw; height: 2.5cqw; }
 
 .list {
@@ -71,8 +74,15 @@
 .list th:last-child, .list td:last-child { padding-inline-start: 2.5cqw; }
 .list td time { font-variant-numeric: tabular-nums; }
 .list a { color: inherit; text-decoration: none; }
-.list a:hover { color: #fff; text-decoration: underline; }
-.list a:focus-visible, .search :focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.list td a {
+  padding: .2em .5em;
+  margin-inline: -.5em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.list td a:is(:hover, :focus-visible) { background: #fff; color: #262626; }
+.more:hover { color: #fff; text-decoration: underline; }
+.list a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .example { margin-inline-start: .65em; font-size: .85em; }
 .list td.empty { padding: 2cqw 0; text-align: center; }
 .more { display: block; width: fit-content; margin: 1.4cqw .8cqw 0 auto; }

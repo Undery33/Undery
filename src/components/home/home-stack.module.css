@@ -21,9 +21,11 @@
 }
 
 .cards {
+  --columns: 4;
+  --gap: 5.94cqi;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: 5.94cqi;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  column-gap: var(--gap);
   margin: 0 5.2cqi;
   padding: 0;
   list-style: none;
@@ -37,7 +39,29 @@
   position: relative;
 }
 
-.archiveLink {
+.viewport {
+  overflow: clip;
+  margin-inline: 5.2cqi;
+}
+
+.track {
+  --card-step: calc((100% + var(--gap)) / var(--columns));
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: calc(var(--card-step) - var(--gap));
+  margin: 0;
+}
+
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.next {
   position: absolute;
   inset-inline-end: 0;
   top: 6.9cqi;
@@ -46,10 +70,15 @@
   place-items: center;
   width: max(24px, 4.4cqi);
   height: max(24px, 4.4cqi);
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
   color: inherit;
 }
 
-.archiveLink::after {
+.next::after {
   content: "";
   width: 1.72cqi;
   height: 1.72cqi;
@@ -58,9 +87,9 @@
   transform: rotate(45deg);
 }
 
-.archiveLink:hover { color: #ccc; }
+.next:hover { color: #ccc; background: transparent; }
 
-.archiveLink:focus-visible {
+.next:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 1px;
 }
@@ -83,13 +112,15 @@
   .heading { font-size: 2rem; padding-bottom: 0.45rem; }
   .groupHeading { margin: 1.5rem 0 0.7rem; font-size: 1.05rem; }
   .cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    --columns: 2;
+    --gap: 1rem;
+    gap: var(--gap);
     margin: 0;
     font-size: 0.95rem;
   }
+  .viewport { margin-inline: 0; }
   .serverRow + .groupHeading { margin-top: 1.75rem; }
-  .archiveLink { width: 44px; height: 44px; top: -1.28rem; }
-  .archiveLink::after { width: 0.66rem; height: 0.66rem; border-width: 2px; }
+  .next { width: 44px; height: 44px; top: -1.28rem; }
+  .next::after { width: 0.66rem; height: 0.66rem; border-width: 2px; }
   .tile { margin-bottom: 0.3rem; }
 }
