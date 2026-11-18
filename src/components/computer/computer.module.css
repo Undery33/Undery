@@ -30,6 +30,12 @@
   display: block;
   height: clamp(420px, 85svh, 920px);
 }
+@media (prefers-reduced-motion: no-preference) {
+  /* Leave room between camera moves while the six devices are pinned. */
+  .scrollTrack[data-scroll-ready]:has([data-topology-view="overview"])::after {
+    height: clamp(720px, 150svh, 1620px);
+  }
+}
 .heading {
   display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
   padding-block: clamp(1.3rem, 2.6vw, 2.9rem);

@@ -1,6 +1,7 @@
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import { computerCategories } from "@/lib/computer-categories";
 import { deviceDrawing, type Point3, type TopologyDevice } from "./computer-topology-devices";
+import { frameDevice } from "./computer-topology-framing";
 import styles from "./computer-topology.module.css";
 
 type Point = [number, number];
@@ -96,9 +97,10 @@ export function ComputerDeviceIcon({ device }: { device: TopologyDevice }) {
 
 type Placement = [device: TopologyDevice, centerX: number, top: number, width: number, height: number];
 type Cable = [from: TopologyDevice, to: TopologyDevice, path: string];
-const layouts: { compact: boolean; viewBox: string; devices: Placement[]; cables: Cable[] }[] = [
+type Layout = { compact: boolean; width: number; height: number; devices: Placement[]; cables: Cable[] };
+const layouts: Layout[] = [
   {
-    compact: false, viewBox: "0 0 1040 330",
+    compact: false, width: 1040, height: 330,
     devices: [["router", 79, 190, 135, 78], ["asa", 263, 111, 144, 82], ["switch", 510, 115, 162, 82],
       ["server", 767, 0, 88, 123], ["linux", 740, 199, 140, 103], ["windows-server", 957, 107, 142, 104]],
     cables: [
@@ -108,7 +110,7 @@ const layouts: { compact: boolean; viewBox: string; devices: Placement[]; cables
     ],
   },
   {
-    compact: true, viewBox: "0 0 375 292",
+    compact: true, width: 375, height: 292,
     devices: [["router", 54, 10, 87, 58], ["asa", 188, 12, 93, 53], ["switch", 315, 61, 100, 58],
       ["server", 53, 173, 59, 76], ["linux", 180, 177, 95, 72], ["windows-server", 310, 177, 97, 72]],
     cables: [
@@ -118,6 +120,26 @@ const layouts: { compact: boolean; viewBox: string; devices: Placement[]; cables
     ],
   },
 ];
+
+function cameraFrames({ width, height, compact, devices, cables }: Layout) {
+  const frames: Record<string, string> = {};
+  const centers = new Map(devices.map(([id, x, top, , h]) => [id, [x, top + h / 2] as Point]));
+  for (const [device, , , w, h] of devices) {
+    const [x, y] = centers.get(device)!;
+    // Retain a little of the incoming connection in the frame. The router has only an outgoing link.
+    const [from, to] = cables.find(([, to]) => to === device) ?? cables[0];
+    const [nx, ny] = centers.get(from === device ? to : from)!;
+    const { scale, offsetX, offsetY } = frameDevice(
+      { width, height }, height - (compact ? 38 : 50), { width: w, height: h }, { x: nx - x, y: ny - y },
+    );
+    const dx = width / 2 - (x + offsetX) * scale;
+    const dy = height / 2 - (y + offsetY) * scale;
+    frames[`--frame-${device}`] = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    frames[`--label-${device}`] = String(1 / scale);
+  }
+  return frames as CSSProperties;
+}
+const scenes = layouts.map(layout => ({ ...layout, frames: cameraFrames(layout) }));
 
 export function ComputerTopology({ hrefs, selected }: Props) {
   const id = useId();
@@ -133,29 +155,31 @@ export function ComputerTopology({ hrefs, selected }: Props) {
           ))}
         </defs>
       </svg>
-      {layouts.map(({ compact, viewBox, devices: positions, cables }) => (
-        <svg key={viewBox} className={compact ? styles.compact : styles.wide} viewBox={viewBox}
+      {scenes.map(({ compact, width, height, devices: positions, cables, frames }) => (
+        <svg key={width} className={compact ? styles.compact : styles.wide} viewBox={`0 0 ${width} ${height}`} style={frames}
           role={interactive ? "group" : "img"} aria-label="컴퓨터 네트워크 구성도">
           <desc>Router와 ASA를 거쳐 Switch에 연결됩니다. Switch는 Server, Linux, Windows Server에 연결됩니다.</desc>
-          <g className={styles.cables} aria-hidden="true">
-            {cables.map(([from, to, d]) => <path key={to} data-cable-from={from} data-cable-to={to} d={d} />)}
+          <g data-topology-camera="" className={styles.camera}>
+            <g className={styles.cables} aria-hidden="true">
+              {cables.map(([from, to, d]) => <path key={to} data-cable-from={from} data-cable-to={to} d={d} />)}
+            </g>
+            {positions.map(([device, x, y, w, h]) => {
+              const href = hrefs?.[device];
+              const label = deviceLabels.get(device);
+              const labelY = y + h + (compact ? 15 : 20);
+              const picture = <>
+                <rect x={x - w / 2} y={y} width={w} height={labelY - y + 6} fill="transparent" />
+                <use href={`#${id}-${device}`} x={x - w / 2} y={y} width={w} height={h} />
+                <text x={x} y={labelY} textAnchor="middle">{label}</text>
+              </>;
+              return href ? (
+                <a key={device} href={href} data-topology-device={device} aria-label={`${label} 글 보기`}
+                  className={styles.device} aria-current={selected === device ? "true" : undefined}>{picture}</a>
+              ) : (
+                <g key={device} data-topology-device={device} className={styles.device}>{picture}</g>
+              );
+            })}
           </g>
-          {positions.map(([device, x, y, w, h]) => {
-            const href = hrefs?.[device];
-            const label = deviceLabels.get(device);
-            const labelY = y + h + (compact ? 15 : 20);
-            const picture = <>
-              <rect x={x - w / 2} y={y} width={w} height={labelY - y + 6} fill="transparent" />
-              <use href={`#${id}-${device}`} x={x - w / 2} y={y} width={w} height={h} />
-              <text x={x} y={labelY} textAnchor="middle">{label}</text>
-            </>;
-            return href ? (
-              <a key={device} href={href} data-topology-device={device} aria-label={`${label} 글 보기`}
-                className={styles.device} aria-current={selected === device ? "true" : undefined}>{picture}</a>
-            ) : (
-              <g key={device} data-topology-device={device} className={styles.device}>{picture}</g>
-            );
-          })}
         </svg>
       ))}
     </div>

@@ -29,12 +29,29 @@
 .icon { display: block; width: 100%; height: 100%; }
 .figure { position: relative; container-type: inline-size; width: 100%; color: var(--computer-ink, currentColor); }
 .definitions { position: absolute; pointer-events: none; }
-.wide, .compact { display: block; width: 100%; height: auto; overflow: visible; }
+.wide, .compact { display: block; width: 100%; height: auto; overflow: hidden; }
 .compact { display: none; }
+.camera {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  transform: var(--frame, translate(0, 0) scale(1));
+}
+:global([data-topology-view="overview"][data-scroll-highlight="router"]) .camera { --frame: var(--frame-router); --label-scale: var(--label-router); }
+:global([data-topology-view="overview"][data-scroll-highlight="asa"]) .camera { --frame: var(--frame-asa); --label-scale: var(--label-asa); }
+:global([data-topology-view="overview"][data-scroll-highlight="switch"]) .camera { --frame: var(--frame-switch); --label-scale: var(--label-switch); }
+:global([data-topology-view="overview"][data-scroll-highlight="server"]) .camera { --frame: var(--frame-server); --label-scale: var(--label-server); }
+:global([data-topology-view="overview"][data-scroll-highlight="linux"]) .camera { --frame: var(--frame-linux); --label-scale: var(--label-linux); }
+:global([data-topology-view="overview"][data-scroll-highlight="windows-server"]) .camera { --frame: var(--frame-windows-server); --label-scale: var(--label-windows-server); }
 .cables { fill: none; stroke-linejoin: round; }
 .cables path { stroke: var(--device-edge); stroke-width: var(--wire-width, 1.4); }
 .device { color: inherit; text-decoration: none; }
 .device text { fill: currentColor; stroke: var(--computer-paper, white); stroke-width: 4px; paint-order: stroke; font-family: inherit; font-size: 17px; font-weight: 500; }
+.camera text { transform-box: fill-box; transform-origin: center bottom; transform: scale(var(--label-scale, 1)); }
+/* A keyboard user can still tab through every device in the full map. */
+.camera:has(a:focus-visible), .camera:has(a:focus-visible) text { transform: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .camera, .camera text { transition: transform 620ms cubic-bezier(.4, 0, .2, 1); }
+}
 a.device:is(:hover, :focus-visible, [aria-current]) text { text-decoration: underline; text-underline-offset: 4px; font-weight: 700; }
 a.device:focus-visible { outline: 2px solid currentColor; }
 
