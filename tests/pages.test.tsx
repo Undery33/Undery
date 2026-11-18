@@ -49,7 +49,8 @@ describe("public page states", () => {
       expect(map.match(/data-ethernet-run=/g)).toHaveLength(5);
       const jackets = [...map.matchAll(/<path\b(?=[^>]*data-cable-jacket=)[^>]*\bd="([^"]+)"/g)];
       expect(jackets).toHaveLength(5);
-      for (const [, path] of jackets) expect(path).toMatch(/^M[-\d., ]+(?:L[-\d., ]+)+$/);
+      for (const [, path] of jackets) expect(path).toMatch(/^M[^M]*L/);
+      expect(jackets.some(([, path]) => /[AQC]/.test(path))).toBe(true);
       expect(map.match(/data-rj45-plug="from"/g)).toHaveLength(5);
       expect(map.match(/data-rj45-plug="to"/g)).toHaveLength(5);
       expect(map.match(/aria-label="[^"]+ 글 보기"/g)).toHaveLength(6);

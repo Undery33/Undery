@@ -31,7 +31,7 @@
 
 스크롤 순서는 전체 구성도 → Router → ASA → Switch → Server → Linux → Docker → Jenkins → Kubernetes → Windows Server입니다. 장비 단계에서는 왼쪽에 확대된 장비와 노란색(`#FDC41F`) 랜선, 오른쪽에 해당 장비의 설명이 나옵니다.
 
-기본 시점에서 Router와 ASA는 사선·수평·사선 세 구간으로 연결되고, ASA와 Switch는 수평으로 연결됩니다. Switch에서 Linux와 Windows Server로 가는 랜선은 각각 모니터 왼쪽에 있는 본체의 후면 포트에 꽂힙니다.
+넓은 화면에서는 Router·ASA·Switch가 왼쪽에서 오른쪽으로 이어지고, Server·Linux·Windows Server는 오른쪽 한 열에 놓입니다. 좁은 화면에서는 두 그룹이 위아래로 나뉩니다. Switch의 세 UTP 케이블은 일정 간격으로 나란히 진행하고 방향을 바꾸는 부분에서만 둥글게 꺾입니다. Linux와 Windows Server의 랜선은 각각 모니터 왼쪽에 있는 본체의 후면 포트에 꽂힙니다.
 
 Linux 모니터 안에서 아키텍처 그림을 선택하면 해당 그림이 확대되고 옆에 그 기술의 글이 열립니다. Docker, Jenkins, Kubernetes의 글은 각각 `content/computer/docker.md`, `content/computer/jenkins.md`, `content/computer/kubernetes.md`에서 작성합니다. 수정한 본문은 구성도 옆과 각 글의 개별 주소에 함께 반영됩니다.
 

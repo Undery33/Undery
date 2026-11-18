@@ -65,7 +65,7 @@
 .controls {
   position: absolute;
   inset-inline-end: 0;
-  inset-block-start: 0;
+  inset-block-start: max(60px, calc(env(safe-area-inset-top) + 50px));
   display: flex;
   border: 1px solid var(--computer-rule, #ccc);
   background: var(--computer-paper, #fff);
@@ -87,7 +87,7 @@
 .guideButton { display: none; }
 :global([data-scroll-ready]) .guideButton {
   position: absolute;
-  bottom: max(68px, 8svh);
+  bottom: max(14px, env(safe-area-inset-bottom));
   left: 50%;
   translate: -50%;
   display: grid;

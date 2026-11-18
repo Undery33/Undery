@@ -1,5 +1,6 @@
 import type { ComputerCategory } from "@/lib/computer-categories";
 import { asaPort, routerPort, serverPort, switchPort, workstationPort } from "./computer-topology-ports";
+import { casePoint, caseYaw } from "./computer-topology-poses";
 
 /** Dimensions and front-panel details shared by the live scene and its projected diagrams. */
 export type TopologyDevice = ComputerCategory;
@@ -13,6 +14,8 @@ export type DevicePart = {
   outlined: boolean;
   bevel?: number;
   assembly?: "tower";
+  yaw?: number;
+  decoratedFace?: "left" | "right";
 };
 export type Mark = { points: Point3[]; finish: Finish; assembly?: "tower" };
 
@@ -20,8 +23,8 @@ export function deviceDrawing(device: TopologyDevice) {
   const parts: DevicePart[] = [];
   const marks: Mark[] = [];
   let assembly: "tower" | undefined;
-  function box(position: Point3, size: Point3, finish: Finish = "case", outlined = false, bevel?: number) {
-    parts.push({ shape: "box", position, size, finish, outlined, bevel: bevel ?? (outlined ? .025 : undefined), assembly });
+  function box(position: Point3, size: Point3, finish: Finish = "case", outlined = false, bevel?: number, decoratedFace?: "left" | "right") {
+    parts.push({ shape: "box", position, size, finish, outlined, bevel: bevel ?? (outlined ? .025 : undefined), assembly, decoratedFace });
   }
   function drum(position: Point3, size: Point3, finish: Finish, outlined = false) {
     parts.push({ shape: "drum", position, size, finish, outlined, assembly });
@@ -48,7 +51,7 @@ export function deviceDrawing(device: TopologyDevice) {
     box([0, 1.296, -.018], [.80, .042, .96], "light", true, .015);
     for (const side of [-1, 1]) {
       for (let i = 0; i < 8; i++) {
-        box([side * .421, .697, -.411 + i * .106], [.115, 1.09, .047], "metal", false, .010);
+        box([side * .421, .697, -.411 + i * .106], [.115, 1.09, .047], "metal", false, .010, side < 0 ? "left" : "right");
       }
     }
     box([0, .68, .481], [.77, 1.19, .047], "case", true, .018);
@@ -99,7 +102,7 @@ export function deviceDrawing(device: TopologyDevice) {
       box([x, y, .651], [.154, .062, .013], "ink");
     }
     for (let i = 0; i < 4; i++) box([-1.233, .302 - i * .052, .635], [.049, .028, .012], i === 0 ? "accent" : "panel");
-    for (let i = 0; i < 12; i++) box([1.337, .22, -.52 + i * .083], [.011, .13, .029], "ink");
+    for (let i = 0; i < 12; i++) box([1.337, .22, -.52 + i * .083], [.011, .13, .029], "ink", false, undefined, "right");
   } else if (device === "server") {
     feet(.38, .46);
     // The service face carries two hot-swap drive cages; the NICs sit on the rear I/O plate.
@@ -128,9 +131,9 @@ export function deviceDrawing(device: TopologyDevice) {
       }
       for (let i = 0; i < 3; i++) box([0, y + .30 + i * .035, .612], [.785, .013, .017], "panel");
     }
-    box([.497, .989, -.005], [.018, 1.66, .98], "panel", false, .012);
-    box([.509, .989, -.005], [.014, 1.61, .93], "case");
-    box([.519, 1.44, -.30], [.015, .13, .15], "metal", false, .014);
+    box([.497, .989, -.005], [.018, 1.66, .98], "panel", false, .012, "right");
+    box([.509, .989, -.005], [.014, 1.61, .93], "case", false, undefined, "right");
+    box([.519, 1.44, -.30], [.015, .13, .15], "metal", false, .014, "right");
   } else {
     assembly = "tower";
     // Both operating systems run on a desktop tower with a rear motherboard I/O shield.
@@ -153,8 +156,8 @@ export function deviceDrawing(device: TopologyDevice) {
     } else {
       for (let i = 0; i < 7; i++) box([-1.254, .179 + i * .061, .479], [.449, .024, .017], "panel");
     }
-    box([-.951, .679, -.048], [.014, 1.10, .832], "panel", false, .014);
-    box([-.940, .679, -.048], [.012, 1.065, .796], "case");
+    box([-.951, .679, -.048], [.014, 1.10, .832], "panel", false, .014, "right");
+    box([-.940, .679, -.048], [.012, 1.065, .796], "case", false, undefined, "right");
     assembly = undefined;
     box([0, .033, -.14], [.72, .065, .45], "metal", true);
     box([0, .075, -.14], [.68, .045, .42], "light", true);
@@ -188,6 +191,15 @@ export function deviceDrawing(device: TopologyDevice) {
     drum([.755, .026, .53], [.184, .049, .273], "panel");
     parts.push({ shape: "dome", position: [.755, .045, .53], size: [.185, .084, .273], finish: "case", outlined: true });
     box([.755, .125, .50], [.020, .011, .058], "metal", false, .004);
+  }
+  const workstation = device === "linux" || device === "windows-server";
+  for (const part of parts) {
+    if (workstation && part.assembly !== "tower") continue;
+    part.position = casePoint(device, part.position);
+    part.yaw = caseYaw[device];
+  }
+  for (const mark of marks) {
+    if (!workstation || mark.assembly === "tower") mark.points = mark.points.map(point => casePoint(device, point));
   }
   return { parts, marks };
 }

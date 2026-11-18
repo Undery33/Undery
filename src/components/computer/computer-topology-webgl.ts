@@ -37,10 +37,12 @@ function createShadowAtlas() {
   const footprints = ids.map((id, index) => {
     const { parts } = deviceDrawing(id);
     const bounds = new THREE.Box2();
-    for (const { position: [x, y, z], size: [w, h, d] } of parts) {
+    for (const { position: [x, y, z], size: [w, h, d], yaw = 0 } of parts) {
       const top = y + h / 2;
-      bounds.expandByPoint(new THREE.Vector2(x - w / 2, z - d / 2 - top * .20));
-      bounds.expandByPoint(new THREE.Vector2(x + w / 2 + top * .13, z + d / 2));
+      const c = Math.abs(Math.cos(yaw)), s = Math.abs(Math.sin(yaw));
+      const halfX = (w * c + d * s) / 2, halfZ = (w * s + d * c) / 2;
+      bounds.expandByPoint(new THREE.Vector2(x - halfX, z - halfZ - top * .20));
+      bounds.expandByPoint(new THREE.Vector2(x + halfX + top * .13, z + halfZ));
     }
     bounds.expandByScalar(.28);
     const size = bounds.getSize(new THREE.Vector2());
@@ -50,16 +52,20 @@ function createShadowAtlas() {
     painter.beginPath(); painter.rect(column * cell, row * cell, cell, cell); painter.clip();
     for (const contact of [false, true]) {
       mask.clearRect(0, 0, cell, cell);
-      for (const { shape, position: [x, y, z], size: [w, h, d] } of parts) {
+      for (const { shape, position: [x, y, z], size: [w, h, d], yaw = 0 } of parts) {
         if (contact && y - h / 2 > .115) continue;
         const castHeight = contact ? 0 : y + h / 2;
         const cx = (x + castHeight * .13 - bounds.min.x) * cell / size.x;
         const cy = (z - castHeight * .20 - bounds.min.y) * cell / size.y;
-        const px = w * cell / size.x, py = d * cell / size.y;
+        mask.save();
+        mask.translate(cx, cy);
+        mask.scale(cell / size.x, cell / size.y);
+        mask.rotate(-yaw);
         mask.beginPath();
-        if (shape !== "box") mask.ellipse(cx, cy, px / 2, py / 2, 0, 0, Math.PI * 2);
-        else mask.roundRect(cx - px / 2, cy - py / 2, px, py, Math.min(px, py) * .09);
+        if (shape !== "box") mask.ellipse(0, 0, w / 2, d / 2, 0, 0, Math.PI * 2);
+        else mask.roundRect(-w / 2, -d / 2, w, d, Math.min(w, d) * .09);
         mask.fill();
+        mask.restore();
       }
       painter.filter = contact ? "blur(3.3px)" : "blur(8px)";
       painter.globalAlpha = contact ? .68 : .47;
@@ -113,7 +119,7 @@ function createTrace(id: TopologyDevice) {
     color: topologyYellow, transparent: true, depthWrite: false,
   }));
   rim.position.set(x, glass ? y : y + h / 2 + .002, glass ? z + d / 2 + .002 : z);
-  if (!glass) rim.rotation.x = -Math.PI / 2;
+  if (!glass) rim.rotation.set(-Math.PI / 2, deck.yaw ?? 0, 0, "YXZ");
   rim.visible = false;
   rim.raycast = () => {};
   return rim;
@@ -353,7 +359,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     for (const [id, { model }] of nodes) model.position.fromArray(groundPosition(layout[id]));
     if (compactCables !== (layout === compact)) {
       compactCables = layout === compact;
-      cables.arrange(new Map([...nodes].map(([id, { model }]) => [id, model.position])));
+      cables.arrange(new Map([...nodes].map(([id, { model }]) => [id, model.position])), compactCables);
     }
     invalidate();
   }

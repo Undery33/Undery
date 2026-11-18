@@ -1,5 +1,4 @@
-import type { Point3, TopologyDevice } from "./computer-topology-devices";
-import { patchLinks } from "./computer-topology-ports";
+import { deviceDrawing, type Point3, type TopologyDevice } from "./computer-topology-devices";
 
 type Position = readonly [across: number, down: number];
 type Layout = Record<TopologyDevice, Position>;
@@ -18,16 +17,65 @@ export function openingProjection([x, y, z]: Point3): [number, number] {
   return [x * ca - z * sa, se * (x * sa + z * ca) - y * ce];
 }
 
-// Align the jack mouths in the opening projection. Their plugs extend by the same amount.
-const trunk = patchLinks.find(link => link.from === "asa" && link.to === "switch")!;
-const switchDrop = openingProjection(trunk.start)[1] - openingProjection(trunk.end)[1];
-export const topologyLayouts: Record<"wide" | "compact", Layout> = {
-  wide: {
-    router: [-6.4, -1.48], asa: [-3.65, -2.8], switch: [-.24, -2.8 + switchDrop],
-    server: [2.70, -.80], linux: [2.65, 2.75], "windows-server": [6.25, 3.65],
-  },
-  compact: {
-    router: [-2.9, -.65], asa: [0, -1.55], switch: [2.82, -1.55 + switchDrop],
-    server: [-2.8, 2.62], linux: [.07, 2.65], "windows-server": [2.79, 2.65],
-  },
-};
+const upstream = ["router", "asa", "switch"] as const;
+const column = ["server", "linux", "windows-server"] as const;
+const bottomRow = ["windows-server", "linux", "server"] as const;
+
+function projectedBounds(device: TopologyDevice) {
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (const part of deviceDrawing(device).parts) {
+    const [w, h, d] = part.size;
+    const [x, y] = openingProjection(part.position);
+    const a = openingAzimuth - (part.yaw ?? 0);
+    const c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+    const halfX = (w * c + d * s) / 2;
+    const halfY = (h * ce + (w * s + d * c) * se) / 2;
+    left = Math.min(left, x - halfX); right = Math.max(right, x + halfX);
+    top = Math.min(top, y - halfY); bottom = Math.max(bottom, y + halfY);
+  }
+  return { width: right - left, height: bottom - top, left, top, bottom, centerX: (left + right) / 2 };
+}
+
+const bounds = Object.fromEntries(
+  [...upstream, ...column].map(id => [id, projectedBounds(id)]),
+) as Record<TopologyDevice, ReturnType<typeof projectedBounds>>;
+
+function desktopGrid(): Layout {
+  const gap = .92, columnGap = 1.65, rowGap = .44;
+  const rowWidth = upstream.reduce((sum, id) => sum + bounds[id].width, gap * (upstream.length - 1));
+  const columnWidth = Math.max(...column.map(id => bounds[id].width));
+  const columnHeight = column.reduce((sum, id) => sum + bounds[id].height, rowGap * (column.length - 1));
+  let x = -(rowWidth + columnGap + columnWidth) / 2;
+  const centerX = x + rowWidth + columnGap + columnWidth / 2;
+  const layout = {} as Layout;
+  for (const id of upstream) {
+    layout[id] = [x - bounds[id].left, .32 - bounds[id].bottom];
+    x += bounds[id].width + gap;
+  }
+  let y = -columnHeight / 2;
+  for (const id of column) {
+    layout[id] = [centerX - bounds[id].centerX, y - bounds[id].top];
+    y += bounds[id].height + rowGap;
+  }
+  return layout;
+}
+
+function phoneGrid(): Layout {
+  const gap = .36, rowGap = 1.06;
+  const widths = upstream.map((id, i) => Math.max(bounds[id].width, bounds[bottomRow[i]].width));
+  let x = -widths.reduce((sum, width) => sum + width, gap * (widths.length - 1)) / 2;
+  const upperHeight = Math.max(...upstream.map(id => bounds[id].height));
+  const lowerHeight = Math.max(...bottomRow.map(id => bounds[id].height));
+  const upperBaseline = (upperHeight - lowerHeight - rowGap) / 2;
+  const lowerBaseline = upperBaseline + rowGap + lowerHeight;
+  const layout = {} as Layout;
+  for (const [i, upper] of upstream.entries()) {
+    const lower = bottomRow[i], centerX = x + widths[i] / 2;
+    layout[upper] = [centerX - bounds[upper].centerX, upperBaseline - bounds[upper].bottom];
+    layout[lower] = [centerX - bounds[lower].centerX, lowerBaseline - bounds[lower].bottom];
+    x += widths[i] + gap;
+  }
+  return layout;
+}
+
+export const topologyLayouts = { wide: desktopGrid(), compact: phoneGrid() };

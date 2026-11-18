@@ -4,40 +4,24 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import type { Point3, TopologyDevice } from "./computer-topology-devices";
 import { topologyYellow } from "./computer-topology-models";
 import { patchLinks } from "./computer-topology-ports";
-import { bootTip, jacketPoints } from "./computer-topology-routing";
+import { bendPoint, bootTip, jacketRoute, type CableSpan, type RoundBend } from "./computer-topology-routing";
 
 const radius = .029;
-function jacketGeometry(points: Point3[]) {
-  const vertices = points.map(p => new THREE.Vector3(...p));
-  const legs = vertices.slice(1).map((p, i) => new THREE.LineCurve3(vertices[i], p));
+class CableBend extends THREE.Curve<THREE.Vector3> {
+  constructor(private bend: RoundBend) { super(); }
+  getPoint(t: number, target = new THREE.Vector3()) { return target.fromArray(bendPoint(this.bend, t)); }
+  getLength() { return this.bend.radius * this.bend.angle; }
+  getPointAt(u: number, target?: THREE.Vector3) { return this.getPoint(u, target); }
+}
+
+function jacketGeometry(spans: CableSpan[]) {
   const track = new THREE.CurvePath<THREE.Vector3>();
-  legs.forEach(leg => track.add(leg));
-  const sides = 10;
-  const geometry = new THREE.TubeGeometry(legs.length === 1 ? legs[0] : track, legs.length, radius, sides, false);
-  if (legs.length > 1) {
-    // Put a ring exactly on each drawn corner. Its miter plane meets both straight cylinders.
-    const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
-    const directions = legs.map(leg => leg.v2.clone().sub(leg.v1).normalize());
-    let tangent = directions[0];
-    const side = new THREE.Vector3(0, 1, 0).cross(tangent).normalize();
-    for (const [i, center] of vertices.entries()) {
-      const next = directions[i] ?? tangent;
-      const plane = tangent.clone().add(next).normalize();
-      const up = tangent.clone().cross(side);
-      for (let j = 0; j <= sides; j++) {
-        const angle = j * 2 * Math.PI / sides;
-        const radial = side.clone().multiplyScalar(Math.cos(angle)).addScaledVector(up, -Math.sin(angle));
-        const joint = radial.clone().addScaledVector(tangent, -radial.dot(plane) / tangent.dot(plane));
-        const pt = center.clone().addScaledVector(joint, radius);
-        const index = i * (sides + 1) + j;
-        positions.setXYZ(index, pt.x, pt.y, pt.z);
-        const n = joint.normalize();
-        normals.setXYZ(index, n.x, n.y, n.z);
-      }
-      side.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(tangent, next));
-      tangent = next;
-    }
+  for (const span of spans) {
+    track.add(span.kind === "line"
+      ? new THREE.LineCurve3(new THREE.Vector3(...span.start), new THREE.Vector3(...span.end))
+      : new CableBend(span));
   }
+  const geometry = new THREE.TubeGeometry(track, Math.ceil(track.getLength() * 45), radius, 10, false);
   // Soft cylindrical shading leaves the upward-lit face in the exact active cable color.
   const normals = geometry.getAttribute("normal");
   const shades = new Float32Array(normals.count * 3);
@@ -101,7 +85,7 @@ export function createEthernetCables() {
   });
   return {
     group, links,
-    arrange(positions: Map<TopologyDevice, THREE.Vector3>) {
+    arrange(positions: Map<TopologyDevice, THREE.Vector3>, compact: boolean) {
       function connect(plug: THREE.Group, local: Point3, normal: Point3, origin: THREE.Vector3): Point3 {
         plug.position.fromArray(local).add(origin);
         plug.rotation.y = Math.atan2(normal[0], normal[2]);
@@ -112,7 +96,7 @@ export function createEthernetCables() {
         const a = connect(link.start, spec.start, spec.startNormal, positions.get(link.from)!);
         const b = connect(link.end, spec.end, spec.endNormal, positions.get(link.to)!);
         link.jacket.geometry.dispose();
-        link.jacket.geometry = jacketGeometry(jacketPoints(link.from, a, b));
+        link.jacket.geometry = jacketGeometry(jacketRoute(link.to, a, b, spec.startNormal, spec.endNormal, compact));
       }
     },
     theme(dark: boolean) {

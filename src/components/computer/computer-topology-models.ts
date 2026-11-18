@@ -27,6 +27,7 @@ function addCasework(group: THREE.Group, parts: DevicePart[], marks: Mark[], dar
     } else {
       primitive = new THREE.BoxGeometry(...part.size);
     }
+    if (part.yaw) primitive.rotateY(part.yaw);
     primitive.translate(...part.position);
     const geometry = primitive.index ? primitive.toNonIndexed() : primitive;
     if (primitive !== geometry) primitive.dispose();

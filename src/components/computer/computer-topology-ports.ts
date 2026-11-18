@@ -1,4 +1,5 @@
 import type { Point3, TopologyDevice } from "./computer-topology-devices";
+import { caseDirection, casePoint } from "./computer-topology-poses";
 
 type PatchLink = {
   from: TopologyDevice;
@@ -23,10 +24,15 @@ export function switchPort(column: number, row: number): Point3 {
   return [-1.03 + column * .157 + (column >= 6 ? .048 : 0), .157 + row * .145, .647];
 }
 
-export const patchLinks: readonly PatchLink[] = [
+const sockets: PatchLink[] = [
   { from: "router", to: "asa", start: routerPort, end: asaPort(0), startNormal: front, endNormal: front },
   { from: "asa", to: "switch", start: asaPort(7), end: switchPort(0, 1), startNormal: front, endNormal: front },
-  { from: "switch", to: "server", start: switchPort(6, 1), end: serverPort, startNormal: front, endNormal: rear },
-  { from: "switch", to: "linux", start: switchPort(8, 1), end: workstationPort, startNormal: front, endNormal: rear },
-  { from: "switch", to: "windows-server", start: switchPort(11, 1), end: workstationPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "server", start: switchPort(11, 1), end: serverPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "linux", start: switchPort(9, 1), end: workstationPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "windows-server", start: switchPort(7, 1), end: workstationPort, startNormal: front, endNormal: rear },
 ];
+
+export const patchLinks = sockets.map(({ from, to, start, end, startNormal, endNormal }) => ({
+  from, to, start: casePoint(from, start), end: casePoint(to, end),
+  startNormal: caseDirection(from, startNormal), endNormal: caseDirection(to, endNormal),
+}));
