@@ -23,7 +23,7 @@ body:has(.page) > :global(.site-footer) { display: none; }
 
 .page {
   /* A compact centered column in widescreen, with room to expand in taller windows. */
-  width: clamp(47.2%, 83.7svh, 88.6%);
+  width: clamp(42.48%, 75.33svh, 88.6%);
   margin-inline: auto;
   container-type: inline-size;
   --accent: #fff;
