@@ -1,0 +1,95 @@
+.stack {
+  margin-block-start: 6.55cqi;
+}
+
+.heading {
+  margin: 0 0.45cqi 0 -0.45cqi;
+  padding: 0 0 1.07cqi 1.95cqi;
+  border-bottom: max(1px, 0.12cqi) solid currentColor;
+  font-size: 5.3cqi;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
+.groupHeading {
+  margin: 4.15cqi 0 2.12cqi 1.9cqi;
+  font-size: 2.2cqi;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.12;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 5.94cqi;
+  margin: 0 5.2cqi;
+  padding: 0;
+  list-style: none;
+  font-size: 2.13cqi;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.16;
+}
+
+.serverRow {
+  position: relative;
+}
+
+.archiveLink {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 6.9cqi;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: max(24px, 4.4cqi);
+  height: max(24px, 4.4cqi);
+  color: inherit;
+}
+
+.archiveLink::after {
+  content: "";
+  width: 1.72cqi;
+  height: 1.72cqi;
+  border-top: 0.31cqi solid currentColor;
+  border-right: 0.31cqi solid currentColor;
+  transform: rotate(45deg);
+}
+
+.archiveLink:hover { color: #ccc; }
+
+.archiveLink:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.serverRow + .groupHeading {
+  margin-block-start: 3.32cqi;
+}
+
+.tile {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 392 / 301;
+  margin-bottom: 0.83cqi;
+  background: #7f7f7f;
+}
+
+@media (max-width: 760px) and (max-aspect-ratio: 3/2) {
+  .stack { margin-block-start: 3.25rem; }
+  .heading { font-size: 2rem; padding-bottom: 0.45rem; }
+  .groupHeading { margin: 1.5rem 0 0.7rem; font-size: 1.05rem; }
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .serverRow + .groupHeading { margin-top: 1.75rem; }
+  .archiveLink { width: 44px; height: 44px; top: -1.28rem; }
+  .archiveLink::after { width: 0.66rem; height: 0.66rem; border-width: 2px; }
+  .tile { margin-bottom: 0.3rem; }
+}
