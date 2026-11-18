@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { deviceDrawing, type Finish, type TopologyDevice } from "./computer-topology-devices";
+import { frameDevice } from "./computer-topology-framing";
 import { createTopologyDevice } from "./computer-topology-models";
 
 export type TopologyView = {
@@ -204,8 +205,27 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   let frame = 0;
   let linuxProgress = initialLinux ? 1 : 0;
   let flight: { from: number; to: number; start: number; duration: number; complete: () => void } | undefined;
+  const followWeights = ids.map(() => 0);
+  let follow: { from: number[]; to: number[]; start: number } | undefined;
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const temporary = new THREE.Vector3();
+
+  // Blend the six possible framings. A scroll reversal can start from the exact frame on screen,
+  // and a resize or orbit can reproject the same blend without using stale screen coordinates.
+  function advanceFollow(now: number) {
+    if (!follow) return;
+    const time = motion.matches || document.hidden ? 1 : Math.min(1, (now - follow.start) / 620);
+    const eased = time * time * (3 - 2 * time);
+    for (let i = 0; i < ids.length; i++) followWeights[i] = THREE.MathUtils.lerp(follow.from[i], follow.to[i], eased);
+    if (time === 1) follow = undefined;
+  }
+  function followSelection(instant = false) {
+    const now = performance.now();
+    advanceFollow(now);
+    const to = ids.map(id => id === activeDevice ? highlightStrength : 0);
+    follow = { from: [...followWeights], to, start: now };
+    if (instant || to.every((value, i) => value === followWeights[i])) advanceFollow(now + 620);
+  }
 
   function applyHighlight(strength: number) {
     for (const [id, { tints, trace }] of nodes) {
@@ -228,6 +248,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   function draw() {
     frame = 0;
     if (disposed || !width || !height) return;
+    advanceFollow(performance.now());
     let completed: (() => void) | undefined;
     if (flight) {
       const time = motion.matches || document.hidden ? 1 : Math.min(1, (performance.now() - flight.start) / flight.duration);
@@ -268,42 +289,73 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     camera.updateMatrixWorld();
     const bounds = new THREE.Box2();
     const point = new THREE.Vector2();
-    const anchors = [];
-    for (const { model, corners, link } of nodes.values()) {
+    const projected = new Map<TopologyDevice, {
+      box: THREE.Box2; middle: THREE.Vector2; link: HTMLAnchorElement; labelWidth: number; labelHeight: number;
+    }>();
+    for (const [id, { model, corners, link }] of nodes) {
       const box = new THREE.Box2();
       for (const corner of corners) {
         temporary.copy(corner).multiply(model.scale).add(model.position).applyMatrix4(camera.matrixWorldInverse);
         box.expandByPoint(point.set(temporary.x, temporary.y));
       }
       bounds.union(box);
-      anchors.push({ link, x: (box.min.x + box.max.x) / 2, y: box.min.y });
+      projected.set(id, { box, middle: box.getCenter(new THREE.Vector2()), link, labelWidth: link.offsetWidth, labelHeight: link.offsetHeight });
     }
     const marginX = width < 480 ? 23 : width * .045;
     const marginTop = width < 650 ? 38 : 16;
     const marginBottom = width < 650 ? 29 : 35;
     const wideScale = Math.min((width - 2 * marginX) / (bounds.max.x - bounds.min.x), (height - marginTop - marginBottom) / (bounds.max.y - bounds.min.y));
-    const scale = wideScale * Math.pow(screenScale / wideScale, linuxProgress);
-    if (!(scale > 0)) return;
-    const center = bounds.getCenter(point);
-    center.y += (marginTop - marginBottom) / (2 * wideScale);
+    if (!(wideScale > 0 && screenScale > 0)) return;
+    const overview = bounds.getCenter(point);
+    overview.y += (marginTop - marginBottom) / (2 * wideScale);
+    const center = overview.clone();
+    let logZoom = 0;
+    for (const [index, id] of ids.entries()) {
+      const weight = followWeights[index];
+      if (weight === 0) continue;
+      const { box, middle, labelHeight } = projected.get(id)!;
+      const bottom = Math.max(marginBottom, labelHeight + 12);
+      const upstream = id === "router" ? "asa" : connections.find(([, to]) => to === id)![0];
+      const neighbor = projected.get(upstream)!.middle;
+      const { scale: fitted, offsetX, offsetY } = frameDevice(
+        { width, height }, height - marginTop - bottom,
+        { width: box.max.x - box.min.x, height: box.max.y - box.min.y },
+        { x: neighbor.x - middle.x, y: neighbor.y - middle.y }, wideScale,
+      );
+      if (fitted <= 0) continue;
+      const aimX = middle.x + offsetX;
+      const aimY = middle.y + offsetY + (marginTop - bottom) / (2 * fitted);
+      center.x += (aimX - overview.x) * weight;
+      center.y += (aimY - overview.y) * weight;
+      logZoom += Math.log(fitted / wideScale) * weight;
+    }
+    const followScale = wideScale * Math.exp(logZoom);
+    const scale = followScale * Math.pow(screenScale / followScale, linuxProgress);
     const projectedGlass = glassCenter.applyMatrix4(camera.matrixWorldInverse);
     center.x = THREE.MathUtils.lerp(center.x, projectedGlass.x, linuxProgress);
     const glassBounds = glass.getBoundingClientRect(), frameBounds = host.getBoundingClientRect();
     const glassY = glassBounds.top + glassBounds.height / 2 - frameBounds.top;
     center.y = THREE.MathUtils.lerp(center.y, projectedGlass.y + (glassY - height / 2) / screenScale, linuxProgress);
-    camera.left = center.x - width / (2 * scale);
-    camera.right = center.x + width / (2 * scale);
-    camera.top = center.y + height / (2 * scale);
-    camera.bottom = camera.top - height / scale;
+    camera.translateX(center.x);
+    camera.translateY(center.y);
+    camera.updateMatrixWorld();
+    camera.right = width / (2 * scale);
+    camera.left = -camera.right;
+    camera.top = height / (2 * scale);
+    camera.bottom = -camera.top;
     camera.updateProjectionMatrix();
     renderer.render(scene, camera);
     canvas.dataset.linuxProgress = linuxProgress.toFixed(4);
-    for (const { link, x, y } of anchors) {
-      const half = link.offsetWidth / 2 + 2;
-      link.style.left = Math.max(half, Math.min(width - half, (x - camera.left) * scale)) + "px";
-      link.style.top = (camera.top - y) * scale + 2 + "px";
+    for (const { link, middle, box, labelWidth, labelHeight } of projected.values()) {
+      const x = (middle.x - center.x) * scale + width / 2;
+      const y = (center.y - box.min.y) * scale + height / 2 + 2;
+      const onScreen = x >= 0 && x <= width && y >= 2 && y + labelHeight <= height;
+      link.style.visibility = onScreen ? "" : "hidden";
+      const half = labelWidth / 2 + 2;
+      link.style.left = Math.max(half, Math.min(width - half, x)) + "px";
+      link.style.top = y + "px";
     }
-    if (flight) invalidate();
+    if (flight || follow) invalidate();
     completed?.();
   }
   function invalidate() {
@@ -386,9 +438,16 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     if (activeDevice === device && highlightStrength === next) return;
     activeDevice = device;
     highlightStrength = next;
+    if (flight?.to !== 1 && linuxProgress < 1) followSelection();
     invalidate();
   }
   function setLinux(open: boolean, animate: boolean, complete: () => void) {
+    if (open) {
+      advanceFollow(performance.now());
+      follow = undefined;
+    } else {
+      followSelection(linuxProgress === 1);
+    }
     const to = Number(open);
     const duration = animate && !motion.matches && !document.hidden ? 850 * Math.abs(to - linuxProgress) : 0;
     if (duration < 1) {
