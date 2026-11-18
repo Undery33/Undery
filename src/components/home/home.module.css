@@ -22,8 +22,8 @@ body:has(.page) > :global(.site-footer) { display: none; }
 }
 
 .page {
-  /* The 16:9 artboard puts the column at half-width. Taller windows use the side margins of the full design. */
-  width: clamp(50.2%, 89svh, 88.6%);
+  /* A compact centered column in widescreen, with room to expand in taller windows. */
+  width: clamp(47.2%, 83.7svh, 88.6%);
   margin-inline: auto;
   container-type: inline-size;
   --accent: #fff;
