@@ -1,20 +1,66 @@
+import Image from "next/image";
 import Link from "next/link";
-import { publicSections } from "@/lib/site";
+import { HomePosts } from "@/components/home/home-posts";
+import { HomeStack } from "@/components/home/home-stack";
+import discord from "@/components/home/assets/discord.png";
+import github from "@/components/home/assets/github.png";
+import instagram from "@/components/home/assets/instagram.png";
+import monogram from "@/components/home/assets/undery-mark.png";
+import valorant from "@/components/home/assets/valorant.webp";
+import vrchat from "@/components/home/assets/vrchat.webp";
+import x from "@/components/home/assets/x.png";
+import styles from "@/components/home/home.module.css";
+
+const profiles = [
+  { name: "Discord", href: "https://discord.gg/gub", icon: discord },
+  { name: "Instagram", href: "https://instagram.com/_undery.pth/", icon: instagram },
+  { name: "GitHub", href: "https://github.com/Undery33", icon: github },
+  { name: "X", href: "https://x.com/VRC_UDR", icon: x },
+];
 
 export default function HomePage() {
   return (
-    <>
-      <section className="hero"><p className="eyebrow">Personal archive</p><h1>배우고, 즐기고,<br />기록하는 공간.</h1><p>기술 이야기부터 좋아하는 것들까지.<br />하나씩 정리해 나가는 Undery의 개인 공간입니다.</p></section>
-      <section aria-labelledby="sections-heading"><div className="section-heading"><h2 id="sections-heading">둘러보기</h2><span>03 spaces</span></div>
-        <div className="section-grid">{publicSections.map((section, index) => {
-          // VRChat is a separate static page served by Nginx, so leave the
-          // Next router with a full navigation instead of requesting RSC.
-          const Card = section.href === "/vrchat" ? "a" : Link;
-          return <Card className="section-card" href={section.href} key={section.href}><div className="card-top"><span className="card-number">0{index + 1}</span><span className="badge">{section.status}</span></div><h3>{section.label} <span aria-hidden="true">↗</span></h3><p>{section.description}</p></Card>;
-        })}</div>
+    <div className={styles.page}>
+      <header className={styles.masthead}>
+        <Image className={styles.monogram} src={monogram} alt="" loading="eager" unoptimized />
+        <h1 className={styles.wordmark}>UNDERY</h1>
+        <nav className={styles.socials} aria-label="소셜 링크">
+          {profiles.map(({ name, href, icon }) => (
+            <a key={name} href={href} aria-label={name}>
+              <Image src={icon} alt="" unoptimized />
+            </a>
+          ))}
+        </nav>
+      </header>
+
+      <section className={styles.intro} aria-labelledby="intro-heading">
+        <h2 id="intro-heading">UNDER + RESTART</h2>
+        <div className={styles.story}>
+          <p>일을 진행할 때 항상 한 번 씩 막힐 때가 있습니다. 그럴 때 처음부터 차근히 문제를 되짚어가면 생각 정리도 되고 해결 방법이 나옵니다.</p>
+          <p>이러한 방식을 토대로 닉네임을 한 번 지어보자는 마음으로 아래(Under)와 다시 시작(Restart) 단어를 합성하여 지었습니다.</p>
+        </div>
       </section>
-      <p className="foundation-note">현재는 기본 구조를 준비하는 단계입니다. 화면 디자인과 콘텐츠는 이후에 다듬습니다.</p>
-    </>
+
+      <section className={styles.content} aria-labelledby="content-heading">
+        <h2 id="content-heading" className={styles.sectionTitle}>CONTENT</h2>
+        <Link className={styles.techLink} href="/computer" aria-label="Computer · 기술에 대해 궁금하시다면?">
+          <span className={styles.techBanner} aria-hidden="true" />
+          <span className={styles.caption}>기술에 대해 궁금하시다면?</span>
+        </Link>
+        <div className={styles.games}>
+          {/* Nginx serves a separate static app here, so VRChat needs a full navigation. */}
+          <a href="/vrchat" aria-label="VRChat">
+            <Image src={vrchat} alt="" unoptimized />
+          </a>
+          <Link href="/valorant" aria-label="Valorant">
+            <Image src={valorant} alt="" unoptimized />
+          </Link>
+        </div>
+        <p className={styles.caption}>저는 이런 게임을 주로 하고 있어요!</p>
+      </section>
+
+      <HomePosts />
+      <HomeStack />
+    </div>
   );
 }
-

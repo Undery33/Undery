@@ -107,8 +107,10 @@ def verify(base, expected):
         print('PASS restored main page and Next.js assets: '+path)
         return html, resources
 
-    _, home_resources = main_page('/', ('배우고, 즐기고,', '기록하는 공간.', '둘러보기'))
+    _, home_resources = main_page('/', ('UNDER + RESTART', 'CONTENT', 'POST', 'STACK'))
     assert {'/computer', '/vrchat', '/valorant'} <= home_resources.links
+    assert {'https://discord.gg/gub', 'https://instagram.com/_undery.pth/',
+            'https://github.com/Undery33', 'https://x.com/VRC_UDR'} <= home_resources.links
     _, computer_resources = main_page('/computer', ('id="computer-title"', '이해를 연결합니다', '기술 글 검색', 'VLAN', 'DNS', 'CNN'))
     assert {'/computer?category=server', '/computer?category=network', '/computer?category=ai',
             '/computer/vlan', '/computer/routing', '/computer/dns', '/computer/dhcp', '/computer/cnn'} <= computer_resources.links
@@ -121,7 +123,7 @@ def verify(base, expected):
     html, gui_resources, _ = html_page('/vrchat')
     assert 'START OVER' in html and 'data-open="profile"' in html
     assert '<dialog' in html and 'data-open="pictures"' in html and 'data-open="gallery"' in html
-    assert '기록하는 공간.' not in html, 'VRChat must serve the separate GUI'
+    assert 'UNDER + RESTART' not in html, 'VRChat must serve the separate GUI'
     assert len(gui_resources.urls) >= 6, 'Styles, script and all GUI images must be included'
     for resource in gui_resources.urls:
         assert resource.startswith('/vrchat/'), 'GUI assets must stay under /vrchat/: '+resource

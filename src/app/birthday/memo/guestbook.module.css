@@ -1,9 +1,4 @@
-@font-face {
-  font-family: "Freesentation";
-  src: url("./font/FreesentationVF.woff2") format("woff2");
-  font-weight: 100 800;
-  font-display: swap;
-}
+@import "../../../fonts/freesentation.css";
 
 .page { font-family: "Freesentation", sans-serif; }
 .hero {
