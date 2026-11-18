@@ -16,7 +16,7 @@
   --carrier: color-mix(in srgb, var(--computer-soft) 58%, var(--paper));
 }
 .diagram { display: block; width: 100%; height: 100%; overflow: visible; }
-.diagramButton {
+.screen .diagramButton {
   display: block;
   width: 100%;
   height: 100%;
@@ -30,7 +30,7 @@
   cursor: zoom-in;
 }
 .diagramButton:first-child { grid-column: 1 / -1; }
-.diagramButton[hidden] { display: none; }
+.screen .diagramButton[hidden] { display: none; }
 .diagramButton[aria-disabled="true"] { cursor: default; }
 .diagramButton:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: -2px; }
 .screen[data-linux-focus] { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
