@@ -5,7 +5,7 @@ import { casePoint, caseYaw } from "./computer-topology-poses";
 /** Dimensions and front-panel details shared by the live scene and its projected diagrams. */
 export type TopologyDevice = ComputerCategory;
 export type Point3 = [number, number, number];
-export type Finish = "case" | "panel" | "ink" | "light" | "screen" | "metal" | "accent";
+export type Finish = "case" | "panel" | "ink" | "graphite" | "light" | "screen" | "metal" | "accent";
 export type DevicePart = {
   shape: "box" | "drum" | "dome";
   position: Point3;
@@ -15,6 +15,7 @@ export type DevicePart = {
   bevel?: number;
   assembly?: "tower";
   yaw?: number;
+  traceLid?: boolean;
   decoratedFace?: "left" | "right";
 };
 export type Mark = { points: Point3[]; finish: Finish; assembly?: "tower" };
@@ -24,7 +25,9 @@ export function deviceDrawing(device: TopologyDevice) {
   const marks: Mark[] = [];
   let assembly: "tower" | undefined;
   function box(position: Point3, size: Point3, finish: Finish = "case", outlined = false, bevel?: number, decoratedFace?: "left" | "right") {
-    parts.push({ shape: "box", position, size, finish, outlined, bevel: bevel ?? (outlined ? .025 : undefined), assembly, decoratedFace });
+    const part: DevicePart = { shape: "box", position, size, finish, outlined, bevel: bevel ?? (outlined ? .025 : undefined), assembly, decoratedFace };
+    parts.push(part);
+    return part;
   }
   function drum(position: Point3, size: Point3, finish: Finish, outlined = false) {
     parts.push({ shape: "drum", position, size, finish, outlined, assembly });
@@ -42,32 +45,67 @@ export function deviceDrawing(device: TopologyDevice) {
   }
 
   if (device === "router") {
-    // An industrial router mounts vertically on a DIN rail. Its extruded cooling fins
-    // sit on the sides; DC, LAN, WAN and the pluggable modem are on the service face.
-    box([0, .66, -.42], [.41, 1.02, .18], "metal", true);
-    box([0, .62, -.48], [.68, .16, .13], "panel");
-    box([0, .073, -.04], [.97, .125, .89], "metal", true);
-    box([0, .68, -.02], [.78, 1.23, .98], "panel", true, .032);
-    box([0, 1.296, -.018], [.80, .042, .96], "light", true, .015);
-    for (const side of [-1, 1]) {
-      for (let i = 0; i < 8; i++) {
-        box([side * .421, .697, -.411 + i * .106], [.115, 1.09, .047], "metal", false, .010, side < 0 ? "left" : "right");
+    // ISR 4331: the bezel carries management and power, opposite the modular I/O face.
+    feet(1.09, 1.06);
+    box([0, .181, -1.297], [2.62, .269, .055], "ink", false, .015);
+    // Left/right here are as viewed from this machine's management side (-Z).
+    for (const x of [.99, .79]) jack([x, .207, -1.336], .137, -1);
+    jack([.99, .107, -1.336], .137, -1);
+    box([.79, .105, -1.332], [.12, .043, .021], "metal");
+    box([1.136, .103, -1.334], [.068, .027, .018], "metal");
+    for (const [center, width, columns] of [[.36, .63, 11], [-.62, .43, 8]]) {
+      box([center, .170, -1.334], [width, .185, .024], "panel");
+      for (let row = 0; row < 3; row++) for (let col = 0; col < columns; col++) {
+        box([center - width / 2 + .032 + col * (width - .064) / (columns - 1), .116 + row * .051, -1.349],
+          [.030, .029, .009], "ink");
       }
     }
-    box([0, .68, .481], [.77, 1.19, .047], "case", true, .018);
-    box([-.16, 1.112, .517], [.35, .13, .065], "ink", false, .010);
-    for (let i = 0; i < 4; i++) {
-      box([-.275 + i * .078, 1.128, .55], [.045, .033, .01], "metal");
+    for (const y of [.14, .20]) for (let i = 0; i < 4; i++) {
+      box([-.25 + i * .06, y, -1.337], [.022, .021, .014], i === 0 && y === .20 ? "accent" : "metal");
     }
-    box([.205, .965, .511], [.208, .38, .026], "panel", true, .009);
-    box([.205, 1.036, .531], [.16, .11, .017], "metal");
-    box([.205, .884, .534], [.097, .046, .015], "ink");
-    for (const x of [-.235, -.055]) for (const y of [.637, .79]) jack([x, y, .527]);
-    jack(routerPort);
-    box([-.113, .388, .513], [.265, .097, .023], "metal");
-    box([-.113, .388, .529], [.218, .060, .012], "ink");
-    box([-.14, .205, .516], [.125, .046, .024], "ink");
-    for (let i = 0; i < 4; i++) box([.085 + i * .055, .20, .517], [.030, .022, .022], i === 0 ? "accent" : "metal");
+    box([-1.037, .173, -1.334], [.194, .148, .027], "metal", false, .016);
+    box([-1.037, .173, -1.352], [.145, .102, .013], "ink", false, .012);
+    box([-1.205, .17, -1.337], [.057, .083, .026], "panel");
+
+    box([0, .168, 0], [2.65, .244, 2.60], "panel", true, .018);
+    box([0, .299, -.004], [2.65, .031, 2.64], "graphite", true, .012).traceLid = true;
+    box([0, .317, -1.156], [2.46, .006, .012], "metal");
+    // The bridge emblem is pressed into the lid. These shallow ribs follow the two arches.
+    const ribs = [.061, .102, .164, .100, .047, .100, .164, .102, .061];
+    ribs.forEach((depth, i) => box([(i - 4) * .049, .318, -.035], [.024, .008, depth], "panel", false, .005));
+    const letters = [
+      [[-.124, .058], [-.162, .058], [-.177, .071], [-.177, .109], [-.162, .122], [-.124, .122]],
+      [[-.086, .058], [-.086, .122]],
+      [[-.012, .058], [-.047, .058], [-.061, .071], [-.054, .084], [-.020, .092], [-.012, .108], [-.023, .122], [-.061, .122]],
+      [[.069, .058], [.034, .058], [.019, .072], [.019, .107], [.034, .122], [.069, .122]],
+      [[.114, .058], [.145, .058], [.158, .071], [.158, .109], [.145, .122], [.114, .122], [.101, .109], [.101, .071], [.114, .058]],
+    ];
+    letters.forEach(stroke => mark(stroke.map(([x, z]) => [x, .319, z]), "metal"));
+
+    // Two RJ45s and two SFP cages serve the three integrated GE interfaces (4331 rear view).
+    box([0, .172, 1.290], [2.615, .244, .054], "ink", false, .008);
+    jack([routerPort[0], .243, routerPort[2]]);
+    jack(routerPort); // Lower copper jack: GigabitEthernet0/0/1.
+    for (const y of [.120, .243]) {
+      box([-.994, y, 1.326], [.153, .092, .028], "metal");
+      box([-.994, y, 1.344], [.128, .059, .013], "ink");
+    }
+    box([-1.189, .060, 1.327], [.130, .013, .014], "accent");
+    // Single-width NIM blanking plates flank their removable central divider.
+    for (const x of [-.672, -.185]) {
+      box([x, .171, 1.325], [.458, .206, .034], "metal", false, .012);
+      box([x, .173, 1.344], [.351, .146, .013], "panel", false, .008);
+      for (const side of [-1, 1]) box([x + side * .197, .173, 1.349], [.031, .043, .025], "ink", false, .007);
+    }
+    // One full-size SM-X bay, shown with a vented cover rather than an installed port card.
+    box([.652, .171, 1.323], [1.141, .210, .034], "metal", false, .009);
+    box([.645, .171, 1.343], [.967, .150, .012], "panel");
+    for (let row = 0; row < 2; row++) for (let col = 0; col < 10; col++) {
+      box([.229 + col * .092, .136 + row * .067, 1.354], [.063, .036, .011], "ink");
+    }
+    for (const x of [.120, 1.180]) box([x, .170, 1.348], [.038, .046, .025], "ink", false, .007);
+    box([1.268, .169, 1.322], [.068, .162, .016], "metal", false, .008);
+    for (const y of [.125, .211]) box([1.267, y, 1.335], [.038, .034, .015], "ink", false, .007);
   } else if (device === "asa") {
     // Fanless desktop security appliance, displayed with its eight-port rear I/O facing the viewer.
     feet(.76, .43);

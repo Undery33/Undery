@@ -6,7 +6,7 @@ import styles from "./computer-device-notes.module.css";
 type Question = { title: string; answer: string; article?: { href: string; label: string } };
 const notes: Record<TopologyDevice, { role: string; questions: Question[] }> = {
   router: {
-    role: "데이터 패킷 전송",
+    role: "Cisco ISR 4331 · 데이터 패킷 전송",
     questions: [
       { title: "라우터란", answer: "라우터는 서로 다른 IP 네트워크를 연결합니다. 패킷의 목적지 IP 주소를 보고 라우팅 테이블에서 다음에 보낼 곳을 찾습니다." },
       { title: "라우팅이란", answer: "목적지 네트워크까지 패킷을 보낼 경로를 정하는 과정입니다. 관리자가 직접 경로를 지정하거나 라우터끼리 경로 정보를 교환할 수 있습니다.",

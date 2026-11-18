@@ -4,6 +4,8 @@
   --device-front: #dadada;
   --device-side: #bcbcbc;
   --device-ink: #363636;
+  --device-graphite-base: #484848;
+  --device-graphite: var(--device-graphite-base);
   --device-edge: #858585;
   --device-screen: #414141;
   --device-light: #fff;
@@ -18,6 +20,7 @@
   --device-front: #696969;
   --device-side: #565656;
   --device-ink: #222;
+  --device-graphite-base: #555;
   --device-edge: #b4b4b4;
   --device-screen: #323232;
   --device-light: #b3b3b3;
@@ -72,6 +75,7 @@ a.device:focus-visible { outline: 2px solid currentColor; }
   --device-side: color-mix(in srgb, var(--computer-surface) 38%, var(--trace-fill));
   --device-panel: color-mix(in srgb, var(--computer-paper) 38%, var(--trace-fill));
   --device-metal: color-mix(in srgb, var(--computer-paper) 30%, var(--trace-fill));
+  --device-graphite: color-mix(in srgb, var(--device-graphite-base) 72%, var(--trace-fill));
   --device-screen: color-mix(in srgb, #262626 87%, var(--trace-fill));
   --device-edge: var(--trace-edge);
   --wire-color: var(--trace-fill);
