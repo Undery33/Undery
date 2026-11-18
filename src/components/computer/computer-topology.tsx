@@ -3,15 +3,17 @@ import { computerCategories } from "@/lib/computer-categories";
 import { deviceDrawing, type Point3, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
 import { patchLinks } from "./computer-topology-ports";
-import { routePatchCable, type CableSocket, type Footprint } from "./computer-topology-routing";
+import { bootTip, jacketPoints } from "./computer-topology-routing";
+import { groundPosition, openingProjection, topologyLayouts } from "./computer-topology-layout";
 import styles from "./computer-topology.module.css";
 
 type Point = [number, number];
 type Props = { hrefs?: Partial<Record<TopologyDevice, string>>; selected?: string };
 
 // Orthographic projection from above the front-right corner, also used for card thumbnails.
-function project([x, y, z]: Point3): Point {
-  return [(.86 * x - .52 * z) * 52, (.24 * x + .40 * z - .90 * y) * 52];
+function project(p: Point3): Point {
+  const [across, down] = openingProjection(p);
+  return [across * 52, down * 52];
 }
 function path(points: Point[], closed = true) {
   return points.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join("") + (closed ? "Z" : "");
@@ -75,14 +77,7 @@ function projectDevice(device: TopologyDevice) {
   const xs = bounds.map(p => p[0]), ys = bounds.map(p => p[1]);
   const x = Math.min(...xs), y = Math.min(...ys), padding = 4;
   const frame = { x: x - padding, y: y - padding, w: Math.max(...xs) - x + 2 * padding, h: Math.max(...ys) - y + 2 * padding };
-  const footprint: Footprint = { left: Infinity, right: -Infinity, back: Infinity, front: -Infinity };
-  for (const { position: [x, , z], size: [w, , d] } of drawing.parts) {
-    footprint.left = Math.min(footprint.left, x - w / 2);
-    footprint.right = Math.max(footprint.right, x + w / 2);
-    footprint.back = Math.min(footprint.back, z - d / 2);
-    footprint.front = Math.max(footprint.front, z + d / 2);
-  }
-  return { surfaces, frame, footprint, viewBox: `${frame.x} ${frame.y} ${frame.w} ${frame.h}` };
+  return { surfaces, frame, viewBox: `${frame.x} ${frame.y} ${frame.w} ${frame.h}` };
 }
 
 const devices = computerCategories.map(category => category.id);
@@ -107,19 +102,6 @@ export function ComputerDeviceIcon({ device }: { device: TopologyDevice }) {
 
 type Placement = [device: TopologyDevice, centerX: number, top: number, width: number, height: number];
 type Layout = { compact: boolean; width: number; height: number; devices: Placement[] };
-const layouts: Layout[] = [
-  {
-    compact: false, width: 1040, height: 330,
-    devices: [["router", 79, 190, 135, 78], ["asa", 263, 111, 144, 82], ["switch", 510, 115, 162, 82],
-      ["server", 767, 0, 88, 123], ["linux", 740, 199, 140, 103], ["windows-server", 957, 107, 142, 104]],
-  },
-  {
-    compact: true, width: 375, height: 292,
-    devices: [["router", 54, 10, 87, 58], ["asa", 188, 12, 93, 53], ["switch", 315, 61, 100, 58],
-      ["server", 53, 173, 59, 76], ["linux", 180, 177, 95, 72], ["windows-server", 310, 177, 97, 72]],
-  },
-];
-
 function cameraFrames({ width, height, compact, devices }: Layout) {
   const frames: Record<string, string> = {};
   const centers = new Map(devices.map(([id, x, top, , h]) => [id, [x, top + h / 2] as Point]));
@@ -137,33 +119,41 @@ function cameraFrames({ width, height, compact, devices }: Layout) {
   }
   return frames as CSSProperties;
 }
-// Invert the projection at desk height so this layout uses the same physical routing as WebGL.
-function physicalPlacement([id, cx, top, w, h]: Placement) {
-  const { frame, footprint: local } = projections.get(id)!;
-  const scale = Math.min(w / frame.w, h / frame.h);
-  const u = (cx - (frame.x + frame.w / 2) * scale) / 52;
-  const v = (top + h / 2 - (frame.y + frame.h / 2) * scale) / 52;
-  const determinant = .86 * .40 + .52 * .24;
-  const x = (.40 * u + .52 * v) / determinant, z = (-.24 * u + .86 * v) / determinant;
-  const footprint = { left: x + local.left * scale, right: x + local.right * scale, back: z + local.back * scale, front: z + local.front * scale };
-  function socket([lx, ly, lz]: Point3, normal: Point3): CableSocket {
-    return { position: [x + lx * scale, ly * scale, z + lz * scale], normal, scale, footprint };
-  }
-  return { footprint, socket };
-}
-
-const scenes = layouts.map(layout => {
-  const mounts = new Map(layout.devices.map(p => [p[0], physicalPlacement(p)]));
-  const footprints = [...mounts.values()].map(mount => mount.footprint);
-  const xy = (point: Point3) => project(point).map(v => v.toFixed(2)).join(" ");
-  const cables = patchLinks.map(({ from, to, start, end, startNormal, endNormal }, i) => {
-    const a = mounts.get(from)!.socket(start, startNormal), b = mounts.get(to)!.socket(end, endNormal);
-    const route = routePatchCable(a, b, footprints, Math.max(0, i - 2));
-    const d = "M" + xy(route.start) + route.segments.map(({ corner, end }) => (corner ? "Q" + xy(corner) + " " : "L") + xy(end)).join("");
-    return { from, to, a, b, d };
+function makeScene(compact: boolean) {
+  const width = compact ? 375 : 1040, height = compact ? 292 : 330;
+  const layout = topologyLayouts[compact ? "compact" : "wide"];
+  const boxes = devices.map(device => {
+    const [x, y] = project(groundPosition(layout[device]));
+    const { frame } = projections.get(device)!;
+    return { device, left: x + frame.x, top: y + frame.y, w: frame.w, h: frame.h };
   });
-  return { ...layout, cables, frames: cameraFrames(layout) };
-});
+  function socket(device: TopologyDevice, local: Point3, normal: Point3) {
+    const [x, , z] = groundPosition(layout[device]);
+    const position: Point3 = [x + local[0], local[1], z + local[2]];
+    return { position, normal, tip: bootTip(position, normal) };
+  }
+  const routes = patchLinks.map(({ from, to, start, end, startNormal, endNormal }) => {
+    const a = socket(from, start, startNormal), b = socket(to, end, endNormal);
+    return { from, to, a, b, points: jacketPoints(from, a.tip, b.tip).map(project) };
+  });
+  const cablePoints = routes.flatMap(route => route.points);
+  const left = Math.min(...boxes.map(b => b.left), ...cablePoints.map(p => p[0]));
+  const right = Math.max(...boxes.map(b => b.left + b.w), ...cablePoints.map(p => p[0]));
+  const top = Math.min(...boxes.map(b => b.top), ...cablePoints.map(p => p[1]));
+  const bottom = Math.max(...boxes.map(b => b.top + b.h), ...cablePoints.map(p => p[1]));
+  const scale = Math.min((width - 12) / (right - left), (height - 12) / (bottom - top));
+  const fit = ([x, y]: Point): Point => [width / 2 + (x - (left + right) / 2) * scale, height / 2 + (y - (top + bottom) / 2) * scale];
+  const positions: Placement[] = boxes.map(b => {
+    const [cx, y] = fit([b.left + b.w / 2, b.top]);
+    return [b.device, cx, y, b.w * scale, b.h * scale];
+  });
+  const cables = routes.map(({ from, to, a, b, points }) => {
+    const place = (plug: typeof a) => ({ point: fit(project(plug.position)), normal: plug.normal, scale });
+    return { from, to, a: place(a), b: place(b), d: path(points.map(fit), false) };
+  });
+  return { width, height, compact, devices: positions, cables, frames: cameraFrames({ width, height, compact, devices: positions }) };
+}
+const scenes = [makeScene(false), makeScene(true)];
 
 // Face, side and top of a molded section, sharing the device projection so the plug meets the jack.
 function PlugSection({ width, height, front, back, tone }: { width: number; height: number; front: number; back: number; tone: string }) {
@@ -202,9 +192,8 @@ type Cable = (typeof scenes)[number]["cables"][number];
 function Connectors({ cables, id, rear }: { cables: Cable[]; id: string; rear: boolean }) {
   const facing = rear ? "rear" : "front";
   return <g className={styles.connectors} aria-hidden="true">
-    {cables.map(({ from, to, a, b }) => [a, b].map(({ position, normal, scale }, i) => {
+    {cables.map(({ from, to, a, b }) => [a, b].map(({ point: [x, y], normal, scale }, i) => {
       if ((normal[2] < 0) !== rear) return null;
-      const [x, y] = project(position);
       return <g key={to + i} data-cable-from={from} data-cable-to={to} data-rj45-plug={i ? "to" : "from"} data-plug-facing={facing}
         transform={`translate(${x} ${y}) scale(${scale})`}>
         <use data-plug-shell="" href={`#${id}-${facing}-plug`} />

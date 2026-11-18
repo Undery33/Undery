@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { createEthernetCables } from "./computer-topology-cables";
 import { deviceDrawing, type Finish, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
+import { groundPosition, openingAzimuth, openingElevation, topologyLayouts } from "./computer-topology-layout";
 import { createTopologyDevice, topologyYellow } from "./computer-topology-models";
 import { createLinuxDisplay } from "./linux-display-texture";
 import { patchLinks } from "./computer-topology-ports";
@@ -13,28 +14,11 @@ export type TopologyView = {
   setLinux: (open: boolean, animate: boolean, complete: () => void) => void;
   dispose: () => void;
 };
-type Position = [number, number];
-const wide: Record<TopologyDevice, Position> = {
-  router: [-6.4, 1.25], asa: [-3.65, .13], switch: [-.24, .14],
-  server: [3.42, -.88], linux: [2.95, 2.72], "windows-server": [6.15, .18],
-};
-const compact: Record<TopologyDevice, Position> = {
-  router: [-2.9, -1.6], asa: [0, -1.55], switch: [2.82, -.63],
-  server: [-2.8, 2.62], linux: [.07, 2.65], "windows-server": [2.79, 2.65],
-};
-const startAzimuth = .54;
-const startElevation = .50;
+const { wide, compact } = topologyLayouts;
+const startAzimuth = openingAzimuth;
+const startElevation = openingElevation;
 const monitorElevation = .23;
 const ids = Object.keys(wide) as TopologyDevice[];
-
-// Place the equipment on one ground plane from its intended coordinates in the opening view.
-function groundPoint([across, down]: Position) {
-  const depth = down / Math.sin(startElevation);
-  return new THREE.Vector3(
-    across * Math.cos(startAzimuth) + depth * Math.sin(startAzimuth), 0,
-    -across * Math.sin(startAzimuth) + depth * Math.cos(startAzimuth),
-  );
-}
 
 // Bake broad cast shadows and tighter contact shadows from the same physical parts as the models.
 // All six footprints share one texture and each equipment group owns one ground quad.
@@ -366,14 +350,10 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     renderer.setSize(width, height, false);
     // Sliding the right-hand notes into view must not rearrange the physical network mid-flight.
     const layout = (panel?.clientWidth ?? width) <= 650 ? compact : wide;
-    for (const [id, { model }] of nodes) model.position.copy(groundPoint(layout[id]));
+    for (const [id, { model }] of nodes) model.position.fromArray(groundPosition(layout[id]));
     if (compactCables !== (layout === compact)) {
       compactCables = layout === compact;
-      cables.arrange(new Map([...nodes].map(([id, { model, corners }]) => {
-        const footprint = new THREE.Box2();
-        for (const { x, z } of corners) footprint.expandByPoint(new THREE.Vector2(x + model.position.x, z + model.position.z));
-        return [id, { position: model.position, footprint }];
-      })));
+      cables.arrange(new Map([...nodes].map(([id, { model }]) => [id, model.position])));
     }
     invalidate();
   }

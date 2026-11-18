@@ -4,24 +4,40 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 import type { Point3, TopologyDevice } from "./computer-topology-devices";
 import { topologyYellow } from "./computer-topology-models";
 import { patchLinks } from "./computer-topology-ports";
-import { routePatchCable, type CableSocket, type Footprint } from "./computer-topology-routing";
+import { bootTip, jacketPoints } from "./computer-topology-routing";
 
 const radius = .029;
-type CableMount = { position: THREE.Vector3; footprint: THREE.Box2 };
-function footprintOf({ min, max }: THREE.Box2): Footprint {
-  return { left: min.x, right: max.x, back: min.y, front: max.y };
-}
-
-function jacketGeometry(a: CableSocket, b: CableSocket, obstacles: Footprint[], lane: number) {
-  const route = routePatchCable(a, b, obstacles, lane);
-  const path = new THREE.CurvePath<THREE.Vector3>();
-  let cursor = new THREE.Vector3(...route.start);
-  for (const { corner, end } of route.segments) {
-    const next = new THREE.Vector3(...end);
-    path.add(corner ? new THREE.QuadraticBezierCurve3(cursor, new THREE.Vector3(...corner), next) : new THREE.LineCurve3(cursor, next));
-    cursor = next;
+function jacketGeometry(points: Point3[]) {
+  const vertices = points.map(p => new THREE.Vector3(...p));
+  const legs = vertices.slice(1).map((p, i) => new THREE.LineCurve3(vertices[i], p));
+  const track = new THREE.CurvePath<THREE.Vector3>();
+  legs.forEach(leg => track.add(leg));
+  const sides = 10;
+  const geometry = new THREE.TubeGeometry(legs.length === 1 ? legs[0] : track, legs.length, radius, sides, false);
+  if (legs.length > 1) {
+    // Put a ring exactly on each drawn corner. Its miter plane meets both straight cylinders.
+    const positions = geometry.getAttribute("position"), normals = geometry.getAttribute("normal");
+    const directions = legs.map(leg => leg.v2.clone().sub(leg.v1).normalize());
+    let tangent = directions[0];
+    const side = new THREE.Vector3(0, 1, 0).cross(tangent).normalize();
+    for (const [i, center] of vertices.entries()) {
+      const next = directions[i] ?? tangent;
+      const plane = tangent.clone().add(next).normalize();
+      const up = tangent.clone().cross(side);
+      for (let j = 0; j <= sides; j++) {
+        const angle = j * 2 * Math.PI / sides;
+        const radial = side.clone().multiplyScalar(Math.cos(angle)).addScaledVector(up, -Math.sin(angle));
+        const joint = radial.clone().addScaledVector(tangent, -radial.dot(plane) / tangent.dot(plane));
+        const pt = center.clone().addScaledVector(joint, radius);
+        const index = i * (sides + 1) + j;
+        positions.setXYZ(index, pt.x, pt.y, pt.z);
+        const n = joint.normalize();
+        normals.setXYZ(index, n.x, n.y, n.z);
+      }
+      side.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(tangent, next));
+      tangent = next;
+    }
   }
-  const geometry = new THREE.TubeGeometry(path, Math.ceil(path.getLength() * 12), radius, 10, false);
   // Soft cylindrical shading leaves the upward-lit face in the exact active cable color.
   const normals = geometry.getAttribute("normal");
   const shades = new Float32Array(normals.count * 3);
@@ -85,19 +101,18 @@ export function createEthernetCables() {
   });
   return {
     group, links,
-    arrange(mounts: Map<TopologyDevice, CableMount>) {
-      const obstacles = [...mounts.values()].map(({ footprint }) => footprintOf(footprint));
-      function connect(plug: THREE.Group, local: Point3, normal: Point3, mount: CableMount): CableSocket {
-        plug.position.fromArray(local).add(mount.position);
+    arrange(positions: Map<TopologyDevice, THREE.Vector3>) {
+      function connect(plug: THREE.Group, local: Point3, normal: Point3, origin: THREE.Vector3): Point3 {
+        plug.position.fromArray(local).add(origin);
         plug.rotation.y = Math.atan2(normal[0], normal[2]);
-        return { position: plug.position.toArray(), normal, scale: 1, footprint: footprintOf(mount.footprint) };
+        return bootTip(plug.position.toArray(), normal);
       }
       for (const [i, link] of links.entries()) {
         const spec = patchLinks[i];
-        const a = connect(link.start, spec.start, spec.startNormal, mounts.get(link.from)!);
-        const b = connect(link.end, spec.end, spec.endNormal, mounts.get(link.to)!);
+        const a = connect(link.start, spec.start, spec.startNormal, positions.get(link.from)!);
+        const b = connect(link.end, spec.end, spec.endNormal, positions.get(link.to)!);
         link.jacket.geometry.dispose();
-        link.jacket.geometry = jacketGeometry(a, b, obstacles, Math.max(0, i - 2));
+        link.jacket.geometry = jacketGeometry(jacketPoints(link.from, a, b));
       }
     },
     theme(dark: boolean) {

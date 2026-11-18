@@ -17,7 +17,7 @@ export const serverPort: Point3 = [-.21, .90, -.608];
 export const workstationPort: Point3 = [-1.35, .79, -.56];
 
 export function asaPort(index: number): Point3 {
-  return [-.60 + index * .16, .242, .635];
+  return [-.445 + index * .16, .242, .635];
 }
 export function switchPort(column: number, row: number): Point3 {
   return [-1.03 + column * .157 + (column >= 6 ? .048 : 0), .157 + row * .145, .647];
@@ -26,7 +26,7 @@ export function switchPort(column: number, row: number): Point3 {
 export const patchLinks: readonly PatchLink[] = [
   { from: "router", to: "asa", start: routerPort, end: asaPort(0), startNormal: front, endNormal: front },
   { from: "asa", to: "switch", start: asaPort(7), end: switchPort(0, 1), startNormal: front, endNormal: front },
-  { from: "switch", to: "server", start: switchPort(3, 1), end: serverPort, startNormal: front, endNormal: rear },
-  { from: "switch", to: "linux", start: switchPort(7, 1), end: workstationPort, startNormal: front, endNormal: rear },
-  { from: "switch", to: "windows-server", start: switchPort(10, 1), end: workstationPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "server", start: switchPort(6, 1), end: serverPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "linux", start: switchPort(8, 1), end: workstationPort, startNormal: front, endNormal: rear },
+  { from: "switch", to: "windows-server", start: switchPort(11, 1), end: workstationPort, startNormal: front, endNormal: rear },
 ];
