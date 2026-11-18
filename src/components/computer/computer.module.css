@@ -20,6 +20,16 @@
 .siteNav a { display: inline-flex; align-items: center; gap: .5em; min-height: 44px; font-size: .88rem; font-weight: 650; text-decoration: none; }
 .siteNav a span { font-size: 1.16rem; font-weight: 400; }
 .page :focus-visible { outline: 2px solid var(--computer-accent); outline-offset: 3px; }
+.scrollTrack[data-scroll-ready] .pinnedPanel {
+  position: sticky;
+  top: 0;
+  background: var(--computer-paper);
+}
+.scrollTrack[data-scroll-ready]::after {
+  content: "";
+  display: block;
+  height: clamp(420px, 85svh, 920px);
+}
 .heading {
   display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
   padding-block: clamp(1.3rem, 2.6vw, 2.9rem);

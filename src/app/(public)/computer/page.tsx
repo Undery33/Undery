@@ -37,30 +37,34 @@ export default async function ComputerPage({ searchParams }: { searchParams: Sea
       <nav className={styles.siteNav} aria-label="홈으로 이동">
         <Link href="/" aria-label="Undery 홈"><span aria-hidden="true">←</span> Undery</Link>
       </nav>
-      <ComputerTopologyScene hrefs={deviceLinks} selected={category} returnHref={articleListHref(query, tag) + "#computer-screen"} />
+      <div className={styles.scrollTrack} data-topology-track="">
+        <div className={styles.pinnedPanel} data-topology-panel="">
+          <ComputerTopologyScene hrefs={deviceLinks} selected={category} returnHref={articleListHref(query, tag) + "#computer-screen"} />
 
-      <header className={styles.heading}>
-        <h1 id="computer-title">Computer</h1>
-        <form className={styles.search} action="/computer#articles" method="get" role="search" aria-label="기술 글 검색">
-          <input key={query} name="q" type="search" aria-label="기술 글 검색어" defaultValue={query} maxLength={120} placeholder="기술 글 검색" />
-          {tag && <input type="hidden" name="tag" value={tag} />}
-          {category && <input type="hidden" name="category" value={category} />}
-          <button type="submit" aria-label="검색">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <circle cx="10" cy="10" r="6.5" /><path d="m15 15 5.5 5.5" />
-            </svg>
-          </button>
-        </form>
-      </header>
+          <header className={styles.heading}>
+            <h1 id="computer-title">Computer</h1>
+            <form className={styles.search} action="/computer#articles" method="get" role="search" aria-label="기술 글 검색">
+              <input key={query} name="q" type="search" aria-label="기술 글 검색어" defaultValue={query} maxLength={120} placeholder="기술 글 검색" />
+              {tag && <input type="hidden" name="tag" value={tag} />}
+              {category && <input type="hidden" name="category" value={category} />}
+              <button type="submit" aria-label="검색">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                  <circle cx="10" cy="10" r="6.5" /><path d="m15 15 5.5 5.5" />
+                </svg>
+              </button>
+            </form>
+          </header>
 
-      <nav className={styles.categories} aria-label="기술 분류">
-        {computerCategories.map(({ id, label }) => (
-          <Link key={id} href={id === "linux" ? deviceLinks.linux : articleListHref(query, tag, id)} scroll={id === "linux"} aria-current={id === category ? "true" : undefined}>
-            <span className={styles.thumbnail}><ComputerDeviceIcon device={id} /></span>
-            <span className={styles.cardTitle}>{label}</span>
-          </Link>
-        ))}
-      </nav>
+          <nav className={styles.categories} aria-label="기술 분류">
+            {computerCategories.map(({ id, label }) => (
+              <Link key={id} href={id === "linux" ? deviceLinks.linux : articleListHref(query, tag, id)} scroll={id === "linux"} aria-current={id === category ? "true" : undefined}>
+                <span className={styles.thumbnail}><ComputerDeviceIcon device={id} /></span>
+                <span className={styles.cardTitle}>{label}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </div>
 
       <section className={styles.archive} id="articles" aria-labelledby="archive-title">
         <div className={styles.archiveHeading}>
