@@ -1,98 +1,27 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import type { TopologyDevice } from "./computer-topology-devices";
+import type { Point3, TopologyDevice } from "./computer-topology-devices";
 import { topologyYellow } from "./computer-topology-models";
 import { patchLinks } from "./computer-topology-ports";
+import { bendPoint, bootTip, jacketRoute, type CableSpan, type RoundBend } from "./computer-topology-routing";
 
 const radius = .029;
-const floor = radius + .004;
-type CableMount = { position: THREE.Vector3; footprint: THREE.Box2 };
-
-// Choose the shortest clear floor route through the padded corners of the six cases.
-function floorRoute(start: THREE.Vector2, end: THREE.Vector2, obstacles: THREE.Box2[]) {
-  const corners = obstacles.flatMap(({ min, max }) => [
-    min, new THREE.Vector2(max.x, min.y), max, new THREE.Vector2(min.x, max.y),
-  ]);
-  const points = [start, end, ...corners];
-  const distance = points.map(() => Infinity);
-  const previous = points.map(() => -1);
-  const visited = new Set<number>();
-  distance[0] = 0;
-  while (true) {
-    let next = -1;
-    for (const [i, value] of distance.entries()) {
-      if (!visited.has(i) && value < (next < 0 ? Infinity : distance[next])) next = i;
-    }
-    if (next === 1 || next < 0) break;
-    visited.add(next);
-    for (const [i, point] of points.entries()) {
-      if (visited.has(i)) continue;
-      const from = points[next];
-      const cost = distance[next] + from.distanceTo(point);
-      if (cost >= distance[i]) continue;
-      const blocked = obstacles.some(box => {
-        let enter = 0, exit = 1;
-        for (const axis of ["x", "y"] as const) {
-          const direction = point[axis] - from[axis];
-          const low = box.min[axis] + .001, high = box.max[axis] - .001;
-          if (Math.abs(direction) < .00001) {
-            if (from[axis] <= low || from[axis] >= high) return false;
-          } else {
-            const a = (low - from[axis]) / direction, b = (high - from[axis]) / direction;
-            enter = Math.max(enter, Math.min(a, b)); exit = Math.min(exit, Math.max(a, b));
-          }
-        }
-        return enter < exit;
-      });
-      if (!blocked) { distance[i] = cost; previous[i] = next; }
-    }
-  }
-  const route = [end];
-  for (let i = previous[1]; i > 0; i = previous[i]) route.unshift(points[i]);
-  return [start, ...route];
+class CableBend extends THREE.Curve<THREE.Vector3> {
+  constructor(private bend: RoundBend) { super(); }
+  getPoint(t: number, target = new THREE.Vector3()) { return target.fromArray(bendPoint(this.bend, t)); }
+  getLength() { return this.bend.radius * this.bend.angle; }
+  getPointAt(u: number, target?: THREE.Vector3) { return this.getPoint(u, target); }
 }
 
-function jacketGeometry(a: THREE.Vector3, b: THREE.Vector3, obstacles: THREE.Box2[], lane: number) {
-  // Straight out of the crimp and boot first. The insulated lead then settles onto the desk.
-  const lead = (socket: THREE.Vector3, opposite: THREE.Vector3, extra: number) => {
-    const side = opposite.x < socket.x ? -1 : 1;
-    return [
-      socket.clone().add(new THREE.Vector3(0, 0, .315)),
-      socket.clone().add(new THREE.Vector3(0, 0, .51)),
-      new THREE.Vector3(socket.x + side * .11, floor + .045, socket.z + .84 + extra),
-      new THREE.Vector3(socket.x + side * .53, floor, socket.z + 1.09 + extra),
-    ];
-  };
-  const start = lead(a, b, .11 * lane), end = lead(b, a, b.y > .42 ? .34 : .07);
-  const xy = (v: THREE.Vector3) => new THREE.Vector2(v.x, v.z);
-  const route = floorRoute(xy(start[3]), xy(end[3]), obstacles);
-  const points = [...start];
-  for (let i = 1; i < route.length; i++) {
-    const p = route[i - 1], q = route[i];
-    const direction = q.clone().sub(p);
-    if (direction.length() > 1.6) {
-      const mid = p.clone().lerp(q, .51);
-      const sag = Math.min(.20, direction.length() * .046) * (lane % 2 ? -1 : 1);
-      direction.normalize();
-      points.push(new THREE.Vector3(mid.x - direction.y * sag, floor, mid.y + direction.x * sag));
-    }
-    if (i < route.length - 1) points.push(new THREE.Vector3(q.x, floor, q.y));
+function jacketGeometry(spans: CableSpan[]) {
+  const track = new THREE.CurvePath<THREE.Vector3>();
+  for (const span of spans) {
+    track.add(span.kind === "line"
+      ? new THREE.LineCurve3(new THREE.Vector3(...span.start), new THREE.Vector3(...span.end))
+      : new CableBend(span));
   }
-  points.push(...end.reverse());
-  const path = new THREE.CurvePath<THREE.Vector3>();
-  let cursor = points[0];
-  for (let i = 1; i < points.length - 1; i++) {
-    const p = points[i], before = points[i - 1], after = points[i + 1];
-    const bend = Math.min(.52, before.distanceTo(p) * .48, after.distanceTo(p) * .48);
-    const arrival = p.clone().addScaledVector(before.clone().sub(p).normalize(), bend);
-    const departure = p.clone().addScaledVector(after.clone().sub(p).normalize(), bend);
-    path.add(new THREE.LineCurve3(cursor, arrival));
-    path.add(new THREE.QuadraticBezierCurve3(arrival, p, departure));
-    cursor = departure;
-  }
-  path.add(new THREE.LineCurve3(cursor, points.at(-1)!));
-  const geometry = new THREE.TubeGeometry(path, Math.ceil(path.getLength() * 12), radius, 10, false);
+  const geometry = new THREE.TubeGeometry(track, Math.ceil(track.getLength() * 45), radius, 10, false);
   // Soft cylindrical shading leaves the upward-lit face in the exact active cable color.
   const normals = geometry.getAttribute("normal");
   const shades = new Float32Array(normals.count * 3);
@@ -156,14 +85,18 @@ export function createEthernetCables() {
   });
   return {
     group, links,
-    arrange(mounts: Map<TopologyDevice, CableMount>) {
-      const obstacles = [...mounts.values()].map(({ footprint }) => footprint.clone().expandByScalar(.28));
+    arrange(positions: Map<TopologyDevice, THREE.Vector3>, compact: boolean) {
+      function connect(plug: THREE.Group, local: Point3, normal: Point3, origin: THREE.Vector3): Point3 {
+        plug.position.fromArray(local).add(origin);
+        plug.rotation.y = Math.atan2(normal[0], normal[2]);
+        return bootTip(plug.position.toArray(), normal);
+      }
       for (const [i, link] of links.entries()) {
         const spec = patchLinks[i];
-        link.start.position.fromArray(spec.start).add(mounts.get(link.from)!.position);
-        link.end.position.fromArray(spec.end).add(mounts.get(link.to)!.position);
+        const a = connect(link.start, spec.start, spec.startNormal, positions.get(link.from)!);
+        const b = connect(link.end, spec.end, spec.endNormal, positions.get(link.to)!);
         link.jacket.geometry.dispose();
-        link.jacket.geometry = jacketGeometry(link.start.position, link.end.position, obstacles, i);
+        link.jacket.geometry = jacketGeometry(jacketRoute(link.to, a, b, spec.startNormal, spec.endNormal, compact));
       }
     },
     theme(dark: boolean) {

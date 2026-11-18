@@ -29,7 +29,9 @@
 
 [성열의 컴퓨터공학](https://cs.yeolyi.com/)의 층을 나눈 모형과 재질 표현을 참고해 장비를 모델링했습니다. 첫 화면에서는 Router, ASA, Switch와 스위치에 연결된 Server, Linux, Windows Server를 한눈에 볼 수 있습니다. 장비 그림이나 소개 아래의 분류 카드를 선택하면 해당 기술 글을 볼 수 있습니다. Linux를 선택하면 해당 모니터만 확대하여 Kubernetes(K8s), Jenkins, Docker의 구성 요소와 연결 관계를 화면 안에 표시합니다.
 
-스크롤 순서는 전체 구성도 → 네트워크 기초 → Router → ASA → Switch → Server → Linux → Docker → Jenkins → Kubernetes → Windows Server입니다. 네트워크 기초에서는 두 서브넷 사이를 오가는 패킷을 보며 IP 주소와 기본 게이트웨이를 살펴볼 수 있습니다. 장비 단계에서는 왼쪽에 확대된 장비와 노란색(`#FDC41F`) 랜선, 오른쪽에 해당 장비의 설명이 나옵니다. 시작점으로 돌아가면 전체 구성이 다시 보입니다.
+스크롤 순서는 전체 구성도 → Router → ASA → Switch → Server → Linux → Docker → Jenkins → Kubernetes → Windows Server입니다. 장비 단계에서는 왼쪽에 확대된 장비와 노란색(`#FDC41F`) 랜선, 오른쪽에 해당 장비의 설명이 나옵니다.
+
+넓은 화면에서는 Router·ASA·Switch가 왼쪽에서 오른쪽으로 이어지고, Server·Linux·Windows Server는 오른쪽 한 열에 놓입니다. 좁은 화면에서는 두 그룹이 위아래로 나뉩니다. Switch의 세 UTP 케이블은 일정 간격으로 나란히 진행하고 방향을 바꾸는 부분에서만 둥글게 꺾입니다. Linux와 Windows Server의 랜선은 각각 모니터 왼쪽에 있는 본체의 후면 포트에 꽂힙니다.
 
 Linux 모니터 안에서 아키텍처 그림을 선택하면 해당 그림이 확대되고 옆에 그 기술의 글이 열립니다. Docker, Jenkins, Kubernetes의 글은 각각 `content/computer/docker.md`, `content/computer/jenkins.md`, `content/computer/kubernetes.md`에서 작성합니다. 수정한 본문은 구성도 옆과 각 글의 개별 주소에 함께 반영됩니다.
 

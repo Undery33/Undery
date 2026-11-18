@@ -3,14 +3,17 @@ import { computerCategories } from "@/lib/computer-categories";
 import { deviceDrawing, type Point3, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
 import { patchLinks } from "./computer-topology-ports";
+import { bootTip, jacketRoute, type CableSpan } from "./computer-topology-routing";
+import { groundPosition, openingAzimuth, openingProjection, topologyLayouts } from "./computer-topology-layout";
 import styles from "./computer-topology.module.css";
 
 type Point = [number, number];
 type Props = { hrefs?: Partial<Record<TopologyDevice, string>>; selected?: string };
 
 // Orthographic projection from above the front-right corner, also used for card thumbnails.
-function project([x, y, z]: Point3): Point {
-  return [(.86 * x - .52 * z) * 52, (.24 * x + .40 * z - .90 * y) * 52];
+function project(p: Point3): Point {
+  const [across, down] = openingProjection(p);
+  return [across * 52, down * 52];
 }
 function path(points: Point[], closed = true) {
   return points.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join("") + (closed ? "Z" : "");
@@ -35,7 +38,12 @@ function projectDevice(device: TopologyDevice) {
   for (const part of drawing.parts) {
     const [cx, cy, cz] = part.position;
     const [w, h, d] = part.size.map(value => value / 2);
-    const point = (x: number, y: number, z: number) => project([cx + x * w, cy + y * h, cz + z * d]);
+    const yaw = part.yaw ?? 0, ca = Math.cos(yaw), sa = Math.sin(yaw);
+    const point = (x: number, y: number, z: number) => project([cx + x * w * ca + z * d * sa, cy + y * h, cz - x * w * sa + z * d * ca]);
+    const leftRight = Math.sin(openingAzimuth - yaw) >= 0 ? 1 : -1;
+    const frontBack = Math.cos(openingAzimuth - yaw) >= 0 ? 1 : -1;
+    if ((part.decoratedFace === "right" && leftRight < 0) || (part.decoratedFace === "left" && leftRight > 0)) continue;
+    const visible = (x: number, y: number, z: number) => point(x * leftRight, y, z * frontBack);
     const surface = (points: Point[], tone: string) => {
       bounds.push(...points);
       surfaces.push({ d: part.bevel ? beveledPolygon(points, part.bevel * 38) : path(points), tone, outline: part.outlined });
@@ -60,12 +68,12 @@ function projectDevice(device: TopologyDevice) {
       surface(topRing, top);
     } else if (!part.outlined) {
       // Small ports, keycaps and display markings only need their visible silhouette.
-      surface([point(-1, -1, 1), point(1, -1, 1), point(1, -1, -1),
-        point(1, 1, -1), point(-1, 1, -1), point(-1, 1, 1)], top);
+      surface([visible(-1, -1, 1), visible(1, -1, 1), visible(1, -1, -1),
+        visible(1, 1, -1), visible(-1, 1, -1), visible(-1, 1, 1)], top);
     } else {
-      surface([point(-1, -1, 1), point(1, -1, 1), point(1, 1, 1), point(-1, 1, 1)], "front");
-      surface([point(1, -1, 1), point(1, -1, -1), point(1, 1, -1), point(1, 1, 1)], side);
-      surface([point(-1, 1, 1), point(1, 1, 1), point(1, 1, -1), point(-1, 1, -1)], top);
+      surface([visible(-1, -1, 1), visible(1, -1, 1), visible(1, 1, 1), visible(-1, 1, 1)], "front");
+      surface([visible(1, -1, 1), visible(1, -1, -1), visible(1, 1, -1), visible(1, 1, 1)], side);
+      surface([visible(-1, 1, 1), visible(1, 1, 1), visible(1, 1, -1), visible(-1, 1, -1)], top);
     }
   }
   for (const mark of drawing.marks) {
@@ -98,30 +106,7 @@ export function ComputerDeviceIcon({ device }: { device: TopologyDevice }) {
 }
 
 type Placement = [device: TopologyDevice, centerX: number, top: number, width: number, height: number];
-type Layout = { compact: boolean; width: number; height: number; devices: Placement[]; bends: Partial<Record<TopologyDevice, Point[]>> };
-const layouts: Layout[] = [
-  {
-    compact: false, width: 1040, height: 330,
-    devices: [["router", 79, 190, 135, 78], ["asa", 263, 111, 144, 82], ["switch", 510, 115, 162, 82],
-      ["server", 767, 0, 88, 123], ["linux", 740, 199, 140, 103], ["windows-server", 957, 107, 142, 104]],
-    bends: {
-      asa: [[51, 274], [109, 269], [153, 234]], switch: [[247, 198], [340, 197]],
-      server: [[447, 194], [424, 173], [432, 113], [520, 103], [651, 103]], linux: [[486, 201], [567, 219], [641, 248]],
-      "windows-server": [[524, 202], [629, 196], [763, 181]],
-    },
-  },
-  {
-    compact: true, width: 375, height: 292,
-    devices: [["router", 54, 10, 87, 58], ["asa", 188, 12, 93, 53], ["switch", 315, 61, 100, 58],
-      ["server", 53, 173, 59, 76], ["linux", 180, 177, 95, 72], ["windows-server", 310, 177, 97, 72]],
-    bends: {
-      asa: [[39, 65], [98, 62]], switch: [[186, 71], [238, 79]],
-      server: [[256, 137], [123, 140], [39, 154], [17, 186], [18, 218]],
-      linux: [[265, 148], [205, 155], [135, 189]], "windows-server": [[298, 146], [270, 179]],
-    },
-  },
-];
-
+type Layout = { compact: boolean; width: number; height: number; devices: Placement[] };
 function cameraFrames({ width, height, compact, devices }: Layout) {
   const frames: Record<string, string> = {};
   const centers = new Map(devices.map(([id, x, top, , h]) => [id, [x, top + h / 2] as Point]));
@@ -139,70 +124,106 @@ function cameraFrames({ width, height, compact, devices }: Layout) {
   }
   return frames as CSSProperties;
 }
-function socketPlacement([id, cx, top, w, h]: Placement, local: Point3) {
-  const frame = projections.get(id)!.frame;
-  const scale = Math.min(w / frame.w, h / frame.h);
-  const [px, py] = project(local);
-  const x = cx + (px - frame.x - frame.w / 2) * scale;
-  const y = top + h / 2 + (py - frame.y - frame.h / 2) * scale;
-  const outward = (z: number): Point => {
-    const [dx, dy] = project([0, 0, z]);
-    return [x + scale * dx, y + scale * dy];
-  };
-  return { x, y, scale, boot: outward(.43), lead: outward(.82) };
-}
-
-function cablePath(points: Point[]) {
-  let d = `M${points[0].join(" ")}`;
-  for (let i = 1; i < points.length - 1; i++) {
-    const [x, y] = points[i];
-    const trim = ([nx, ny]: Point) => {
-      const ratio = Math.min(.42, 22 / (Math.hypot(nx - x, ny - y) || 1));
-      return `${(x + (nx - x) * ratio).toFixed(2)} ${(y + (ny - y) * ratio).toFixed(2)}`;
-    };
-    d += `L${trim(points[i - 1])}Q${x} ${y} ${trim(points[i + 1])}`;
+// The opening projection maps each physical circular bend onto an ellipse in the SVG.
+function wirePath(spans: CableSpan[], screen: (p: Point3) => Point) {
+  const xy = (p: Point) => p.map(v => v.toFixed(3)).join(" ");
+  let d = "M" + xy(screen(spans[0].start));
+  for (const span of spans) {
+    const end = xy(screen(span.end));
+    if (span.kind === "line") { d += "L" + end; continue; }
+    const [cx, cy] = screen(span.center), [sx, sy] = screen(span.start);
+    const [tx, ty] = screen(span.center.map((v, i) => v + span.tangent[i] * span.radius) as Point3);
+    const ax = sx - cx, ay = sy - cy, bx = tx - cx, by = ty - cy;
+    const xx = ax * ax + bx * bx, yy = ay * ay + by * by, xyProduct = ax * ay + bx * by;
+    const difference = Math.hypot(xx - yy, 2 * xyProduct);
+    const major = Math.sqrt((xx + yy + difference) / 2), minor = Math.sqrt(Math.max(0, (xx + yy - difference) / 2));
+    const rotation = Math.atan2(2 * xyProduct, xx - yy) * 90 / Math.PI;
+    d += minor < .001 ? "L" + end : `A${major.toFixed(3)} ${minor.toFixed(3)} ${rotation.toFixed(3)} 0 ${ax * by - ay * bx > 0 ? 1 : 0} ${end}`;
   }
-  return d + `L${points[points.length - 1].join(" ")}`;
+  return d;
 }
 
-const scenes = layouts.map(layout => {
-  const positions = new Map(layout.devices.map(placement => [placement[0], placement]));
-  const cables = patchLinks.map(({ from, to, start, end }) => {
-    const a = socketPlacement(positions.get(from)!, start);
-    const b = socketPlacement(positions.get(to)!, end);
-    const d = cablePath([a.boot, a.lead, ...(layout.bends[to] ?? []), b.lead, b.boot]);
-    return { from, to, a, b, d };
+function makeScene(compact: boolean) {
+  const width = compact ? 375 : 1040, height = compact ? 292 : 330;
+  const layout = topologyLayouts[compact ? "compact" : "wide"];
+  const boxes = devices.map(device => {
+    const [x, y] = project(groundPosition(layout[device]));
+    const { frame } = projections.get(device)!;
+    return { device, left: x + frame.x, top: y + frame.y, w: frame.w, h: frame.h };
   });
-  return { ...layout, cables, frames: cameraFrames(layout) };
-});
+  function socket(device: TopologyDevice, local: Point3, normal: Point3) {
+    const [x, , z] = groundPosition(layout[device]);
+    const position: Point3 = [x + local[0], local[1], z + local[2]];
+    return { position, normal, tip: bootTip(position, normal) };
+  }
+  const routes = patchLinks.map(({ from, to, start, end, startNormal, endNormal }) => {
+    const a = socket(from, start, startNormal), b = socket(to, end, endNormal);
+    return { from, to, a, b, spans: jacketRoute(to, a.tip, b.tip, startNormal, endNormal, compact) };
+  });
+  const cablePoints = routes.flatMap(route => route.spans.flatMap(span => [project(span.start), project(span.end)]));
+  const left = Math.min(...boxes.map(b => b.left), ...cablePoints.map(p => p[0]));
+  const right = Math.max(...boxes.map(b => b.left + b.w), ...cablePoints.map(p => p[0]));
+  const top = Math.min(...boxes.map(b => b.top), ...cablePoints.map(p => p[1]));
+  const bottom = Math.max(...boxes.map(b => b.top + b.h), ...cablePoints.map(p => p[1]));
+  const scale = Math.min((width - 12) / (right - left), (height - 12) / (bottom - top));
+  const fit = ([x, y]: Point): Point => [width / 2 + (x - (left + right) / 2) * scale, height / 2 + (y - (top + bottom) / 2) * scale];
+  const positions: Placement[] = boxes.map(b => {
+    const [cx, y] = fit([b.left + b.w / 2, b.top]);
+    return [b.device, cx, y, b.w * scale, b.h * scale];
+  });
+  const cables = routes.map(({ from, to, a, b, spans }) => {
+    const place = (plug: typeof a) => ({ point: fit(project(plug.position)), normal: plug.normal, scale });
+    return { from, to, a: place(a), b: place(b), d: wirePath(spans, p => fit(project(p))) };
+  });
+  return { width, height, compact, devices: positions, cables, frames: cameraFrames({ width, height, compact, devices: positions }) };
+}
+const scenes = [makeScene(false), makeScene(true)];
 
 // Face, side and top of a molded section, sharing the device projection so the plug meets the jack.
-function PlugSection({ width, height, front, back, tone }: { width: number; height: number; front: number; back: number; tone: string }) {
-  const x = width / 2, y = height / 2;
-  const face = (points: Point3[]) => path(points.map(project));
-  return <g fill={tone}>
-    <path d={face([[x,-y,back], [x,-y,front], [x,y,front], [x,y,back]])} />
-    <path d={face([[-x,-y,front], [x,-y,front], [x,y,front], [-x,y,front]])} />
-    <path d={face([[-x,y,back], [x,y,back], [x,y,front], [-x,y,front]])} />
-  </g>;
-}
-
-function PlugDefinitions({ id }: { id: string }) {
+function PlugDefinitions({ id, normal }: { id: string; normal: Point3 }) {
+  const yaw = Math.atan2(normal[0], normal[2]), ca = Math.cos(yaw), sa = Math.sin(yaw);
+  const projection = ([x, y, z]: Point3): Point => project([x * ca + z * sa, y, -x * sa + z * ca]);
+  const face = (points: Point3[]) => path(points.map(projection));
+  function section(width: number, height: number, a: number, b: number, tone: string) {
+    const x = width / 2 * (Math.sin(openingAzimuth - yaw) >= 0 ? 1 : -1), y = height / 2;
+    const [back, front] = Math.cos(openingAzimuth - yaw) >= 0 ? [a, b] : [b, a];
+    return <g fill={tone}>
+      <path d={face([[x,-y,back], [x,-y,front], [x,y,front], [x,y,back]])} />
+      <path d={face([[-x,-y,front], [x,-y,front], [x,y,front], [-x,y,front]])} />
+      <path d={face([[-x,y,back], [x,y,back], [x,y,front], [-x,y,front]])} />
+    </g>;
+  }
   return <>
     <g id={id + "-plug"} className={styles.plugShell}>
-      <PlugSection width={.165} height={.115} back={0} front={.208} tone="var(--plug-shell)" />
+      {section(.14, .095, 0, .15, "var(--plug-shell)")}
       {Array.from({ length: 8 }, (_, i) => {
-        const x = -.063 + i * .018;
-        return <path key={i} d={path([project([x,.061,.015]), project([x,.061,.089])], false)} className={styles.contact} />;
+        const x = (i - 3.5) * .014;
+        return <path key={i} d={path([projection([x,.052,.015]), projection([x,.052,.076])], false)} className={styles.contact} />;
       })}
-      <path className={styles.latch} d={path([[0,.065,.055],[0,.092,.107],[0,.11,.205],[0,.074,.243]].map(p => project(p as Point3)), false)} />
+      <path className={styles.latch} d={path([[0,.052,.035],[0,.076,.075],[0,.09,.145],[0,.06,.182]].map(p => projection(p as Point3)), false)} />
     </g>
     <g id={id + "-boot"} className={styles.plugBoot}>
-      <PlugSection width={.184} height={.137} back={.191} front={.272} tone="currentColor" />
-      <PlugSection width={.143} height={.10} back={.272} front={.351} tone="currentColor" />
-      <PlugSection width={.109} height={.083} back={.351} front={.438} tone="currentColor" />
+      {section(.158, .125, .146, .207, "currentColor")}
+      {section(.126, .099, .207, .263, "currentColor")}
+      {section(.090, .076, .263, .332, "currentColor")}
     </g>
   </>;
+}
+
+type Cable = (typeof scenes)[number]["cables"][number];
+function Connectors({ cables, id, rear }: { cables: Cable[]; id: string; rear: boolean }) {
+  const facing = rear ? "rear" : "front";
+  return <g className={styles.connectors} aria-hidden="true">
+    {cables.map(({ from, to, a, b }) => [a, b].map(({ point: [x, y], normal, scale }, i) => {
+      if ((normal[0] * Math.sin(openingAzimuth) + normal[2] * Math.cos(openingAzimuth) < 0) !== rear) return null;
+      const plugId = `${id}-${to}-${i}`;
+      return <g key={to + i} data-cable-from={from} data-cable-to={to} data-rj45-plug={i ? "to" : "from"} data-plug-facing={facing}
+        transform={`translate(${x} ${y}) scale(${scale})`}>
+        <use data-plug-shell="" href={`#${plugId}-plug`} />
+        <use data-plug-boot="" href={`#${plugId}-boot`} className={styles.bootColor} />
+      </g>;
+    }))}
+  </g>;
 }
 
 export function ComputerTopology({ hrefs, selected }: Props) {
@@ -212,7 +233,9 @@ export function ComputerTopology({ hrefs, selected }: Props) {
     <div data-topology-fallback="" className={styles.figure}>
       <svg width="0" height="0" aria-hidden="true" className={styles.definitions}>
         <defs>
-          <PlugDefinitions id={id} />
+          {patchLinks.flatMap(({ to, startNormal, endNormal }) => [startNormal, endNormal].map((normal, i) =>
+            <PlugDefinitions key={to + i} id={`${id}-${to}-${i}`} normal={normal} />))}
+
           {devices.map(device => (
             <symbol key={device} id={`${id}-${device}`} viewBox={projections.get(device)!.viewBox}>
               <DevicePaths device={device} />
@@ -234,6 +257,7 @@ export function ComputerTopology({ hrefs, selected }: Props) {
                 </g>
               ))}
             </g>
+            <Connectors id={id} cables={cables} rear />
             {positions.map(([device, x, y, w, h]) => {
               const href = hrefs?.[device];
               const label = deviceLabels.get(device);
@@ -248,15 +272,7 @@ export function ComputerTopology({ hrefs, selected }: Props) {
                 <g key={device} data-topology-device={device} className={styles.device} role="img" aria-label={label}>{picture}</g>
               );
             })}
-            <g className={styles.connectors} aria-hidden="true">
-              {cables.map(({ from, to, a, b }) => [a, b].map(({ x, y, scale }, i) => (
-                <g key={to + i} data-cable-from={from} data-cable-to={to} data-rj45-plug={i ? "to" : "from"}
-                  transform={`translate(${x} ${y}) scale(${scale})`}>
-                  <use data-plug-shell="" href={`#${id}-plug`} />
-                  <use data-plug-boot="" href={`#${id}-boot`} className={styles.bootColor} />
-                </g>
-              )))}
-            </g>
+            <Connectors id={id} cables={cables} rear={false} />
           </g>
         </svg>
       ))}
