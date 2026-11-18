@@ -1,0 +1,47 @@
+.diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 100%;
+  overflow: visible;
+  --edge: #858585;
+  --face: #dedede;
+  --side: #bababa;
+  --top: #f5f5f5;
+  --deck: #e9e9e9;
+  --screen: #414141;
+  --key: #fdfdfd;
+}
+:global(html[data-computer-theme="dark"]) .diagram {
+  --edge: #a2a2a2;
+  --face: #606060;
+  --side: #484848;
+  --top: #858585;
+  --deck: #494949;
+  --screen: #2c2c2c;
+  --key: #a4a4a4;
+}
+.front, .side, .top, .deck, .display, .bolt { stroke: var(--edge); stroke-width: 1.05; }
+.front { fill: var(--face); }
+.side, .bolt { fill: var(--side); }
+.top { fill: var(--top); }
+.deck { fill: var(--deck); }
+.display { fill: var(--screen); }
+.reflection { fill: white; opacity: .07; }
+.keys { fill: var(--key); stroke: var(--edge); stroke-width: .72; }
+.etch { stroke: #666; fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.led { fill: var(--computer-accent, #fdc41f); }
+.wireEdge { stroke: #626262; stroke-width: 5; }
+.wire { stroke: #a1a1a1; stroke-width: 3.1; }
+.packet {
+  offset-distance: var(--packet-distance, 50%);
+  offset-anchor: 0 0;
+  offset-rotate: 0deg;
+  transform-box: view-box;
+}
+.packetRim { fill: #a58017; stroke: #645119; stroke-width: 1; }
+.packetFace { fill: var(--computer-accent, #fdc41f); stroke: #715719; stroke-width: 1.2; }
+.fold { fill: none; stroke: #69501a; stroke-width: 1.6; stroke-linejoin: round; }
+@media (prefers-reduced-motion: reduce) {
+  .packet { offset-distance: 50%; }
+}

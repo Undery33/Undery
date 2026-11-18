@@ -1,6 +1,7 @@
 .screen {
   width: 100%;
   height: 100%;
+  contain: paint;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: minmax(0, 1.15fr) minmax(0, 1fr);
@@ -15,7 +16,25 @@
   --carrier: color-mix(in srgb, var(--computer-soft) 58%, var(--paper));
 }
 .diagram { display: block; width: 100%; height: 100%; overflow: visible; }
-.diagram:first-child { grid-column: 1 / -1; }
+.diagramButton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  cursor: zoom-in;
+}
+.diagramButton:first-child { grid-column: 1 / -1; }
+.diagramButton[hidden] { display: none; }
+.diagramButton[aria-disabled="true"] { cursor: default; }
+.diagramButton:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: -2px; }
+.screen[data-linux-focus] { grid-template: minmax(0, 1fr) / minmax(0, 1fr); }
+:global([data-topology-renderer="webgl"]) .diagram { opacity: 0; }
 .equipment { stroke: var(--line); stroke-width: 1.25; stroke-linejoin: round; stroke-linecap: round; fill: var(--case); }
 .shade { fill: var(--side); }
 .detail { fill: none; stroke: var(--line); stroke-width: 1.4; }
@@ -36,7 +55,7 @@
   --wire-width: 2.1;
 }
 
-@media (max-width: 640px) {
+@container (max-width: 365px) {
   .screen {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1.08fr) repeat(2, minmax(0, 1fr));

@@ -1,26 +1,27 @@
 .scene {
-  --glass-height: clamp(278px, min(28vw, 42svh), 410px);
+  --glass-height: min(40cqh, 83cqw, 410px);
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 1;
-  container-type: inline-size;
+  height: 100%;
+  container-type: size;
   scroll-margin-block-start: .4rem;
   color: var(--computer-ink, #262626);
 }
-.scene:is([data-topology-view="entering"], [data-topology-view="linux"]) { min-height: calc(var(--glass-height) * 2.19 + 55px); }
 .scene:not([data-topology-view="overview"]) :is(.labels, .controls, .srOnly) { visibility: hidden; }
 .glass {
   position: absolute;
-  left: 50%;
-  top: calc(50% - var(--glass-height) * .41);
+  container-type: inline-size;
+  inset-inline: 0;
+  top: calc(50% - var(--glass-height) * .91);
   width: min(87%, calc(var(--glass-height) * 1.48 / .72));
   height: var(--glass-height);
-  transform: translate(-50%, -50%);
+  margin-inline: auto;
   visibility: hidden;
   color: var(--computer-ink, #262626);
   background: var(--computer-paper, #fff);
 }
 .scene[data-topology-view="linux"] .glass { visibility: visible; }
+.scene[data-topology-renderer="webgl"] .glass { background: transparent; }
 .scene[data-topology-renderer="svg"][data-topology-view="linux"] .glass {
   box-shadow: 0 0 0 6px #454545, 0 0 0 9px #909090;
 }
@@ -35,7 +36,7 @@
     linear-gradient(#747474, #747474) center bottom / 100% 12% no-repeat;
 }
 .glass:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 3px; }
-.returnLink {
+.returnLink, .linuxOverview {
   position: absolute;
   inset-inline-start: 0;
   inset-block-start: 0;
@@ -47,7 +48,8 @@
   background: var(--computer-paper);
   text-decoration: none;
 }
-.returnLink:hover { color: var(--computer-accent-ink); background: var(--computer-accent); }
+.linuxOverview { inset-inline-start: 44px; }
+.returnLink:hover, .linuxOverview:hover { color: var(--computer-accent-ink); background: var(--computer-accent); }
 .fallback { position: absolute; inset: 0; display: grid; align-content: center; }
 .fallback[hidden] { display: none; }
 .live, .host, .labels { position: absolute; inset: 0; }
@@ -58,18 +60,8 @@
 .labels { pointer-events: none; overflow: hidden; }
 .label {
   position: absolute;
-  transform: translateX(-50%);
-  pointer-events: auto;
-  white-space: nowrap;
-  padding-inline: .24em;
-  background: var(--computer-paper, #fff);
-  color: inherit;
-  font-size: clamp(.75rem, 1.2vw, 1.05rem);
-  line-height: 1.3;
-  text-decoration: none;
-  font-weight: 500;
 }
-.label:is(:hover, :focus-visible, [aria-current="true"]) { color: var(--computer-accent-ink); background: var(--computer-accent); text-decoration: underline; text-underline-offset: .2em; }
+.label:focus-visible { outline-offset: -2px; }
 .controls {
   position: absolute;
   inset-inline-end: 0;
@@ -92,14 +84,25 @@
   background: transparent;
 }
 .controls button:hover { background: var(--computer-soft, #eee); }
-.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 700px) {
-  .scene { aspect-ratio: 375 / 292; --glass-height: 290px; }
-  .label { font-size: .75rem; }
-  .controls button { min-width: 32px; min-height: 30px; }
+.guideButton { display: none; }
+:global([data-scroll-ready]) .guideButton {
+  position: absolute;
+  bottom: max(68px, 8svh);
+  left: 50%;
+  translate: -50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--computer-control-border);
+  border-radius: 50%;
+  background: var(--computer-paper);
+  color: var(--computer-ink);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .scene { min-height: 0; transition: min-height .65s ease; }
-  .scene[data-topology-view="linux"] .glass { animation: reveal .13s ease-out; }
-  @keyframes reveal { from { opacity: .2; } to { opacity: 1; } }
+:global([data-scroll-ready]) .guideButton:hover { background: var(--computer-accent); color: var(--computer-accent-ink); }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@container (max-width: 700px) {
+  .controls button { min-width: 32px; min-height: 30px; }
 }

@@ -1,0 +1,85 @@
+.notes {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(1.5rem, 8.6svh, 6rem) clamp(1.2rem, 3.7vw, 5rem)
+    clamp(1.5rem, 10.8svh, 7rem) clamp(1.2rem, 4.8vw, 6rem);
+  color: var(--computer-ink);
+  background: var(--computer-paper);
+}
+.notes[hidden] { display: none; }
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .25rem clamp(.75rem, 1.6vw, 2rem);
+  padding: 0 .65vw clamp(.7rem, 2.8svh, 1.8rem);
+  border-bottom: 2px solid currentColor;
+}
+.heading h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 3vw, 3.6rem);
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.12;
+}
+.heading p, .answer p { margin: 0; }
+.heading p { font-size: clamp(.875rem, 1.32vw, 1.25rem); }
+.questions {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: clamp(.6rem, 4.2svh, 2.5rem) clamp(.45rem, 1.55vw, 1.8rem) .8rem;
+  list-style: none;
+  border-bottom: 2px solid currentColor;
+  overflow-y: auto;
+}
+.questions summary {
+  display: block;
+  position: relative;
+  padding: .6rem 1rem .6rem 0;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: clamp(.95rem, 1.4vw, 1.25rem);
+  line-height: 1.45;
+}
+.questions summary::-webkit-details-marker { display: none; }
+.questions summary span { font-variant-numeric: tabular-nums; }
+.questions summary::after {
+  content: "";
+  position: absolute;
+  right: .12rem;
+  top: 1rem;
+  width: .4rem;
+  height: .4rem;
+  border: solid currentColor;
+  border-width: 0 1px 1px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+.questions summary:is(:hover, :focus-visible)::after,
+.questions details[open] summary::after { opacity: 1; }
+.questions details[open] summary::after { transform: rotate(225deg); }
+.questions summary:hover { text-decoration: underline; text-underline-offset: .22em; }
+.questions :focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 1px; }
+.answer {
+  max-width: 38em;
+  padding: .05rem 0 1rem;
+  line-height: 1.65;
+  font-size: clamp(.875rem, 1.2vw, 1.1rem);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.answer a { display: inline-block; margin-top: .4rem; color: inherit; text-underline-offset: .2em; }
+@media (hover: none) {
+  .questions summary::after { opacity: .75; }
+}
+@media (max-width: 640px) {
+  .notes { padding: 1.1rem .65rem 1.25rem; }
+  .heading { gap: .3rem .65rem; padding-inline: 0; }
+  .heading h2 { font-size: clamp(1.35rem, 5.4vw, 1.85rem); }
+  .questions { padding-inline: .14rem; }
+}

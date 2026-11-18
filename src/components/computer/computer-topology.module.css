@@ -26,7 +26,7 @@
 }
 .icon { display: block; width: 100%; height: 100%; }
 :global(a[aria-current]) .icon { --device-edge: #585858; }
-.figure { position: relative; container-type: inline-size; width: 100%; color: var(--computer-ink, currentColor); }
+.figure { --wire-color: #999; --wire-edge: #5f5f5f; --wire-light: #dedede; position: relative; container-type: inline-size; width: 100%; color: var(--computer-ink, currentColor); }
 .definitions { position: absolute; pointer-events: none; }
 .wide, .compact { display: block; width: 100%; height: auto; overflow: hidden; }
 .compact { display: none; }
@@ -35,23 +35,29 @@
   transform-origin: 0 0;
   transform: var(--frame, translate(0, 0) scale(1));
 }
-:global([data-topology-view="overview"][data-scroll-highlight="router"]) .camera { --frame: var(--frame-router); --label-scale: var(--label-router); }
-:global([data-topology-view="overview"][data-scroll-highlight="asa"]) .camera { --frame: var(--frame-asa); --label-scale: var(--label-asa); }
-:global([data-topology-view="overview"][data-scroll-highlight="switch"]) .camera { --frame: var(--frame-switch); --label-scale: var(--label-switch); }
-:global([data-topology-view="overview"][data-scroll-highlight="server"]) .camera { --frame: var(--frame-server); --label-scale: var(--label-server); }
-:global([data-topology-view="overview"][data-scroll-highlight="linux"]) .camera { --frame: var(--frame-linux); --label-scale: var(--label-linux); }
-:global([data-topology-view="overview"][data-scroll-highlight="windows-server"]) .camera { --frame: var(--frame-windows-server); --label-scale: var(--label-windows-server); }
-.cables { fill: none; stroke-linejoin: round; }
-.cables path { stroke: var(--wire-color, var(--device-edge)); stroke-width: var(--wire-width, 1.4); }
+:global([data-topology-view="overview"][data-scroll-highlight="router"]) .camera { --frame: var(--frame-router); }
+:global([data-topology-view="overview"][data-scroll-highlight="asa"]) .camera { --frame: var(--frame-asa); }
+:global([data-topology-view="overview"][data-scroll-highlight="switch"]) .camera { --frame: var(--frame-switch); }
+:global([data-topology-view="overview"][data-scroll-highlight="server"]) .camera { --frame: var(--frame-server); }
+:global([data-topology-view="overview"][data-scroll-highlight="linux"]) .camera { --frame: var(--frame-linux); }
+:global([data-topology-view="overview"][data-scroll-highlight="windows-server"]) .camera { --frame: var(--frame-windows-server); }
+.cables { --wire-size: 3.8px; fill: none; stroke-linejoin: round; stroke-linecap: round; pointer-events: none; }
+.cableEdge { stroke: var(--wire-edge); stroke-width: calc(var(--wire-size) + 1.1px); }
+.jacket { stroke: var(--wire-color); stroke-width: var(--wire-size); }
+.cableGlint { stroke: var(--wire-light); stroke-width: calc(var(--wire-size) * .18); transform: translateY(-.7px); }
+.connectors { pointer-events: none; }
+.plugShell, .plugBoot { stroke: #585858; stroke-width: .54; stroke-linejoin: round; }
+.plugShell { --plug-shell: #d6d6d6; }
+.contact { fill: none; stroke: #767676; stroke-width: .5; }
+.latch { fill: none; stroke: white; stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+.bootColor { color: var(--wire-color); fill: var(--wire-color); }
 .device { color: inherit; text-decoration: none; }
-.device text { fill: currentColor; stroke: var(--computer-paper, white); stroke-width: 4px; paint-order: stroke; font-family: inherit; font-size: 17px; font-weight: 500; }
-.camera text { transform-box: fill-box; transform-origin: center bottom; transform: scale(var(--label-scale, 1)); }
+a.device:is(:hover, :focus-visible, [aria-current]) { --device-edge: var(--computer-focus, currentColor); }
 /* A keyboard user can still tab through every device in the full map. */
-.camera:has(a:focus-visible), .camera:has(a:focus-visible) text { transform: none; }
+.camera:has(a:focus-visible) { transform: none; }
 @media (prefers-reduced-motion: no-preference) {
-  .camera, .camera text { transition: transform 620ms cubic-bezier(.4, 0, .2, 1); }
+  .camera { transition: transform 620ms cubic-bezier(.4, 0, .2, 1); }
 }
-a.device:is(:hover, :focus-visible, [aria-current]) text { text-decoration: underline; text-underline-offset: 4px; font-weight: 700; }
 a.device:focus-visible { outline: 2px solid currentColor; }
 
 :global([data-scroll-highlight="router"]) .figure :is([data-topology-device="router"], [data-cable-from="router"]),
@@ -69,12 +75,13 @@ a.device:focus-visible { outline: 2px solid currentColor; }
   --device-screen: color-mix(in srgb, #262626 87%, var(--trace-fill));
   --device-edge: var(--trace-edge);
   --wire-color: var(--trace-fill);
-  --wire-width: 2.8;
+  --wire-edge: #675215;
+  --wire-light: #fff0b2;
 }
 
-@container (max-width: 650px) {
+@container topology-panel (max-width: 650px) {
   .wide { display: none; }
   .compact { display: block; }
-  .device text { font-size: 14px; }
-  .cables { --wire-width: 1.25; }
+  .cables { --wire-size: 2.55px; }
+  .cableGlint { transform: translateY(-.5px); }
 }

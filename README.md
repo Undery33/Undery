@@ -27,11 +27,13 @@
 
 ### Computer 화면
 
-[성열의 컴퓨터공학](https://cs.yeolyi.com/)의 층을 나눈 모형과 재질 표현을 참고해 장비를 모델링했습니다. 상단 3D 구성도에는 Router, ASA, Switch와 스위치에 연결된 Server, Linux, Windows Server가 있습니다. 장비나 하단 분류 카드를 선택하면 해당 기술 글을 볼 수 있습니다. Linux를 선택하면 해당 모니터만 확대하여 Kubernetes(K8s), Jenkins, Docker의 구성 요소와 연결 관계를 아이콘과 선으로 표시합니다. 전체 구성도로 돌아가 다른 장비를 선택할 수 있습니다.
+[성열의 컴퓨터공학](https://cs.yeolyi.com/)의 층을 나눈 모형과 재질 표현을 참고해 장비를 모델링했습니다. 첫 화면에서는 Router, ASA, Switch와 스위치에 연결된 Server, Linux, Windows Server를 한눈에 볼 수 있습니다. 장비 그림이나 소개 아래의 분류 카드를 선택하면 해당 기술 글을 볼 수 있습니다. Linux를 선택하면 해당 모니터만 확대하여 Kubernetes(K8s), Jenkins, Docker의 구성 요소와 연결 관계를 화면 안에 표시합니다.
 
-아래로 스크롤하면 상단 구성도의 시점이 노란색으로 강조된 장비 쪽으로 이동해 장비와 연결선을 가까이 보여줍니다. 위로 스크롤하면 이전 장비를 따라가고, 시작점에서는 전체 배치가 다시 보입니다. Linux를 선택해 모니터를 열면 그 안에서 K8s, Jenkins, Docker 구성이 차례로 강조됩니다.
+스크롤 순서는 전체 구성도 → 네트워크 기초 → Router → ASA → Switch → Server → Linux → Docker → Jenkins → Kubernetes → Windows Server입니다. 네트워크 기초에서는 두 서브넷 사이를 오가는 패킷을 보며 IP 주소와 기본 게이트웨이를 살펴볼 수 있습니다. 장비 단계에서는 왼쪽에 확대된 장비와 노란색(`#FDC41F`) 랜선, 오른쪽에 해당 장비의 설명이 나옵니다. 시작점으로 돌아가면 전체 구성이 다시 보입니다.
 
-구성도 아래 검색창에서 제목·요약·본문·태그를 검색할 수 있습니다. 검색어·태그·분야는 교집합으로 적용되고 URL에 유지됩니다. 분야가 없는 기존 예제는 전체 목록과 전체 검색에서 확인할 수 있습니다.
+Linux 모니터 안에서 아키텍처 그림을 선택하면 해당 그림이 확대되고 옆에 그 기술의 글이 열립니다. Docker, Jenkins, Kubernetes의 글은 각각 `content/computer/docker.md`, `content/computer/jenkins.md`, `content/computer/kubernetes.md`에서 작성합니다. 수정한 본문은 구성도 옆과 각 글의 개별 주소에 함께 반영됩니다.
+
+장비 소개 다음에는 분류 카드와 글 목록이 있습니다. 검색창에서 제목·요약·본문·태그를 검색할 수 있습니다. 검색어·태그·분야는 교집합으로 적용되고 URL에 유지됩니다. 분야가 없는 기존 예제는 전체 목록과 전체 검색에서 확인할 수 있습니다.
 
 Router 분류에는 라우팅, Switch에는 VLAN, Server에는 DNS와 DHCP 실습이 있습니다.
 
