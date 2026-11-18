@@ -1,6 +1,6 @@
 import path from "node:path";
 import matter from "gray-matter";
-import { getComputerCategory, type ComputerCategory } from "@/lib/computer-categories";
+import { computerCategories, getComputerCategory, type ComputerCategory } from "@/lib/computer-categories";
 import { markdownSlug, publishedDate, readPublishedMarkdown, requiredText } from "@/lib/markdown-collection";
 
 export type Article = {
@@ -36,7 +36,7 @@ export function parseArticle(slug: string, source: string): Article {
   }
   const category = typeof data.category === "string" ? getComputerCategory(data.category) : undefined;
   if (data.category !== undefined && !category) {
-    throw new Error(`${slug}: category must be server, network, or ai.`);
+    throw new Error(`${slug}: category must be one of ${computerCategories.map(({ id }) => id).join(", ")}.`);
   }
   if (!content.trim()) throw new Error(`${slug}: article body cannot be empty.`);
 
@@ -70,8 +70,10 @@ export function normalizeSearch(value: string): string {
 export function filterArticles(articles: Article[], query: string, tag: string, category = ""): Article[] {
   const words = normalizeSearch(query).split(/\s+/).filter(Boolean);
   const normalizedTag = normalizeSearch(tag);
+  // Keep shared links to the former network group usable after splitting its subjects.
+  const categories = category === "network" ? ["router", "switch", "asa"] : [category];
   return articles.filter((article) => {
-    const matchesCategory = !category || article.category === category;
+    const matchesCategory = !category || (article.category !== undefined && categories.includes(article.category));
     const matchesTag = !normalizedTag || article.tags.some((item) => normalizeSearch(item) === normalizedTag);
     const haystack = normalizeSearch([article.title, article.description, ...article.tags, article.body].join(" "));
     return matchesCategory && matchesTag && words.every((word) => haystack.includes(word));

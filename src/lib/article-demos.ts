@@ -1,5 +1,5 @@
 // A document can only select its own bundled example, never arbitrary code.
-export const technologyDemos = ["vlan", "routing", "dns", "dhcp", "cnn"] as const;
+export const technologyDemos = ["vlan", "routing", "dns", "dhcp"] as const;
 export type TechnologyDemo = (typeof technologyDemos)[number];
 
 export function splitTechnologyDemo(slug: string, body: string): { demo: TechnologyDemo; before: string; after: string } | undefined {
