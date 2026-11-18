@@ -10,24 +10,32 @@ import styles from "./computer-topology.module.css";
 type Point = [number, number];
 type Props = { hrefs?: Partial<Record<TopologyDevice, string>>; selected?: string };
 
+// Round only when serializing. Signed zero and subpixel trig differences must produce the same server and browser markup.
+function svgNumber(value: number, precision = 3) {
+  return Number(value.toFixed(precision));
+}
+function svgPoint([x, y]: Point, precision = 3) {
+  return `${svgNumber(x, precision)} ${svgNumber(y, precision)}`;
+}
+
 // Orthographic projection from above the front-right corner, also used for card thumbnails.
 function project(p: Point3): Point {
   const [across, down] = openingProjection(p);
   return [across * 52, down * 52];
 }
 function path(points: Point[], closed = true) {
-  return points.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join("") + (closed ? "Z" : "");
+  return points.map((p, i) => `${i ? "L" : "M"}${svgPoint(p, 2)}`).join("") + (closed ? "Z" : "");
 }
 
 function beveledPolygon(points: Point[], radius: number) {
   const toward = (a: Point, b: Point): string => {
     const distance = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
     const fraction = Math.min(.24, radius / distance);
-    return [a[0] + (b[0] - a[0]) * fraction, a[1] + (b[1] - a[1]) * fraction].map(n => n.toFixed(2)).join(" ");
+    return svgPoint([a[0] + (b[0] - a[0]) * fraction, a[1] + (b[1] - a[1]) * fraction], 2);
   };
   return points.map((p, i) => {
     const previous = points[(i + points.length - 1) % points.length], next = points[(i + 1) % points.length];
-    return `${i ? "L" : "M"}${toward(p, previous)}Q${p[0].toFixed(2)} ${p[1].toFixed(2)} ${toward(p, next)}`;
+    return `${i ? "L" : "M"}${toward(p, previous)}Q${svgPoint(p, 2)} ${toward(p, next)}`;
   }).join("") + "Z";
 }
 
@@ -53,7 +61,7 @@ function projectDevice(device: TopologyDevice) {
     if (part.shape === "dome") {
       const left = point(-.86, 0, .52), right = point(.86, 0, -.52);
       bounds.push(left, right, point(0, 2, 0));
-      surfaces.push({ tone: top, outline: true, d: `M${left.join(" ")}Q${point(-.4, 3.35, .2).join(" ")} ${right.join(" ")}Q${point(.47, -.1, 1.5).join(" ")} ${left.join(" ")}Z` });
+      surfaces.push({ tone: top, outline: true, d: `M${svgPoint(left)}Q${svgPoint(point(-.4, 3.35, .2))} ${svgPoint(right)}Q${svgPoint(point(.47, -.1, 1.5))} ${svgPoint(left)}Z` });
     } else if (part.shape === "drum") {
       const segments = part.size[0] < .25 ? 12 : 48;
       const topRing = Array.from({ length: segments }, (_, i) => {
@@ -82,7 +90,7 @@ function projectDevice(device: TopologyDevice) {
   const xs = bounds.map(p => p[0]), ys = bounds.map(p => p[1]);
   const x = Math.min(...xs), y = Math.min(...ys), padding = 4;
   const frame = { x: x - padding, y: y - padding, w: Math.max(...xs) - x + 2 * padding, h: Math.max(...ys) - y + 2 * padding };
-  return { surfaces, frame, viewBox: `${frame.x} ${frame.y} ${frame.w} ${frame.h}` };
+  return { surfaces, frame, viewBox: `${svgPoint([frame.x, frame.y])} ${svgPoint([frame.w, frame.h])}` };
 }
 
 const devices = computerCategories.map(category => category.id);
@@ -120,16 +128,15 @@ function cameraFrames({ width, height, compact, devices }: Layout) {
     );
     const dx = width / 2 - (x + offsetX) * scale;
     const dy = height / 2 - (y + offsetY) * scale;
-    frames[`--frame-${device}`] = `translate(${dx}px, ${dy}px) scale(${scale})`;
+    frames[`--frame-${device}`] = `translate(${svgNumber(dx)}px, ${svgNumber(dy)}px) scale(${svgNumber(scale, 6)})`;
   }
   return frames as CSSProperties;
 }
 // The opening projection maps each physical circular bend onto an ellipse in the SVG.
 function wirePath(spans: CableSpan[], screen: (p: Point3) => Point) {
-  const xy = (p: Point) => p.map(v => v.toFixed(3)).join(" ");
-  let d = "M" + xy(screen(spans[0].start));
+  let d = "M" + svgPoint(screen(spans[0].start));
   for (const span of spans) {
-    const end = xy(screen(span.end));
+    const end = svgPoint(screen(span.end));
     if (span.kind === "line") { d += "L" + end; continue; }
     const [cx, cy] = screen(span.center), [sx, sy] = screen(span.start);
     const [tx, ty] = screen(span.center.map((v, i) => v + span.tangent[i] * span.radius) as Point3);
@@ -138,7 +145,7 @@ function wirePath(spans: CableSpan[], screen: (p: Point3) => Point) {
     const difference = Math.hypot(xx - yy, 2 * xyProduct);
     const major = Math.sqrt((xx + yy + difference) / 2), minor = Math.sqrt(Math.max(0, (xx + yy - difference) / 2));
     const rotation = Math.atan2(2 * xyProduct, xx - yy) * 90 / Math.PI;
-    d += minor < .001 ? "L" + end : `A${major.toFixed(3)} ${minor.toFixed(3)} ${rotation.toFixed(3)} 0 ${ax * by - ay * bx > 0 ? 1 : 0} ${end}`;
+    d += minor < .001 ? "L" + end : `A${svgPoint([major, minor])} ${svgNumber(rotation)} 0 ${ax * by - ay * bx > 0 ? 1 : 0} ${end}`;
   }
   return d;
 }
@@ -218,7 +225,7 @@ function Connectors({ cables, id, rear }: { cables: Cable[]; id: string; rear: b
       if ((normal[0] * Math.sin(openingAzimuth) + normal[2] * Math.cos(openingAzimuth) < 0) !== rear) return null;
       const plugId = `${id}-${to}-${i}`;
       return <g key={to + i} data-cable-from={from} data-cable-to={to} data-rj45-plug={i ? "to" : "from"} data-plug-facing={facing}
-        transform={`translate(${x} ${y}) scale(${scale})`}>
+        transform={`translate(${svgPoint([x, y])}) scale(${svgNumber(scale, 6)})`}>
         <use data-plug-shell="" href={`#${plugId}-plug`} />
         <use data-plug-boot="" href={`#${plugId}-boot`} className={styles.bootColor} />
       </g>;
@@ -261,9 +268,10 @@ export function ComputerTopology({ hrefs, selected }: Props) {
             {positions.map(([device, x, y, w, h]) => {
               const href = hrefs?.[device];
               const label = deviceLabels.get(device);
+              const bounds = { x: svgNumber(x - w / 2), y: svgNumber(y), width: svgNumber(w), height: svgNumber(h) };
               const picture = <>
-                <rect x={x - w / 2} y={y} width={w} height={h} fill="transparent" />
-                <use href={`#${id}-${device}`} x={x - w / 2} y={y} width={w} height={h} />
+                <rect {...bounds} fill="transparent" />
+                <use href={`#${id}-${device}`} {...bounds} />
               </>;
               return href ? (
                 <a key={device} href={href} data-topology-device={device} aria-label={`${label} 글 보기`}
