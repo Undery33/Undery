@@ -128,15 +128,29 @@ def verify(base, expected):
     assert read('/computer/cnn')[0] == 404
     main_page('/valorant', ('Valorant',))
 
-    html, gui_resources, _ = html_page('/vrchat')
-    assert 'START OVER' in html and 'data-open="profile"' in html
-    assert '<dialog' in html and 'data-open="pictures"' in html and 'data-open="gallery"' in html
-    assert 'UNDER + RESTART' not in html, 'VRChat must serve the separate GUI'
-    assert len(gui_resources.urls) >= 6, 'Styles, script and all GUI images must be included'
-    for resource in gui_resources.urls:
-        assert resource.startswith('/vrchat/'), 'GUI assets must stay under /vrchat/: '+resource
-        asset(resource)
-    print('PASS isolated VRChat GUI, dialogs and prefixed assets')
+    galleries = {'/vrchat/photos.html': 'PHOTO', '/vrchat/videos.html': 'VIDEOS'}
+    for route in ('/vrchat', *galleries):
+        html, gui_resources, _ = html_page(route)
+        assert 'lang="ko"' in html, route
+        if route == '/vrchat':
+            assert {'https://vrc.group/ASS.8448', 'https://discord.gg/gub', 'https://x.com/VRC_UDR',
+                    '/birthday', *galleries} <= gui_resources.links, 'Missing VRChat destination'
+        else:
+            assert galleries[route] in html and '/vrchat' in gui_resources.links, route
+        assert gui_resources.urls, 'Missing GUI resources: '+route
+        for resource in gui_resources.urls:
+            assert resource.startswith('/vrchat/'), 'GUI assets must stay under /vrchat/: '+resource
+            asset(resource)
+    status, headers, body = read('/vrchat/media.json')
+    assert status == 200 and 'application/json' in headers.get('Content-Type', '')
+    media = json.loads(body)
+    assert isinstance(media, list)
+    for item in media:
+        assert item['type'] in ('photo', 'video')
+        for url in {item['src'], item.get('thumbnail') or item['src']}:
+            assert url.startswith('/vrchat/assets/'), url
+            asset(url)
+    print('PASS VRChat home, social links, event, media galleries and bundled assets')
     for path, location in (('/vrchat/', '/vrchat'),
                            ('/vrchat/?view=gallery&from=qa', '/vrchat?view=gallery&from=qa')):
         status, headers, _ = read(path)

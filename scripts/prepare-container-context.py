@@ -25,6 +25,8 @@ SHA = re.compile(r'[a-f0-9]{40}')
 BRANCH = re.compile(r'feature/[A-Za-z0-9][A-Za-z0-9._/-]*')
 CSS_URL = re.compile(r'url\(\s*([\'"]?)(.*?)\1\s*\)', re.IGNORECASE)
 CSS_IMPORT = re.compile(r'@import\s+([\'"])(.*?)\1', re.IGNORECASE)
+GUI_NAVIGATION = frozenset(('/vrchat', '/birthday', 'https://vrc.group/ASS.8448',
+                            'https://discord.gg/gub', 'https://x.com/VRC_UDR'))
 
 
 def require(condition, message):
@@ -114,6 +116,9 @@ class AssetReferences(HTMLParser):
         self.in_style = tag == 'style'
         for key, value in attrs:
             if value is None:
+                continue
+            # Social destinations and the birthday page are navigation, not packaged resources.
+            if tag == 'a' and key == 'href' and value in GUI_NAVIGATION:
                 continue
             if key in ('src', 'href', 'poster', 'action', 'data'):
                 self.references.append(value)

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "photo",
+    "id": "sunset",
+    "src": "/vrchat/assets/sunset.webp",
+    "thumbnail": "/vrchat/assets/sunset-thumb.webp",
+    "alt": "노을을 바라보는 언더리",
+    "width": 2560,
+    "height": 1440,
+    "date": "2026-11-13",
+    "tags": ["배경", "캐릭터"]
+  },
+  {
+    "type": "photo",
+    "id": "portrait",
+    "src": "/vrchat/assets/avatar.png",
+    "thumbnail": "/vrchat/assets/avatar-thumb.webp",
+    "alt": "검은 옷을 입고 브이 포즈를 한 언더리",
+    "width": 1440,
+    "height": 2560,
+    "tags": ["캐릭터"]
+  }
+]

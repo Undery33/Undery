@@ -3,69 +3,99 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#000000">
-  <meta name="description" content="VRChat에서 만나는 언더리. Under와 Restart를 합친 이름에 담긴 이야기입니다.">
+  <meta name="theme-color" content="#fdc41f">
+  <meta name="description" content="VRChat에서 만나는 언더리의 프로필과 사진, 영상.">
   <title>Undery — VRChat</title>
   <link rel="stylesheet" href="/vrchat/styles.css">
   <script src="/vrchat/app.js" defer></script>
+  <script src="/vrchat/gallery.js" defer></script>
 </head>
 <body>
-  <main id="home">
+  <main class="landing">
     <header class="hero" aria-labelledby="poster-title">
-      <div class="artwork">
-        <h1 id="poster-title">
-          <span class="sr-only">VRChat · Undery</span>
-          <span class="mobile-brand" aria-hidden="true"></span>
-        </h1>
-        <div class="name-reading"><span>언더리</span> <span lang="en">/ˈʌndəri/</span></div>
-        <picture>
-          <source media="(max-aspect-ratio: 1/1)" srcset="/vrchat/assets/sunflower-avatar.webp" width="914" height="998">
-          <img class="poster-art" src="/vrchat/assets/undery-poster.webp" width="2048" height="1152"
-               alt="꽃관을 쓰고 해바라기 꽃다발을 든 언더리" fetchpriority="high">
-        </picture>
+      <h1 id="poster-title" class="sr-only">VRChat · Undery</h1>
+      <img class="poster-art" src="/vrchat/assets/undery-poster.webp" width="2048" height="1152"
+           alt="꽃관을 쓰고 해바라기 꽃다발을 든 언더리" fetchpriority="high">
+      <img class="monogram" src="/vrchat/assets/undery-mark.png" width="490" height="384" alt="">
+      <div class="sr-only">
+        <p>언더리 <span lang="en">/ˈʌndəri/</span></p>
+        <p>절대 내 이름을 엉덩이로 부르지마</p>
+        <p>“Under”과 “Restart”를 합성한 닉네임으로 막히거나 풀리지 않을 때 그 자리에서 머무는 것 보다 다시 처음부터 차근히 짚고 올라가자는 의미를 담은 닉네임 입니다.</p>
       </div>
-      <div class="poster-copy">
-        <p class="quote">절대 내 이름을<br><strong>엉덩이</strong>로 부르지마</p>
-        <p class="origin">“Under”과 “Restart”를 합성한 닉네임으로 막히거나 풀리지 않을 때 그 자리에서 머무는 것 보다 다시 처음부터 차근히 짚고 올라가자는 의미를 담은 닉네임 입니다.</p>
-      </div>
+      <button class="profile-trigger" type="button" data-open="profile" aria-haspopup="dialog"
+              aria-controls="profile" aria-label="언더리 프로필 열기" title="언더리 프로필"></button>
     </header>
 
-    <nav class="explore" aria-label="VRChat 메뉴">
-      <div class="sections" lang="en">
-        <button type="button" data-open="profile" aria-haspopup="dialog" aria-controls="profile">
-          <img src="/vrchat/assets/avatar.png" width="1440" height="2560" alt="" loading="lazy">
-          <span>Profile</span>
-        </button>
-        <button type="button" data-open="pictures" aria-haspopup="dialog" aria-controls="pictures">
-          <img src="/vrchat/assets/character-vrchat.png" width="1024" height="1536" alt="" loading="lazy">
-          <span>Pictures</span>
-        </button>
-        <button type="button" data-open="gallery" aria-haspopup="dialog" aria-controls="gallery">
-          <img src="/vrchat/assets/character.png" width="1056" height="1490" alt="" loading="lazy">
-          <span>Gallery</span>
-        </button>
-      </div>
-      <a href="#home" data-home>맨 위로</a>
+    <nav class="socials" aria-label="언더리 커뮤니티">
+      <a href="https://vrc.group/ASS.8448" aria-label="VRChat 그룹">
+        <img class="group-mark" src="/vrchat/assets/group-mark.webp" alt="">
+      </a>
+      <a href="https://discord.gg/gub" aria-label="Discord">
+        <span class="social-mark discord" aria-hidden="true"></span>
+      </a>
+      <a href="https://x.com/VRC_UDR" aria-label="X">
+        <span class="social-mark x-mark" aria-hidden="true"></span>
+      </a>
     </nav>
+
+    <div class="collection">
+      <a class="event-banner" href="/birthday">
+        <img src="/vrchat/assets/birthday-event.webp" alt="2026년 11월 22일 언더리 생일 이벤트">
+      </a>
+      <section class="media-section" aria-labelledby="photo-title">
+        <div class="section-heading">
+          <h2 id="photo-title" lang="en">PHOTO</h2>
+          <a href="/vrchat/photos.html" aria-label="사진 더보기">더보기</a>
+        </div>
+        <ul class="preview-grid photo-grid" data-gallery-preview="photo" aria-label="사진 미리보기">
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+        </ul>
+      </section>
+      <section class="media-section" aria-labelledby="video-title">
+        <div class="section-heading">
+          <h2 id="video-title" lang="en">VIDEO</h2>
+          <a href="/vrchat/videos.html" aria-label="영상 더보기">더보기</a>
+        </div>
+        <ul class="preview-grid video-grid" data-gallery-preview="video" aria-label="영상 미리보기">
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+          <li aria-hidden="true"></li>
+        </ul>
+      </section>
+    </div>
   </main>
 
-  <dialog id="profile" lang="en" class="sheet profile-sheet" aria-labelledby="profile-title">
-    <div class="sheet-heading"><h2 id="profile-title">Profile</h2><button type="button" class="close" data-close aria-label="Close profile">×</button></div>
-    <div class="profile-top"><div class="avatar"><img src="/vrchat/assets/avatar.png" width="1440" height="2560" alt="Undery in VRChat" loading="lazy"></div><div><h3>Undery</h3><p>East Asian Dragon</p></div></div>
-    <p class="intro">When it’s hard,<br>start from the beginning.</p>
-    <div class="about"><h3>About Me</h3><p>Starting over,<br>one step at a time.</p></div>
-    <dl class="facts"><div><dt>Birthday</dt><dd>22 November 2000</dd></div><div><dt>Personality</dt><dd>Kind, Ambivert, Thinker</dd></div><div><dt>Role</dt><dd>Taking pictures, dancing</dd></div><div><dt>Years Active</dt><dd>2019–Now</dd></div></dl>
-    <ul class="tags" aria-label="Interests"><li>VRChat</li><li>Dance</li><li>Picture</li><li>Manage</li><li>East Asian Dragon</li></ul>
-  </dialog>
-
-  <dialog id="pictures" lang="en" class="sheet image-sheet" aria-labelledby="pictures-title">
-    <div class="sheet-heading"><h2 id="pictures-title">Pictures</h2><button type="button" class="close" data-close aria-label="Close pictures">×</button></div>
-    <div class="picture-grid"><a href="/vrchat/assets/avatar.png" target="_blank" rel="noopener" aria-label="Open the full VRChat photograph"><img class="photo" src="/vrchat/assets/avatar.png" width="1440" height="2560" alt="Undery in VRChat" loading="lazy"></a><a href="/vrchat/assets/character-vrchat.png" target="_blank" rel="noopener" aria-label="Open the full VRChat character image"><img src="/vrchat/assets/character-vrchat.png" width="1024" height="1536" alt="Undery's VRChat character" loading="lazy"></a></div>
-  </dialog>
-
-  <dialog id="gallery" lang="en" class="sheet image-sheet" aria-labelledby="gallery-title">
-    <div class="sheet-heading"><h2 id="gallery-title">Gallery</h2><button type="button" class="close" data-close aria-label="Close gallery">×</button></div>
-    <a class="illustration" href="/vrchat/assets/character.png" target="_blank" rel="noopener" aria-label="Open the full character illustration"><img src="/vrchat/assets/character.png" width="1056" height="1490" alt="Illustration of Undery" loading="lazy"></a>
+  <dialog id="profile" class="profile-sheet" aria-labelledby="profile-title">
+    <div class="sheet-heading">
+      <h2 id="profile-title" lang="en">Profile</h2>
+      <button type="button" class="close" data-close aria-label="프로필 닫기">×</button>
+    </div>
+    <div lang="en">
+      <div class="profile-top">
+        <div class="avatar"><img src="/vrchat/assets/avatar.png" width="1440" height="2560" alt="Undery in VRChat" loading="lazy"></div>
+        <div><h3>Undery</h3><p>East Asian Dragon</p></div>
+      </div>
+      <p class="intro">When it’s hard,<br>start from the beginning.</p>
+      <div class="about"><h3>About Me</h3><p>Starting over,<br>one step at a time.</p></div>
+      <dl class="facts">
+        <div><dt>Birthday</dt><dd>22 November 2000</dd></div>
+        <div><dt>Personality</dt><dd>Kind, Ambivert, Thinker</dd></div>
+        <div><dt>Role</dt><dd>Taking pictures, dancing</dd></div>
+        <div><dt>Years Active</dt><dd>2019–Now</dd></div>
+      </dl>
+      <ul class="tags" aria-label="Interests"><li>VRChat</li><li>Dance</li><li>Picture</li><li>Manage</li><li>East Asian Dragon</li></ul>
+    </div>
+    <ul class="profile-images" aria-label="언더리 사진과 일러스트">
+      <li><a href="/vrchat/assets/avatar.png" target="_blank" rel="noopener"><img src="/vrchat/assets/avatar.png" alt="언더리 VRChat 사진 원본" width="1440" height="2560" loading="lazy"></a></li>
+      <li><a href="/vrchat/assets/character-vrchat.png" target="_blank" rel="noopener"><img src="/vrchat/assets/character-vrchat.png" alt="VRChat 캐릭터 원본" width="1024" height="1536" loading="lazy"></a></li>
+      <li><a href="/vrchat/assets/character.png" target="_blank" rel="noopener"><img src="/vrchat/assets/character.png" alt="언더리 캐릭터 일러스트 원본" width="1056" height="1490" loading="lazy"></a></li>
+    </ul>
   </dialog>
 </body>
 </html>
