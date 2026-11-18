@@ -1,7 +1,7 @@
-import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
 import { getComputerCategory, type ComputerCategory } from "@/lib/computer-categories";
+import { markdownSlug, publishedDate, readPublishedMarkdown, requiredText } from "@/lib/markdown-collection";
 
 export type Article = {
   slug: string;
@@ -16,27 +16,12 @@ export type Article = {
 };
 
 const contentDirectory = path.join(process.cwd(), "content", "computer");
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-function requiredText(value: unknown, field: string, slug: string): string {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new Error(`${slug}: ${field} must be a non-empty string.`);
-  }
-  return value.trim();
-}
 
 /** Validate author-owned Markdown at build/read time; never trust URL input as a file path. */
 export function parseArticle(slug: string, source: string): Article {
-  if (!slugPattern.test(slug)) throw new Error(`Invalid article slug: ${slug}`);
+  if (!markdownSlug.test(slug)) throw new Error(`Invalid article slug: ${slug}`);
   const { data, content } = matter(source);
-  const publishedAt = requiredText(data.publishedAt, "publishedAt", slug);
-  if (
-    !/^\d{4}-\d{2}-\d{2}$/.test(publishedAt) ||
-    Number.isNaN(Date.parse(publishedAt)) ||
-    new Date(publishedAt).toISOString().slice(0, 10) !== publishedAt
-  ) {
-    throw new Error(`${slug}: publishedAt must be a valid quoted YYYY-MM-DD date.`);
-  }
+  const publishedAt = publishedDate(data.publishedAt, slug);
   if (
     !Array.isArray(data.tags) ||
     data.tags.length === 0 ||
@@ -69,19 +54,11 @@ export function parseArticle(slug: string, source: string): Article {
 }
 
 export async function getArticles(): Promise<Article[]> {
-  const files = await readdir(contentDirectory);
-  const articles = await Promise.all(
-    files.filter((file) => file.endsWith(".md")).map(async (file) =>
-      parseArticle(file.slice(0, -3), await readFile(path.join(contentDirectory, file), "utf8")),
-    ),
-  );
-  return articles
-    .filter((article) => !article.draft)
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || a.slug.localeCompare(b.slug));
+  return readPublishedMarkdown(contentDirectory, parseArticle);
 }
 
 export async function getArticle(slug: string): Promise<Article | undefined> {
-  if (!slugPattern.test(slug)) return undefined;
+  if (!markdownSlug.test(slug)) return undefined;
   return (await getArticles()).find((article) => article.slug === slug);
 }
 

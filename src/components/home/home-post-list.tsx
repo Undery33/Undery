@@ -2,26 +2,26 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { normalizePostQuery, type PostSummary } from "@/lib/post-summary";
 import styles from "./home-posts.module.css";
 
-type Post = {
-  slug: string;
-  title: string;
-  publishedAt: string;
-  category: string;
-  keywords: string;
+type Props = {
+  posts: PostSummary[];
+  archive?: boolean;
+  initialQuery?: string;
 };
 
-export function HomePostList({ posts }: { posts: Post[] }) {
-  const [query, setQuery] = useState("");
-  const words = query.normalize("NFKC").toLocaleLowerCase("ko-KR").trim().split(/\s+/).filter(Boolean);
+export function HomePostList({ posts, archive = false, initialQuery = "" }: Props) {
+  const [query, setQuery] = useState(initialQuery);
+  const words = normalizePostQuery(query).split(/\s+/).filter(Boolean);
   const matches = words.length
     ? posts.filter((post) => words.every((word) => post.keywords.includes(word)))
     : posts;
+  const visiblePosts = archive ? matches : matches.slice(0, 5);
 
   return (
     <>
-      <form className={styles.search} action="/computer#articles" method="get" role="search" aria-label="게시글 검색">
+      <form className={styles.search} action="/posts" method="get" role="search" aria-label="게시글 검색">
         <input type="search" aria-label="게시글 검색어" name="q" maxLength={120} value={query}
           onChange={(event) => setQuery(event.target.value)} placeholder="키워드를 검색해보세요!" />
         <button type="submit" aria-label="전체 글에서 검색">
@@ -31,14 +31,14 @@ export function HomePostList({ posts }: { posts: Post[] }) {
         </button>
       </form>
       <div className={styles.list}>
-        <table aria-label="최근 게시글">
+        <table aria-label={archive ? "전체 게시글" : "최근 게시글"}>
           <thead><tr><th scope="col">분류</th><th scope="col">날짜</th><th scope="col">제목</th></tr></thead>
           <tbody>
-            {matches.slice(0, 5).map((post) => (
+            {visiblePosts.map((post) => (
               <tr key={post.slug}>
                 <td>{post.category}</td>
                 <td><time dateTime={post.publishedAt}>{post.publishedAt.slice(2).replaceAll("-", ".")}</time></td>
-                <td><Link href={"/computer/" + post.slug}>{post.title}</Link></td>
+                <td><Link href={"/posts/" + post.slug}>{post.title}</Link></td>
               </tr>
             ))}
             {!matches.length && (
@@ -47,9 +47,11 @@ export function HomePostList({ posts }: { posts: Post[] }) {
           </tbody>
         </table>
         <span className={styles.announcement} role="status">{words.length ? `검색 결과 ${matches.length}개` : ""}</span>
-        <Link className={styles.more} href={query.trim()
-          ? "/computer?" + new URLSearchParams({ q: query.trim() }) + "#articles"
-          : "/computer#articles"}>더 보기</Link>
+        {!archive && (
+          <Link className={styles.more} href={query.trim()
+            ? "/posts?" + new URLSearchParams({ q: query.trim() })
+            : "/posts"}>더 보기</Link>
+        )}
       </div>
     </>
   );

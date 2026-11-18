@@ -27,7 +27,7 @@ assert.ok(stylesheet, "Rendered page must reference a stylesheet");
 assert.equal((await read(stylesheet[1].replaceAll("&amp;", "&"))).response.status, 200);
 console.log("PASS build identity and standalone static assets");
 
-for (const path of ["/", "/computer", "/computer/getting-started", "/computer/vlan", "/computer/routing", "/computer/dns", "/computer/dhcp", "/computer/cnn", "/vrchat", "/valorant"]) {
+for (const path of ["/", "/posts", "/computer", "/computer/getting-started", "/computer/vlan", "/computer/routing", "/computer/dns", "/computer/dhcp", "/computer/cnn", "/vrchat", "/valorant"]) {
   const { response, html } = await read(path);
   assert.equal(response.status, 200, path);
   assert.equal(response.headers.get("x-content-type-options"), "nosniff", path);
@@ -112,7 +112,7 @@ assert.equal(adminEntries.response.status, adminEnabled ? 401 : 503);
 assert.equal(JSON.parse(adminEntries.html).error, adminEnabled ? "login_required" : "auth_unavailable");
 console.log("PASS expected admin login state and rejected unauthenticated access");
 
-for (const path of ["/missing-page", "/computer/not-a-real-post", "/computer/ip-basics"]) {
+for (const path of ["/missing-page", "/posts/not-a-real-post", "/computer/not-a-real-post", "/computer/ip-basics"]) {
   assert.equal((await read(path)).response.status, 404, path);
 }
 const sitemap = await read("/sitemap.xml");

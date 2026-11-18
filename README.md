@@ -12,6 +12,7 @@
 | 경로 | 상태 |
 | --- | --- |
 | `/` | Computer, VRChat, Valorant 진입점 |
+| `/posts`, `/posts/[slug]` | 일반 게시글 목록·검색과 글 본문. 메인 POST에는 최근 공개 글 5개를 표시합니다. |
 | `/computer` | 서버·네트워크·AI 소개, 스크롤에 반응하는 SVG, URL 기반 검색(`q`)·태그(`tag`)·분야(`category`) 필터 |
 | `/computer/[slug]` | 기술 문서, Markdown 렌더링, VLAN·라우팅 3D 및 DNS·DHCP·CNN 실습, 없는 글은 404 |
 | `/vrchat` | 컨테이너에서 main의 정적 VRChat GUI 제공. Profile·Pictures·Gallery 화면 |
