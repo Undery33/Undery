@@ -5,7 +5,6 @@ import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { hasMemoText, MemoError, validateWebMemoText } from "@/lib/birthday-memo-validation";
 import photo from "./birthday-world.webp";
 import lettering from "./birthday-lettering.png";
-import date from "./birthday-date.png";
 import plane from "./paper-plane.png";
 import styles from "./guestbook.module.css";
 
@@ -78,7 +77,7 @@ export default function GuestbookHero() {
       <Image className={styles.photo} src={photo} alt="" fill preload unoptimized />
       <div className={styles.heading}>
         <h1 ref={title} id="birthday-title" lang="en"><Image src={lettering} alt="HAPPY BIRTHDAY" unoptimized /></h1>
-        <time dateTime="2000-11-22"><Image src={date} alt="2000.11.22" unoptimized /></time>
+        <time dateTime="2026-11-22">2026.11.22</time>
       </div>
       <form className={styles.invite} onSubmit={send} noValidate data-sent={sent} aria-label="생일 축하 메시지 작성">
         <p id="memo-feedback" role="status" aria-live="polite" aria-atomic="true" className={styles.feedback}>

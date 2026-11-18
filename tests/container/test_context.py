@@ -123,6 +123,18 @@ class ContextTests(unittest.TestCase):
         self.assertEqual((self.root / 'context/dist/index.html').read_bytes(),
                          (self.source / 'dist/index.html').read_bytes())
 
+    def test_social_and_site_navigation_are_links_only(self):
+        files = {'dist/app.js': b'', 'dist/styles.css': b''}
+        links = ('/vrchat', '/birthday', 'https://vrc.group/ASS.8448',
+                 'https://discord.gg/gub', 'https://x.com/VRC_UDR')
+        files['dist/index.html'] = ''.join(f'<a href="{href}">Link</a>' for href in links).encode()
+        CONTEXT.validate_assets(files)
+        for tag in ('<img src="https://discord.gg/gub">', '<script src="/birthday"></script>',
+                    '<link rel="stylesheet" href="https://x.com/VRC_UDR">',
+                    '<a href="https://outside.invalid/">Outside</a>'):
+            with self.subTest(tag=tag), self.assertRaises(ValueError):
+                CONTEXT.validate_assets({**files, 'dist/index.html': tag.encode()})
+
     def test_main_context_excludes_unapproved_files_even_when_tracked(self):
         for name in ('.env', 'node_modules/secret.txt', 'scripts/unapproved.mjs',
                      'tests/private.txt', 'build-info.json', 'src/untracked.ts'):
