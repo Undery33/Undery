@@ -1,23 +1,24 @@
 /* Keep document styling local; the computer theme controls own body colors. */
 :global(.main-content):has(.article) { padding-block-start: 104px; }
 .article {
-  --ink: var(--computer-ink, #282923);
-  --muted: var(--computer-muted, #6f7067);
-  --line: var(--computer-rule, #deddd5);
-  --accent: var(--computer-accent, #a9512e);
-  --soft: var(--computer-soft, #efede6);
+  --ink: var(--computer-ink);
+  --muted: var(--computer-muted);
+  --line: var(--computer-rule);
+  --accent: var(--computer-accent-edge);
+  --soft: var(--computer-soft);
   max-width: 760px;
   margin-inline: auto;
   color: var(--ink);
 }
 .interactiveArticle { max-width: 1180px; }
+.article a:focus-visible { outline-color: var(--computer-focus); }
 :global(.main-content):has(.interactiveArticle) { width: min(100% - 88px, 1280px); }
 .interactiveArticle :is(.breadcrumb, .heading, .footer) { max-width: 920px; margin-inline: auto; }
 .interactiveArticle .body > :global(.prose) { max-width: 760px; margin-inline: auto; }
 .breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 68px; color: var(--muted); font-size: 13px; }
 .breadcrumb a { text-decoration: none; padding-block: 8px; }
 .breadcrumb a:hover { text-decoration: underline; }
-.breadcrumb > span { color: var(--computer-control-border, #b9b9ad); }
+.breadcrumb > span { color: var(--computer-control-border); }
 .heading { border-bottom: 1px solid var(--line); padding-bottom: 30px; margin-bottom: 42px; }
 .eyebrow { margin-bottom: 20px; text-transform: uppercase; font: 11px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .12em; color: var(--accent); }
 .heading h1 { font-size: clamp(32px, 4.2vw, 46px); font-weight: 650; letter-spacing: -.055em; margin-bottom: 22px; }
@@ -37,7 +38,7 @@
 .body :global(.prose) h3 { font-size: 21px; }
 .body :global(.prose) p { margin-bottom: 24px; }
 .body :global(.prose) strong { font-weight: 650; }
-.body :global(.prose) pre { background: var(--computer-soft, #efede6); color: var(--computer-ink, #282923); border: 1px solid var(--computer-rule, #deddd5); border-radius: 0; }
+.body :global(.prose) pre { background: var(--soft); color: var(--ink); border: 1px solid var(--line); border-radius: 0; }
 .body :global(.prose) blockquote { border-color: var(--line); }
 .footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 18px; margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
 .footer a { color: var(--ink); text-decoration: none; }

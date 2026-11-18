@@ -1,22 +1,24 @@
 body:has(.computer-theme-controls) {
-  --computer-paper: #f8f7f3;
-  --computer-ink: #282923;
-  --computer-muted: #6f7067;
-  --computer-rule: #deddd5;
-  --computer-accent: #a9512e;
-  --computer-surface: #fffefa;
-  --computer-soft: #efede6;
-  --computer-control-border: #b9b9ad;
-  --computer-accent-ink: #fffdf9;
+  --computer-paper: #fff;
+  --computer-ink: #262626;
+  --computer-muted: #595959;
+  --computer-rule: #d4d4d4;
+  --computer-accent: #fdc41f;
+  --computer-accent-ink: #262626;
+  --computer-accent-edge: #705400;
+  --computer-focus: var(--computer-ink);
+  --computer-surface: #fff;
+  --computer-soft: #f3f3f3;
+  --computer-control-border: #808080;
   --computer-error: #933d2c;
-  --computer-disabled: #eae9e3;
-  --computer-disabled-ink: #999a90;
+  --computer-disabled: #e8e8e8;
+  --computer-disabled-ink: #696969;
   --background: var(--computer-paper);
   --surface: var(--computer-surface);
   --ink: var(--computer-ink);
   --muted: var(--computer-muted);
   --line: var(--computer-rule);
-  --accent: var(--computer-accent);
+  --accent: var(--computer-accent-edge);
   --soft: var(--computer-soft);
   color-scheme: light;
   background: var(--computer-paper);
@@ -24,18 +26,18 @@ body:has(.computer-theme-controls) {
 }
 
 html[data-computer-theme="dark"] body:has(.computer-theme-controls) {
-  --computer-paper: #191b19;
-  --computer-ink: #eeeee7;
-  --computer-muted: #b1b4a8;
-  --computer-rule: #383d35;
-  --computer-accent: #e6a17a;
-  --computer-surface: #22251f;
-  --computer-soft: #2b3028;
-  --computer-control-border: #5b6254;
-  --computer-accent-ink: #211b16;
+  --computer-paper: #262626;
+  --computer-ink: #fff;
+  --computer-muted: #c6c6c6;
+  --computer-rule: #555;
+  --computer-accent-edge: var(--computer-accent);
+  --computer-focus: var(--computer-accent);
+  --computer-surface: #303030;
+  --computer-soft: #333;
+  --computer-control-border: #929292;
   --computer-error: #f3a08a;
-  --computer-disabled: #292d26;
-  --computer-disabled-ink: #868d7d;
+  --computer-disabled: #383838;
+  --computer-disabled-ink: #aaa;
   color-scheme: dark;
 }
 
@@ -72,7 +74,7 @@ body:has(.computer-theme-controls) .site-footer { color: var(--computer-muted); 
 }
 
 .computer-theme-controls button:hover { background: var(--computer-soft); color: var(--computer-ink); }
-.computer-theme-controls button:focus-visible { outline: 2px solid var(--computer-accent); outline-offset: 3px; }
+.computer-theme-controls button:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 3px; }
 html:not([data-computer-theme="dark"]) .computer-theme-light,
 html[data-computer-theme="dark"] .computer-theme-dark { color: var(--computer-accent-ink); background: var(--computer-accent); }
 

@@ -1,32 +1,31 @@
 .icon, .figure {
-  --device-case: #ece9e3;
-  --device-panel: #bfb8ae;
-  --device-front: #e5e0d8;
-  --device-side: #d0c9be;
-  --device-ink: #655f57;
-  --device-edge: #938a7d;
-  --device-screen: #f2dccb;
-  --device-light: #faf7f1;
-  --device-metal: #b4ab9d;
-  --device-accent: #ba623f;
-  --trace-line: #a17800;
-  --trace-fill: #ffdc48;
+  --device-case: #e3e3e3;
+  --device-panel: #afafaf;
+  --device-front: #dadada;
+  --device-side: #bcbcbc;
+  --device-ink: #363636;
+  --device-edge: #858585;
+  --device-screen: #414141;
+  --device-light: #fff;
+  --device-metal: #a0a0a0;
+  --trace-fill: var(--computer-accent, #fdc41f);
+  --device-accent: var(--trace-fill);
+  --trace-edge: #636363;
 }
 :global(html[data-computer-theme="dark"]) :is(.icon, .figure) {
-  --device-case: #746e65;
-  --device-panel: #514b43;
-  --device-front: #6e685f;
-  --device-side: #59544d;
-  --device-ink: #272521;
-  --device-edge: #b6ac9f;
-  --device-screen: #514139;
-  --device-light: #b9b1a5;
-  --device-metal: #868077;
-  --device-accent: #efad84;
-  --trace-line: #ffdc48;
-  --trace-fill: #c0a33b;
+  --device-case: #777;
+  --device-panel: #515151;
+  --device-front: #696969;
+  --device-side: #565656;
+  --device-ink: #222;
+  --device-edge: #b4b4b4;
+  --device-screen: #323232;
+  --device-light: #b3b3b3;
+  --device-metal: #909090;
+  --trace-edge: var(--trace-fill);
 }
 .icon { display: block; width: 100%; height: 100%; }
+:global(a[aria-current]) .icon { --device-edge: #585858; }
 .figure { position: relative; container-type: inline-size; width: 100%; color: var(--computer-ink, currentColor); }
 .definitions { position: absolute; pointer-events: none; }
 .wide, .compact { display: block; width: 100%; height: auto; overflow: hidden; }
@@ -43,7 +42,7 @@
 :global([data-topology-view="overview"][data-scroll-highlight="linux"]) .camera { --frame: var(--frame-linux); --label-scale: var(--label-linux); }
 :global([data-topology-view="overview"][data-scroll-highlight="windows-server"]) .camera { --frame: var(--frame-windows-server); --label-scale: var(--label-windows-server); }
 .cables { fill: none; stroke-linejoin: round; }
-.cables path { stroke: var(--device-edge); stroke-width: var(--wire-width, 1.4); }
+.cables path { stroke: var(--wire-color, var(--device-edge)); stroke-width: var(--wire-width, 1.4); }
 .device { color: inherit; text-decoration: none; }
 .device text { fill: currentColor; stroke: var(--computer-paper, white); stroke-width: 4px; paint-order: stroke; font-family: inherit; font-size: 17px; font-weight: 500; }
 .camera text { transform-box: fill-box; transform-origin: center bottom; transform: scale(var(--label-scale, 1)); }
@@ -65,11 +64,11 @@ a.device:focus-visible { outline: 2px solid currentColor; }
   --device-light: color-mix(in srgb, var(--computer-surface) 80%, var(--trace-fill));
   --device-front: color-mix(in srgb, var(--computer-surface) 55%, var(--trace-fill));
   --device-side: color-mix(in srgb, var(--computer-surface) 38%, var(--trace-fill));
-  --device-panel: color-mix(in srgb, var(--computer-paper) 38%, var(--trace-line));
-  --device-metal: color-mix(in srgb, var(--computer-paper) 30%, var(--trace-line));
-  --device-screen: color-mix(in srgb, var(--computer-surface) 52%, var(--trace-fill));
-  --device-edge: var(--trace-line);
-  --device-accent: var(--trace-line);
+  --device-panel: color-mix(in srgb, var(--computer-paper) 38%, var(--trace-fill));
+  --device-metal: color-mix(in srgb, var(--computer-paper) 30%, var(--trace-fill));
+  --device-screen: color-mix(in srgb, #262626 87%, var(--trace-fill));
+  --device-edge: var(--trace-edge);
+  --wire-color: var(--trace-fill);
   --wire-width: 2.8;
 }
 

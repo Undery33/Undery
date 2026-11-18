@@ -19,7 +19,7 @@
 .siteNav { height: 60px; display: flex; align-items: center; }
 .siteNav a { display: inline-flex; align-items: center; gap: .5em; min-height: 44px; font-size: .88rem; font-weight: 650; text-decoration: none; }
 .siteNav a span { font-size: 1.16rem; font-weight: 400; }
-.page :focus-visible { outline: 2px solid var(--computer-accent); outline-offset: 3px; }
+.page :focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 3px; }
 .scrollTrack[data-scroll-ready] .pinnedPanel {
   position: sticky;
   top: 0;
@@ -46,7 +46,7 @@
   width: clamp(210px, 31%, 420px); display: flex; align-items: stretch;
   border: 1px solid var(--computer-control-border); border-radius: 100px;
 }
-.search:focus-within { background: var(--computer-surface); }
+.search:focus-within { background: var(--computer-surface); border-color: var(--computer-focus); }
 .search input {
   width: 100%; min-width: 0; padding: .6em 0 .6em 1.15em; border: 0; border-radius: inherit;
   color: inherit; background: transparent; font: inherit;
@@ -68,7 +68,7 @@
 .thumbnail svg { display: block; width: 100%; height: 100%; }
 .cardTitle { display: block; margin-top: .45rem; font-weight: 550; font-size: clamp(.9rem,1.6vw,1.35rem); line-height: 1.2; }
 .categories a:is(:hover,:focus-visible,[aria-current]) .thumbnail { border-color: var(--computer-ink); background: var(--computer-surface); }
-.categories a[aria-current] .thumbnail { box-shadow: inset 0 0 0 1px var(--computer-ink); }
+.categories a[aria-current] .thumbnail { color: var(--computer-accent-ink); background: var(--computer-accent); border-color: var(--computer-accent-edge); }
 .categories a:is(:hover,:focus-visible,[aria-current]) .cardTitle { text-decoration: underline; text-underline-offset: .22em; }
 .archive { margin-top: clamp(2.75rem,6vw,5.5rem); scroll-margin-top: 1rem; }
 .archiveHeading { display: flex; align-items: baseline; flex-wrap: wrap; gap: .85rem; padding-bottom: .7rem; border-bottom: 1px solid var(--computer-ink); }

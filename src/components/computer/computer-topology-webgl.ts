@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { deviceDrawing, type Finish, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
-import { createTopologyDevice } from "./computer-topology-models";
+import { createTopologyDevice, topologyYellow } from "./computer-topology-models";
 
 export type TopologyView = {
   orbit: (horizontal: number, vertical: number) => void;
@@ -91,7 +91,7 @@ function createShadowAtlas() {
       const shape = new THREE.PlaneGeometry(size.x, size.y);
       const uv = shape.getAttribute("uv");
       for (let i = 0; i < uv.count; i++) uv.setXY(i, (column + uv.getX(i)) / 3, (1 - row + uv.getY(i)) / 2);
-      const material = new THREE.MeshBasicMaterial({ map: texture, color: dark ? 0x070709 : 0x74665a, transparent: true, depthWrite: false });
+      const material = new THREE.MeshBasicMaterial({ map: texture, color: dark ? 0x080808 : 0x626262, transparent: true, depthWrite: false });
       const mesh = new THREE.Mesh(shape, material);
       mesh.position.set(center.x, -.009, center.y);
       mesh.rotation.x = -Math.PI / 2;
@@ -103,7 +103,7 @@ function createShadowAtlas() {
 }
 
 // Follow the rim of the physical lid (or the glass for a workstation) in its local plane.
-function createTrace(id: TopologyDevice, dark: boolean) {
+function createTrace(id: TopologyDevice) {
   const { parts } = deviceDrawing(id);
   const glass = parts.find(part => part.finish === "screen");
   const deck = glass ?? parts.find(part => part.finish === "light")!;
@@ -131,7 +131,7 @@ function createTrace(id: TopologyDevice, dark: boolean) {
   }
   profile.holes.push(hole);
   const rim = new THREE.Mesh(new THREE.ShapeGeometry(profile, circular ? 40 : 4), new THREE.MeshBasicMaterial({
-    color: dark ? 0xffda38 : 0xffc400, transparent: true, depthWrite: false,
+    color: topologyYellow, transparent: true, depthWrite: false,
   }));
   rim.position.set(x, glass ? y : y + h / 2 + .002, glass ? z + d / 2 + .002 : z);
   if (!glass) rim.rotation.x = -Math.PI / 2;
@@ -146,7 +146,7 @@ type TintedMaterial = {
   active: THREE.Color;
 };
 const tintStrength: Record<Finish, number> = {
-  case: .32, light: .26, panel: .55, metal: .87, accent: 1, ink: .12, screen: .25,
+  case: .32, light: .26, panel: .55, metal: .87, accent: 1, ink: .12, screen: .10,
 };
 
 function disposeObjects(parent: THREE.Object3D) {
@@ -174,11 +174,11 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   host.appendChild(canvas);
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 120);
-  const key = new THREE.DirectionalLight(0xfff4e6, 1.72);
+  const key = new THREE.DirectionalLight(0xffffff, 1.72);
   key.position.set(-4, 8, 6);
-  const fill = new THREE.DirectionalLight(0xf1f4fc, .35);
+  const fill = new THREE.DirectionalLight(0xffffff, .35);
   fill.position.set(6, 4, -5);
-  const sky = new THREE.HemisphereLight(0xfffcf5, 0xb0a79d, 1.58);
+  const sky = new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.58);
   scene.add(key, fill, sky);
   const ground = createShadowAtlas();
   const equipment = new THREE.Group();
@@ -191,7 +191,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   let activeDevice: TopologyDevice | null = null;
   let highlightStrength = 1;
   const cableColor = new THREE.Color();
-  const cableYellow = new THREE.Color();
+  const highlightColor = new THREE.Color(topologyYellow);
   const peripheralMaterials = new Set<THREE.Material>();
   const cables = connections.map(() => {
     const cable = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, 1, 6), new THREE.MeshBasicMaterial());
@@ -238,7 +238,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
       // The router starts the path; each subsequent device lights its incoming connection.
       const amount = to === activeDevice || (activeDevice === "router" && from === "router") ? strength : 0;
       const cable = cables[index];
-      cable.material.color.lerpColors(cableColor, cableYellow, amount);
+      cable.material.color.lerpColors(cableColor, highlightColor, amount);
       cable.scale.x = cable.scale.z = 1 + amount * 1.5;
     }
     if (activeDevice && strength > 0) canvas.dataset.highlightedDevice = activeDevice;
@@ -388,10 +388,8 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     fill.intensity = dark ? .58 : .35;
     sky.intensity = dark ? 1.34 : 1.58;
     shadowStrength = dark ? .75 : .5;
-    cableColor.setHex(dark ? 0xb1aba0 : 0x777068);
-    cableYellow.setHex(dark ? 0xffda38 : 0xf2b400);
-    const gold = new THREE.Color(dark ? 0xffc219 : 0xf2b400);
-    const etch = new THREE.Color(dark ? 0xffd541 : 0xb57a00);
+    cableColor.setHex(dark ? 0xacacac : 0x727272);
+    const etch = dark ? highlightColor : new THREE.Color(0x636363);
     for (const id of ids) {
       const model = createTopologyDevice(id, dark);
       const box = new THREE.Box3().setFromObject(model);
@@ -409,14 +407,14 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
             if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.LineBasicMaterial) {
               const original = material.color.clone();
               const finish = material.userData.finish as Finish;
-              const active = material.userData.topologyOutline ? etch : original.clone().lerp(gold, tintStrength[finish]);
+              const active = material.userData.topologyOutline ? etch : original.clone().lerp(highlightColor, tintStrength[finish]);
               tints.push({ material, original, active });
             }
           }
         }
       });
       const shadow = ground.mesh(id, dark);
-      const trace = createTrace(id, dark);
+      const trace = createTrace(id);
       model.add(shadow, trace);
       nodes.set(id, { model, link, corners, shadow: shadow.material, tints, trace });
       equipment.add(model);
