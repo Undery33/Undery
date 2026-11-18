@@ -31,7 +31,10 @@ export function HomeServerCarousel() {
     preference.addEventListener("change", finishIfReduced);
     return () => {
       preference.removeEventListener("change", finishIfReduced);
-      animation.current?.cancel();
+      if (animation.current) {
+        animation.current.onfinish = null;
+        animation.current.cancel();
+      }
       animation.current = null;
       pending.current = 0;
     };
