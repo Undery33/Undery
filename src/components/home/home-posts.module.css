@@ -83,7 +83,6 @@
 .list td a:is(:hover, :focus-visible) { background: #fff; color: #262626; }
 .more:hover { color: #fff; text-decoration: underline; }
 .list a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.example { margin-inline-start: .65em; font-size: .85em; }
 .list td.empty { padding: 2cqw 0; text-align: center; }
 .more { display: block; width: fit-content; margin: 1.4cqw .8cqw 0 auto; }
 

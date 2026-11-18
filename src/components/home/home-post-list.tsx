@@ -9,7 +9,6 @@ type Post = {
   title: string;
   publishedAt: string;
   category: string;
-  example: boolean;
   keywords: string;
 };
 
@@ -39,7 +38,7 @@ export function HomePostList({ posts }: { posts: Post[] }) {
               <tr key={post.slug}>
                 <td>{post.category}</td>
                 <td><time dateTime={post.publishedAt}>{post.publishedAt.slice(2).replaceAll("-", ".")}</time></td>
-                <td><Link href={"/computer/" + post.slug}>{post.title}</Link>{post.example && <small className={styles.example}>예제 글</small>}</td>
+                <td><Link href={"/computer/" + post.slug}>{post.title}</Link></td>
               </tr>
             ))}
             {!matches.length && (

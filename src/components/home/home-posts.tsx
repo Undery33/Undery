@@ -5,10 +5,10 @@ import styles from "./home-posts.module.css";
 
 export async function HomePosts() {
   const articles = await getArticles();
-  const posts = articles.map(({ slug, title, description, publishedAt, category, tags, example }) => {
+  const posts = articles.map(({ slug, title, description, publishedAt, category, tags }) => {
     const field = getComputerCategory(category);
     return {
-      slug, title, publishedAt, example,
+      slug, title, publishedAt,
       category: category === "ai" ? "AI" : field?.english ?? "Computer",
       keywords: [title, description, ...tags].join(" ").normalize("NFKC").toLocaleLowerCase("ko-KR"),
     };
