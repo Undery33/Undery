@@ -96,7 +96,7 @@ function createShadowAtlas() {
 function createTrace(id: TopologyDevice) {
   const { parts } = deviceDrawing(id);
   const glass = parts.find(part => part.finish === "screen");
-  const deck = glass ?? parts.find(part => part.finish === "light")!;
+  const deck = glass ?? parts.find(part => part.traceLid) ?? parts.find(part => part.finish === "light")!;
   const [x, y, z] = deck.position;
   const [w, h, d] = deck.size;
   const profile = new THREE.Shape();
@@ -131,7 +131,7 @@ type TintedMaterial = {
   active: THREE.Color;
 };
 const tintStrength: Record<Finish, number> = {
-  case: .32, light: .26, panel: .55, metal: .87, accent: 1, ink: .12, screen: .10,
+  case: .32, light: .26, panel: .55, metal: .87, accent: 1, ink: .12, graphite: .28, screen: .10,
 };
 
 function disposeObjects(parent: THREE.Object3D) {

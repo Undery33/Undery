@@ -5,8 +5,8 @@ import { deviceDrawing, type DevicePart, type Finish, type Mark, type TopologyDe
 
 export const topologyYellow = 0xfdc41f;
 const finishes = {
-  light: { case: 0xe3e3e3, panel: 0xafafaf, ink: 0x363636, light: 0xffffff, metal: 0xa0a0a0, screen: 0x414141, accent: topologyYellow },
-  dark: { case: 0x777777, panel: 0x515151, ink: 0x222222, light: 0xb3b3b3, metal: 0x909090, screen: 0x323232, accent: topologyYellow },
+  light: { case: 0xe3e3e3, panel: 0xafafaf, ink: 0x363636, graphite: 0x484848, light: 0xffffff, metal: 0xa0a0a0, screen: 0x414141, accent: topologyYellow },
+  dark: { case: 0x777777, panel: 0x515151, ink: 0x222222, graphite: 0x555555, light: 0xb3b3b3, metal: 0x909090, screen: 0x323232, accent: topologyYellow },
 };
 
 /** Combine casework by finish, retaining independent materials for assemblies that fade separately. */

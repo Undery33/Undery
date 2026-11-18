@@ -13,7 +13,7 @@ type PatchLink = {
 // Center of the connector mouth on each chassis, in device-local coordinates.
 const front: Point3 = [0, 0, 1];
 const rear: Point3 = [0, 0, -1];
-export const routerPort: Point3 = [.15, .39, .527];
+export const routerPort: Point3 = [-1.189, .120, 1.341]; // ISR 4331 onboard GE 0/0/1 (copper).
 export const serverPort: Point3 = [-.21, .90, -.608];
 export const workstationPort: Point3 = [-1.35, .79, -.56];
 
