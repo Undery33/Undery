@@ -1,24 +1,33 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
+import type { LinuxTopic } from "@/lib/linux-topics";
 import kubernetes from "./linux-architecture-marks/kubernetes.png";
 import jenkins from "./linux-architecture-marks/jenkins.png";
 import docker from "./linux-architecture-marks/docker.svg";
 import styles from "./linux-architecture.module.css";
 
+const topicNames: Record<LinuxTopic, string> = { kubernetes: "Kubernetes", jenkins: "Jenkins", docker: "Docker" };
+type TopicControls = { focused?: LinuxTopic | null; onSelect?: (topic: LinuxTopic) => void };
+
 // Each topology is independent. Kubernetes components: kubernetes.io/docs/concepts/overview/components/
 // Distributed builds: jenkins.io/doc/book/scaling/architecting-for-scale/
 // Docker architecture: docs.docker.com/get-started/docker-overview/#docker-architecture
-function Diagram({ name, label, viewBox, children }: {
-  name: string; label: string; viewBox: string; children: ReactNode;
-}) {
+function Diagram({ name, label, viewBox, children, focused, onSelect }: {
+  name: LinuxTopic; label: string; viewBox: string; children: ReactNode;
+} & TopicControls) {
   const arrow = useId();
+  const selected = focused === name;
   return (
-    <svg data-architecture={name} role="img" aria-label={label} viewBox={viewBox}
-      className={styles.diagram} style={{ "--arrow": `url(#${arrow})` } as CSSProperties}>
-      <defs><marker id={arrow} markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
-        <path d="m0 .4 4 2.1-4 2.1" fill="none" stroke="var(--line)" strokeWidth=".9" />
-      </marker></defs>
-      {children}
-    </svg>
+    <button type="button" className={styles.diagramButton} data-linux-topic={name}
+      hidden={Boolean(focused && !selected)} aria-expanded={selected} aria-disabled={selected || undefined}
+      aria-label={`${topicNames[name]} 확대`} aria-describedby={arrow + "-diagram"} onClick={() => { if (!selected) onSelect?.(name); }}>
+      <svg id={arrow + "-diagram"} data-architecture={name} role="img" aria-label={label} viewBox={viewBox}
+        className={styles.diagram} style={{ "--arrow": `url(#${arrow})` } as CSSProperties}>
+        <defs><marker id={arrow} markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+          <path d="m0 .4 4 2.1-4 2.1" fill="none" stroke="var(--line)" strokeWidth=".9" />
+        </marker></defs>
+        {children}
+      </svg>
+    </button>
   );
 }
 
@@ -114,10 +123,11 @@ function BuildAgent({ y }: { y: number }) {
   </g>;
 }
 
-export function LinuxArchitecture() {
+export function LinuxArchitecture({ focused = null, onSelect }: TopicControls = {}) {
+  const controls = { focused, onSelect };
   return (
-    <div className={styles.screen} data-linux-architecture="">
-      <Diagram name="kubernetes" viewBox="0 0 355 131"
+    <div className={styles.screen} data-linux-architecture="" data-linux-focus={focused ?? undefined}>
+      <Diagram {...controls} name="kubernetes" viewBox="0 0 355 131"
         label="Kubernetes (K8s). 컨트롤 플레인의 API 서버가 etcd에 상태를 저장합니다. 각 워커 노드의 kubelet은 API로 Pod 명세를 확인하고 컨테이너 런타임을 통해 Pod를 관리합니다.">
         <Carrier x={4} y={15} width={113} height={99} />
         <image data-brand="kubernetes" href={kubernetes.src} x="11" y="21" width="37" height="37" />
@@ -128,7 +138,7 @@ export function LinuxArchitecture() {
         <Wire d="M98 60h44V36h35" /><Wire d="M142 60v39h35" />
         <circle className={styles.junction} cx="142" cy="60" r="2.2" />
       </Diagram>
-      <Diagram name="jenkins" viewBox="0 0 267 119"
+      <Diagram {...controls} name="jenkins" viewBox="0 0 267 119"
         label="Jenkins. 컨트롤러가 연결된 에이전트에 빌드를 배정합니다. 각 에이전트는 자신의 작업 디렉터리에서 빌드를 실행합니다.">
         <image data-brand="jenkins" href={jenkins.src} x="5" y="35" width="36" height="49" />
         <g data-node="controller" transform="translate(72 61) scale(1.08)"><Rack /></g>
@@ -137,7 +147,7 @@ export function LinuxArchitecture() {
         <Wire d="M113 58v30h33" />
         <circle className={styles.junction} cx="113" cy="58" r="2.2" />
       </Diagram>
-      <Diagram name="docker" viewBox="0 0 260 119"
+      <Diagram {...controls} name="docker" viewBox="0 0 260 119"
         label="Docker. CLI의 API 요청을 받은 Docker Engine 데몬은 이미지를 관리하고 그 이미지로 컨테이너를 만들고 실행합니다.">
         <g data-node="cli" transform="translate(24 68)"><Terminal /></g>
         <Carrier x={85} y={8} width={82} height={101} />

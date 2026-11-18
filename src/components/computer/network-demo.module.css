@@ -1,13 +1,13 @@
 .demo {
-  --lab-paper: var(--computer-paper, #f8f7f3);
-  --lab-surface: var(--computer-surface, #fffefa);
-  --lab-soft: var(--computer-soft, #efede6);
-  --lab-ink: var(--computer-ink, #282923);
-  --lab-muted: var(--computer-muted, #6f7067);
-  --lab-rule: var(--computer-rule, #deddd5);
-  --lab-border: var(--computer-control-border, #b9b9ad);
-  --lab-accent: var(--computer-accent, #a9512e);
-  --lab-error: var(--computer-error, #933d2c);
+  --lab-paper: var(--computer-paper);
+  --lab-surface: var(--computer-surface);
+  --lab-soft: var(--computer-soft);
+  --lab-ink: var(--computer-ink);
+  --lab-muted: var(--computer-muted);
+  --lab-rule: var(--computer-rule);
+  --lab-border: var(--computer-control-border);
+  --lab-accent: var(--computer-accent-edge);
+  --lab-error: var(--computer-error);
   color: var(--lab-ink);
   margin-block: 42px 56px;
   padding-block: 30px 0;
@@ -18,8 +18,8 @@
 .demo * { box-sizing: border-box; }
 .demo button, .demo input, .demo select { font: inherit; }
 .demo button { cursor: pointer; }
-.demo button:disabled { cursor: default; color: var(--computer-disabled-ink, #999a90); background: var(--computer-disabled, #eae9e3); border-color: var(--lab-rule); }
-.demo :is(button, input, select):focus-visible, .canvasHost:focus-visible { outline: 2px solid var(--lab-accent); outline-offset: 4px; }
+.demo button:disabled { cursor: default; color: var(--computer-disabled-ink); background: var(--computer-disabled); border-color: var(--lab-rule); }
+.demo :is(button, input, select):focus-visible, .canvasHost:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 4px; }
 .demo input { accent-color: var(--lab-accent); }
 .demo p, .demo h3, .demo h4 { margin: 0; }
 .demoHeader { max-width: 780px; margin-bottom: 26px; }
@@ -66,7 +66,7 @@
 .frameFields { display: flex; min-height: 57px; align-items: stretch; border: 1px solid var(--lab-border); background: var(--lab-surface); }
 .frameFields > span { display: flex; justify-content: center; flex-direction: column; align-items: center; padding: 7px 9px; color: var(--lab-muted); font: 10px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace; text-align: center; }
 .frameFields > span + span { border-left: 1px solid var(--lab-border); }
-.frameFields .tagField { color: var(--computer-accent-ink, #fffdf9); background: var(--lab-accent); border-left-color: var(--lab-accent); min-width: 87px; }
+.frameFields .tagField { color: var(--computer-accent-ink); background: var(--computer-accent); border-left-color: var(--computer-accent); min-width: 87px; }
 .tagField b { font-size: 11px; }
 .tagField small { font-size: 9px; opacity: .85; }
 .frameFields .payloadField { flex: 1; min-width: 32px; }
@@ -95,8 +95,8 @@
 .checkRow input { width: 16px; height: 16px; margin: 0; }
 .demo .fieldHint { color: var(--lab-muted); font-size: 10px; line-height: 1.8; margin-top: 8px; }
 .playback { border-top: 1px solid var(--lab-rule); margin-top: 22px; padding-top: 18px; }
-.primaryButton { display: flex; width: 100%; justify-content: center; align-items: center; gap: 10px; min-height: 45px; background: var(--lab-accent); color: var(--computer-accent-ink, #fffdf9); border: 1px solid var(--lab-accent); border-radius: 0; font-size: 12px; font-weight: 600; }
-.primaryButton:hover { background: var(--lab-accent); filter: brightness(.94); }
+.primaryButton { display: flex; width: 100%; justify-content: center; align-items: center; gap: 10px; min-height: 45px; background: var(--computer-accent); color: var(--computer-accent-ink); border: 1px solid var(--computer-accent); border-radius: 0; font-size: 12px; font-weight: 600; }
+.primaryButton:hover { background: var(--computer-accent); filter: brightness(.94); }
 .primaryButton > span { font-size: 10px; }
 .stepButtons { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .stepButtons button { min-width: 34px; min-height: 36px; padding: 4px 8px; border: 1px solid var(--lab-rule); border-radius: 0; background: var(--lab-surface); color: var(--lab-ink); }

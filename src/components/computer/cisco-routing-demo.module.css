@@ -1,9 +1,9 @@
 .workbench { margin-block: 32px 46px; color: var(--computer-ink); scroll-margin-top: 96px; }
 .views { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--computer-rule); }
 .views button { cursor: pointer; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--computer-muted); padding: 14px 20px; font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1.5; }
-.views button[aria-pressed="true"] { color: var(--computer-accent); border-bottom-color: var(--computer-accent); }
+.views button[aria-pressed="true"] { color: var(--computer-accent-edge); border-bottom-color: var(--computer-accent-edge); }
 .views button:hover { background: var(--computer-soft); color: var(--computer-ink); }
-.views button:focus-visible { outline: 2px solid var(--computer-accent); outline-offset: 3px; }
+.views button:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 3px; }
 .methods { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--lab-border); border-left: 1px solid var(--lab-border); }
 .methods button { display: flex; align-items: flex-start; flex-direction: column; text-align: left; gap: 3px; min-width: 0; padding: 14px 12px; border: 0; border-right: 1px solid var(--lab-border); border-bottom: 1px solid var(--lab-border); background: var(--lab-surface); color: var(--lab-ink); }
 .methods button small { font: 10px/1.5 ui-monospace, monospace; color: var(--lab-muted); }

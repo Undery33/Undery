@@ -3,9 +3,10 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { deviceDrawing, type Finish, type TopologyDevice } from "./computer-topology-devices";
 
+export const topologyYellow = 0xfdc41f;
 const finishes = {
-  light: { case: 0xe8e4dd, panel: 0xbcb5aa, ink: 0x635e56, light: 0xf5f2ec, metal: 0xb4aa9a, screen: 0xf2d9c8, accent: 0xb95e38 },
-  dark: { case: 0x716c64, panel: 0x48443f, ink: 0x282622, light: 0x9c9488, metal: 0x716f68, screen: 0x514139, accent: 0xefac81 },
+  light: { case: 0xe3e3e3, panel: 0xafafaf, ink: 0x363636, light: 0xffffff, metal: 0xa0a0a0, screen: 0x414141, accent: topologyYellow },
+  dark: { case: 0x777777, panel: 0x515151, ink: 0x222222, light: 0xb3b3b3, metal: 0x909090, screen: 0x323232, accent: topologyYellow },
 };
 
 /** Local +Z is the front panel, +Y is up. Combine casework by finish to keep draw calls low. */
@@ -63,7 +64,7 @@ export function createTopologyDevice(device: TopologyDevice, dark: boolean): THR
   for (const finish of ["ink", "light", "accent"] as const) {
     if (!strokes[finish].length) continue;
     const geometry = new THREE.BufferGeometry().setFromPoints(strokes[finish]);
-    const color = finish === "ink" ? (dark ? 0xb6ac9f : 0x91897d) : palette[finish];
+    const color = finish === "ink" ? (dark ? 0x757575 : 0x858585) : palette[finish];
     const material = new THREE.LineBasicMaterial({ color });
     material.userData.finish = finish;
     material.userData.topologyOutline = finish === "ink";

@@ -38,6 +38,18 @@ describe("public page states", () => {
       expect(diagram).not.toMatch(/<(?:text|foreignObject)\b/i);
     }
   });
+  it("keeps the network map wordless with named links and two plugs per cable on either layout", async () => {
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({}) }));
+    const layouts = html.match(/<svg\b[^>]*aria-label="컴퓨터 네트워크 구성도"[^>]*>[\s\S]*?<\/svg>/g) ?? [];
+    expect(layouts).toHaveLength(2);
+    for (const map of layouts) {
+      expect(map).not.toContain("<text");
+      expect(map.match(/data-ethernet-run=/g)).toHaveLength(5);
+      expect(map.match(/data-rj45-plug="from"/g)).toHaveLength(5);
+      expect(map.match(/data-rj45-plug="to"/g)).toHaveLength(5);
+      expect(map.match(/aria-label="[^"]+ 글 보기"/g)).toHaveLength(6);
+    }
+  });
   it("marks the normalized tag filter as selected", async () => {
     const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ tag: "markdown" }) }));
     expect(html).toMatch(/<a\b(?=[^>]*aria-current="true")(?=[^>]*href="\/computer\?tag=Markdown")[^>]*>/);

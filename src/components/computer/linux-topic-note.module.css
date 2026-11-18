@@ -1,0 +1,43 @@
+.note {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: clamp(1.2rem, 6.5svh, 5rem) clamp(1.2rem, 3.7vw, 4.6rem);
+  color: var(--computer-ink);
+  background: var(--computer-paper);
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.heading {
+  padding-bottom: clamp(.8rem, 2.4svh, 1.5rem);
+  border-bottom: 2px solid currentColor;
+}
+.heading h2 {
+  margin: 0;
+  font-size: clamp(1.45rem, 3vw, 3.2rem);
+  line-height: 1.12;
+  letter-spacing: -.035em;
+}
+.heading p, .empty {
+  margin: .7rem 0 0;
+  color: var(--computer-muted);
+  font-size: clamp(.875rem, 1.3vw, 1.08rem);
+  line-height: 1.55;
+}
+.body {
+  max-width: 66ch;
+  font-size: clamp(.875rem, 1.25vw, 1.08rem);
+}
+.body :global(.prose) { line-height: 1.7; }
+.body :global(.prose) :is(h2, h3) { margin: 1.4em 0 .5em; font-size: 1.22em; line-height: 1.4; }
+.body :global(.prose) p { margin: .6em 0 1em; }
+.body :global(.prose) :not(pre) > code { color: inherit; background: var(--computer-soft); }
+.body a { color: inherit; text-decoration: underline; text-underline-offset: .18em; }
+.fullArticle { display: inline-block; margin: .8rem 0 1rem; font-weight: 650; }
+.note a:focus-visible { outline: 2px solid var(--computer-focus); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .note { padding: 1rem .6rem; }
+  .heading h2 { font-size: clamp(1.22rem, 5vw, 1.75rem); }
+}

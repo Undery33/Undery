@@ -1,11 +1,16 @@
 import * as THREE from "three";
+import { createEthernetCables } from "./computer-topology-cables";
 import { deviceDrawing, type Finish, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
-import { createTopologyDevice } from "./computer-topology-models";
+import { createTopologyDevice, topologyYellow } from "./computer-topology-models";
+import { createLinuxDisplay } from "./linux-display-texture";
+import { createNetworkBasicsModel } from "./network-basics-model";
+import { patchLinks } from "./computer-topology-ports";
 
 export type TopologyView = {
   orbit: (horizontal: number, vertical: number) => void;
   reset: () => void;
+  setBasics: (progress: number | null) => void;
   setHighlight: (device: TopologyDevice | null, progress?: number) => void;
   setLinux: (open: boolean, animate: boolean, complete: () => void) => void;
   dispose: () => void;
@@ -19,9 +24,6 @@ const compact: Record<TopologyDevice, Position> = {
   router: [-2.9, -1.6], asa: [0, -1.55], switch: [2.82, -.63],
   server: [-2.8, 2.62], linux: [.07, 2.65], "windows-server": [2.79, 2.65],
 };
-const connections: [TopologyDevice, TopologyDevice][] = [
-  ["router", "asa"], ["asa", "switch"], ["switch", "server"], ["switch", "linux"], ["switch", "windows-server"],
-];
 const startAzimuth = .54;
 const startElevation = .50;
 const monitorElevation = .23;
@@ -91,7 +93,7 @@ function createShadowAtlas() {
       const shape = new THREE.PlaneGeometry(size.x, size.y);
       const uv = shape.getAttribute("uv");
       for (let i = 0; i < uv.count; i++) uv.setXY(i, (column + uv.getX(i)) / 3, (1 - row + uv.getY(i)) / 2);
-      const material = new THREE.MeshBasicMaterial({ map: texture, color: dark ? 0x070709 : 0x74665a, transparent: true, depthWrite: false });
+      const material = new THREE.MeshBasicMaterial({ map: texture, color: dark ? 0x080808 : 0x626262, transparent: true, depthWrite: false });
       const mesh = new THREE.Mesh(shape, material);
       mesh.position.set(center.x, -.009, center.y);
       mesh.rotation.x = -Math.PI / 2;
@@ -103,7 +105,7 @@ function createShadowAtlas() {
 }
 
 // Follow the rim of the physical lid (or the glass for a workstation) in its local plane.
-function createTrace(id: TopologyDevice, dark: boolean) {
+function createTrace(id: TopologyDevice) {
   const { parts } = deviceDrawing(id);
   const glass = parts.find(part => part.finish === "screen");
   const deck = glass ?? parts.find(part => part.finish === "light")!;
@@ -131,7 +133,7 @@ function createTrace(id: TopologyDevice, dark: boolean) {
   }
   profile.holes.push(hole);
   const rim = new THREE.Mesh(new THREE.ShapeGeometry(profile, circular ? 40 : 4), new THREE.MeshBasicMaterial({
-    color: dark ? 0xffda38 : 0xffc400, transparent: true, depthWrite: false,
+    color: topologyYellow, transparent: true, depthWrite: false,
   }));
   rim.position.set(x, glass ? y : y + h / 2 + .002, glass ? z + d / 2 + .002 : z);
   if (!glass) rim.rotation.x = -Math.PI / 2;
@@ -146,18 +148,20 @@ type TintedMaterial = {
   active: THREE.Color;
 };
 const tintStrength: Record<Finish, number> = {
-  case: .32, light: .26, panel: .55, metal: .87, accent: 1, ink: .12, screen: .25,
+  case: .32, light: .26, panel: .55, metal: .87, accent: 1, ink: .12, screen: .10,
 };
 
 function disposeObjects(parent: THREE.Object3D) {
   const materials = new Set<THREE.Material>();
+  const geometries = new Set<THREE.BufferGeometry>();
   parent.traverse(object => {
     if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
-      object.geometry.dispose();
+      geometries.add(object.geometry);
       for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material);
     }
   });
   materials.forEach(material => material.dispose());
+  geometries.forEach(geometry => geometry.dispose());
   parent.clear();
 }
 
@@ -173,12 +177,13 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   canvas.setAttribute("aria-hidden", "true");
   host.appendChild(canvas);
   const scene = new THREE.Scene();
+  const panel = host.closest<HTMLElement>("[data-topology-panel]");
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 120);
-  const key = new THREE.DirectionalLight(0xfff4e6, 1.72);
+  const key = new THREE.DirectionalLight(0xffffff, 1.72);
   key.position.set(-4, 8, 6);
-  const fill = new THREE.DirectionalLight(0xf1f4fc, .35);
+  const fill = new THREE.DirectionalLight(0xffffff, .35);
   fill.position.set(6, 4, -5);
-  const sky = new THREE.HemisphereLight(0xfffcf5, 0xb0a79d, 1.58);
+  const sky = new THREE.HemisphereLight(0xffffff, 0xa8a8a8, 1.58);
   scene.add(key, fill, sky);
   const ground = createShadowAtlas();
   const equipment = new THREE.Group();
@@ -190,14 +195,11 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   let shadowStrength = .5;
   let activeDevice: TopologyDevice | null = null;
   let highlightStrength = 1;
-  const cableColor = new THREE.Color();
-  const cableYellow = new THREE.Color();
+  const highlightColor = new THREE.Color(topologyYellow);
   const peripheralMaterials = new Set<THREE.Material>();
-  const cables = connections.map(() => {
-    const cable = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, 1, 6), new THREE.MeshBasicMaterial());
-    scene.add(cable);
-    return cable;
-  });
+  const cables = createEthernetCables();
+  scene.add(cables.group);
+  let compactCables: boolean | undefined;
   let azimuth = startAzimuth;
   let elevation = startElevation;
   let width = 0, height = 0;
@@ -209,6 +211,34 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   let follow: { from: number[]; to: number[]; start: number } | undefined;
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const temporary = new THREE.Vector3();
+  const display = createLinuxDisplay(glass, invalidate, onLost);
+  const basicsLayer = new THREE.Group();
+  basicsLayer.visible = false;
+  scene.add(basicsLayer);
+  let basics: ReturnType<typeof createNetworkBasicsModel> | undefined;
+  let packetProgress: number | null = null;
+  const basicsBounds = new THREE.Box3();
+
+  function drawBasics(progress: number) {
+    if (!basics) {
+      basics = createNetworkBasicsModel(document.documentElement.dataset.computerTheme === "dark");
+      basicsLayer.add(basics.group);
+      basicsBounds.setFromObject(basics.group);
+    }
+    basics.setProgress(progress);
+    const target = basicsBounds.getCenter(new THREE.Vector3());
+    camera.position.set(Math.sin(azimuth) * Math.cos(elevation), Math.sin(elevation), Math.cos(azimuth) * Math.cos(elevation)).multiplyScalar(24).add(target);
+    camera.lookAt(target);
+    camera.updateMatrixWorld();
+    const size = basicsBounds.clone().applyMatrix4(camera.matrixWorldInverse).getSize(temporary);
+    const scale = Math.min(width * .90 / size.x, height * .78 / size.y);
+    camera.right = width / (2 * scale);
+    camera.left = -camera.right;
+    camera.top = height / (2 * scale);
+    camera.bottom = -camera.top;
+    camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
+  }
 
   // Blend the six possible framings. A scroll reversal can start from the exact frame on screen,
   // and a resize or orbit can reproject the same blend without using stale screen coordinates.
@@ -234,13 +264,6 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
       trace.visible = amount > 0;
       trace.material.opacity = amount;
     }
-    for (const [index, [from, to]] of connections.entries()) {
-      // The router starts the path; each subsequent device lights its incoming connection.
-      const amount = to === activeDevice || (activeDevice === "router" && from === "router") ? strength : 0;
-      const cable = cables[index];
-      cable.material.color.lerpColors(cableColor, cableYellow, amount);
-      cable.scale.x = cable.scale.z = 1 + amount * 1.5;
-    }
     if (activeDevice && strength > 0) canvas.dataset.highlightedDevice = activeDevice;
     else delete canvas.dataset.highlightedDevice;
   }
@@ -248,6 +271,17 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   function draw() {
     frame = 0;
     if (disposed || !width || !height) return;
+    basicsLayer.visible = packetProgress !== null && !flight && linuxProgress === 0;
+    equipment.visible = cables.group.visible = !basicsLayer.visible;
+    if (basicsLayer.visible && packetProgress !== null) {
+      canvas.dataset.topologyChapter = "network-basics";
+      canvas.dataset.visibleDevices = "";
+      canvas.dataset.visibleCables = "0";
+      delete canvas.dataset.highlightedDevice;
+      drawBasics(packetProgress);
+      return;
+    }
+    delete canvas.dataset.topologyChapter;
     advanceFollow(performance.now());
     let completed: (() => void) | undefined;
     if (flight) {
@@ -263,8 +297,11 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     // The front view uses a taller monitor on narrow screens so the case and its readable display both fit.
     const screenWidth = Math.min(1, glass.offsetWidth / (1.48 * screenScale));
     linuxModel.scale.x = THREE.MathUtils.lerp(1, screenWidth, linuxProgress);
+    display.mesh.visible = linuxProgress > .65;
     const peripheralOpacity = 1 - THREE.MathUtils.smoothstep(linuxProgress, .16, .68);
-    applyHighlight(highlightStrength * (1 - THREE.MathUtils.smoothstep(linuxProgress, 0, .55)));
+    const highlight = highlightStrength * (1 - THREE.MathUtils.smoothstep(linuxProgress, 0, .55));
+    applyHighlight(highlight);
+    cables.paint(activeDevice, highlight, peripheralOpacity);
     for (const material of peripheralMaterials) {
       material.opacity = peripheralOpacity;
       material.transparent = peripheralOpacity < 1;
@@ -274,11 +311,10 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
       model.visible = id === "linux" || peripheralOpacity > 0;
       shadow.opacity = shadowStrength * (id === "linux" ? 1 : peripheralOpacity);
     }
-    for (const cable of cables) cable.visible = peripheralOpacity > 0;
     const visible = [...nodes].filter(([, { model }]) => model.visible).map(([id]) => id).join(" ");
     if (canvas.dataset.visibleDevices !== visible) {
       canvas.dataset.visibleDevices = visible;
-      canvas.dataset.visibleCables = String(cables.filter(cable => cable.visible).length);
+      canvas.dataset.visibleCables = String(cables.links.filter(({ assembly }) => assembly.visible).length);
     }
     // The Linux model's glass is 1.48 × .72 and faces local +Z. Approach its actual center.
     const glassCenter = linuxModel.position.clone().add(new THREE.Vector3(0, .90, -.033));
@@ -290,7 +326,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     const bounds = new THREE.Box2();
     const point = new THREE.Vector2();
     const projected = new Map<TopologyDevice, {
-      box: THREE.Box2; middle: THREE.Vector2; link: HTMLAnchorElement; labelWidth: number; labelHeight: number;
+      box: THREE.Box2; middle: THREE.Vector2; link: HTMLAnchorElement;
     }>();
     for (const [id, { model, corners, link }] of nodes) {
       const box = new THREE.Box2();
@@ -299,7 +335,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
         box.expandByPoint(point.set(temporary.x, temporary.y));
       }
       bounds.union(box);
-      projected.set(id, { box, middle: box.getCenter(new THREE.Vector2()), link, labelWidth: link.offsetWidth, labelHeight: link.offsetHeight });
+      projected.set(id, { box, middle: box.getCenter(new THREE.Vector2()), link });
     }
     const marginX = width < 480 ? 23 : width * .045;
     const marginTop = width < 650 ? 38 : 16;
@@ -313,9 +349,9 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     for (const [index, id] of ids.entries()) {
       const weight = followWeights[index];
       if (weight === 0) continue;
-      const { box, middle, labelHeight } = projected.get(id)!;
-      const bottom = Math.max(marginBottom, labelHeight + 12);
-      const upstream = id === "router" ? "asa" : connections.find(([, to]) => to === id)![0];
+      const { box, middle } = projected.get(id)!;
+      const bottom = marginBottom;
+      const upstream = id === "router" ? "asa" : patchLinks.find(({ to }) => to === id)!.from;
       const neighbor = projected.get(upstream)!.middle;
       const { scale: fitted, offsetX, offsetY } = frameDevice(
         { width, height }, height - marginTop - bottom,
@@ -346,14 +382,20 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     camera.updateProjectionMatrix();
     renderer.render(scene, camera);
     canvas.dataset.linuxProgress = linuxProgress.toFixed(4);
-    for (const { link, middle, box, labelWidth, labelHeight } of projected.values()) {
-      const x = (middle.x - center.x) * scale + width / 2;
-      const y = (center.y - box.min.y) * scale + height / 2 + 2;
-      const onScreen = x >= 0 && x <= width && y >= 2 && y + labelHeight <= height;
+    for (const { link, box } of projected.values()) {
+      // The focus ring follows the physical device. Pointer picking remains on its mesh.
+      const left = Math.max(0, (box.min.x - center.x) * scale + width / 2);
+      const right = Math.min(width, (box.max.x - center.x) * scale + width / 2);
+      const top = Math.max(0, (center.y - box.max.y) * scale + height / 2);
+      const bottom = Math.min(height, (center.y - box.min.y) * scale + height / 2);
+      const onScreen = right > left && bottom > top;
       link.style.visibility = onScreen ? "" : "hidden";
-      const half = labelWidth / 2 + 2;
-      link.style.left = Math.max(half, Math.min(width - half, x)) + "px";
-      link.style.top = y + "px";
+      if (onScreen) {
+        link.style.left = left + "px";
+        link.style.top = top + "px";
+        link.style.width = right - left + "px";
+        link.style.height = bottom - top + "px";
+      }
     }
     if (flight || follow) invalidate();
     completed?.();
@@ -365,33 +407,33 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     width = host.clientWidth;
     height = host.clientHeight;
     renderer.setSize(width, height, false);
-    const layout = width <= 650 ? compact : wide;
+    // Sliding the right-hand notes into view must not rearrange the physical network mid-flight.
+    const layout = (panel?.clientWidth ?? width) <= 650 ? compact : wide;
     for (const [id, { model }] of nodes) model.position.copy(groundPoint(layout[id]));
-    for (const [i, [from, to]] of connections.entries()) {
-      const start = groundPoint(layout[from]), end = groundPoint(layout[to]);
-      const vector = end.clone().sub(start);
-      const cable = cables[i];
-      cable.position.copy(start).addScaledVector(vector, .5);
-      cable.position.y = .072;
-      cable.scale.y = vector.length();
-      cable.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vector.normalize());
+    if (compactCables !== (layout === compact)) {
+      compactCables = layout === compact;
+      cables.arrange(new Map([...nodes].map(([id, { model, corners }]) => {
+        const footprint = new THREE.Box2();
+        for (const { x, z } of corners) footprint.expandByPoint(new THREE.Vector2(x + model.position.x, z + model.position.z));
+        return [id, { position: model.position, footprint }];
+      })));
     }
     invalidate();
   }
   function buildModels() {
+    display.mesh.removeFromParent();
+    disposeObjects(basicsLayer);
+    basics = undefined;
     disposeObjects(equipment);
     nodes.clear();
     peripheralMaterials.clear();
-    for (const cable of cables) peripheralMaterials.add(cable.material);
     const dark = document.documentElement.dataset.computerTheme === "dark";
     key.intensity = dark ? 2.05 : 1.72;
     fill.intensity = dark ? .58 : .35;
     sky.intensity = dark ? 1.34 : 1.58;
     shadowStrength = dark ? .75 : .5;
-    cableColor.setHex(dark ? 0xb1aba0 : 0x777068);
-    cableYellow.setHex(dark ? 0xffda38 : 0xf2b400);
-    const gold = new THREE.Color(dark ? 0xffc219 : 0xf2b400);
-    const etch = new THREE.Color(dark ? 0xffd541 : 0xb57a00);
+    cables.theme(dark);
+    const etch = dark ? highlightColor : new THREE.Color(0x636363);
     for (const id of ids) {
       const model = createTopologyDevice(id, dark);
       const box = new THREE.Box3().setFromObject(model);
@@ -409,15 +451,16 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
             if (material instanceof THREE.MeshStandardMaterial || material instanceof THREE.LineBasicMaterial) {
               const original = material.color.clone();
               const finish = material.userData.finish as Finish;
-              const active = material.userData.topologyOutline ? etch : original.clone().lerp(gold, tintStrength[finish]);
+              const active = material.userData.topologyOutline ? etch : original.clone().lerp(highlightColor, tintStrength[finish]);
               tints.push({ material, original, active });
             }
           }
         }
       });
       const shadow = ground.mesh(id, dark);
-      const trace = createTrace(id, dark);
+      const trace = createTrace(id);
       model.add(shadow, trace);
+      if (id === "linux") model.add(display.mesh);
       nodes.set(id, { model, link, corners, shadow: shadow.material, tints, trace });
       equipment.add(model);
     }
@@ -433,6 +476,11 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     if (flight || linuxProgress) return;
     azimuth = startAzimuth; elevation = startElevation; invalidate();
   }
+  function setBasics(progress: number | null) {
+    if (packetProgress === progress) return;
+    packetProgress = progress;
+    invalidate();
+  }
   function setHighlight(device: TopologyDevice | null, progress = 1) {
     const next = THREE.MathUtils.clamp(progress, 0, 1);
     if (activeDevice === device && highlightStrength === next) return;
@@ -443,6 +491,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
   }
   function setLinux(open: boolean, animate: boolean, complete: () => void) {
     if (open) {
+      setBasics(null);
       advanceFollow(performance.now());
       follow = undefined;
     } else {
@@ -463,6 +512,7 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
 
   const ray = new THREE.Raycaster();
   function hit(event: PointerEvent) {
+    if (basicsLayer.visible) return;
     const rect = canvas.getBoundingClientRect();
     const pointer = new THREE.Vector2((event.clientX - rect.left) / rect.width * 2 - 1, 1 - (event.clientY - rect.top) / rect.height * 2);
     ray.setFromCamera(pointer, camera);
@@ -511,6 +561,8 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     sizes.disconnect();
     themes.disconnect();
     cancelAnimationFrame(frame);
+    display.mesh.removeFromParent();
+    display.dispose();
     nodes.clear();
     disposeObjects(scene);
     ground.texture.dispose();
@@ -528,5 +580,5 @@ export function createTopologyView(host: HTMLElement, labels: HTMLElement, glass
     dispose();
     throw error;
   }
-  return { orbit, reset, setHighlight, setLinux, dispose };
+  return { orbit, reset, setBasics, setHighlight, setLinux, dispose };
 }

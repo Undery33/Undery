@@ -1,4 +1,5 @@
 import type { ComputerCategory } from "@/lib/computer-categories";
+import { serverPort, workstationPort } from "./computer-topology-ports";
 
 /** Dimensions and front-panel details shared by the live scene and its projected diagrams. */
 export type TopologyDevice = ComputerCategory;
@@ -100,6 +101,7 @@ export function deviceDrawing(device: TopologyDevice) {
     }
     for (let slot = 0; slot < 6; slot++) box([-.025, .89 - slot * .061, .508], [.52, .026, .024], "ink");
     box([-.23, .30, .482], [.075, .075, .038], "ink");
+    jack(serverPort[0], serverPort[1], serverPort[2] - .015, .14);
     box([.438, .97, 0], [.018, 1.26, .76], "panel", false, .014);
     box([.451, .97, 0], [.020, 1.23, .72], "case");
     for (let row = 0; row < 3; row++) for (let col = 0; col < 6; col++) {
@@ -115,6 +117,7 @@ export function deviceDrawing(device: TopologyDevice) {
     box([0, .90, -.057], [1.51, .75, .026], "metal", false, .009);
     box([0, .90, -.045], [1.48, .72, .024], "screen");
     box([.68, .464, -.054], [.035, .014, .014], "accent");
+    jack(workstationPort[0], workstationPort[1], workstationPort[2] - .015, .13);
     if (device === "linux") {
       mark([[-.46, 1.06, -.031], [-.32, .96, -.031], [-.46, .86, -.031]], "accent");
       mark([[-.24, .86, -.031], [.03, .86, -.031]], "accent");

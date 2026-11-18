@@ -24,7 +24,7 @@ export type NetworkSceneHandle = {
   dispose: () => void;
 };
 
-type Palette = Record<"paper" | "surface" | "soft" | "ink" | "muted" | "rule" | "accent" | "error" | "border", string>;
+type Palette = Record<"paper" | "surface" | "soft" | "ink" | "muted" | "rule" | "accent" | "accentEdge" | "error" | "border", string>;
 type MaterialRole = keyof Palette;
 
 /** Procedural local models: no model, texture, font or network request is needed. */
@@ -118,15 +118,16 @@ export function createNetworkScene(
     const css = getComputedStyle(host);
     const read = (token: string, fallback: string) => css.getPropertyValue(token).trim() || fallback;
     return {
-      paper: read("--computer-paper", "#f8f7f3"),
-      surface: read("--computer-surface", "#fffefa"),
-      soft: read("--computer-soft", "#efede6"),
-      ink: read("--computer-ink", "#282923"),
-      muted: read("--computer-muted", "#6f7067"),
-      rule: read("--computer-rule", "#deddd5"),
-      accent: read("--computer-accent", "#a9512e"),
+      paper: read("--computer-paper", "#ffffff"),
+      surface: read("--computer-surface", "#ffffff"),
+      soft: read("--computer-soft", "#f3f3f3"),
+      ink: read("--computer-ink", "#262626"),
+      muted: read("--computer-muted", "#595959"),
+      rule: read("--computer-rule", "#d4d4d4"),
+      accent: read("--computer-accent", "#fdc41f"),
+      accentEdge: read("--computer-accent-edge", "#705400"),
       error: read("--computer-error", "#933d2c"),
-      border: read("--computer-control-border", "#b9b9ad"),
+      border: read("--computer-control-border", "#808080"),
     };
   }
 
@@ -249,7 +250,7 @@ export function createNetworkScene(
   // ambient energy in the color, then use a gentle directional light for facets.
   scene.add(softwareRendering
     ? new THREE.AmbientLight(new THREE.Color().setRGB(0.5, 0.5, 0.5))
-    : new THREE.HemisphereLight(0xffffff, 0x7a786b, 2.2));
+    : new THREE.HemisphereLight(0xffffff, 0x787878, 2.2));
   const light = new THREE.DirectionalLight(0xffffff, softwareRendering ? 0.75 : 2.6);
   light.position.set(-5, 14, 8);
   light.castShadow = true;
@@ -357,6 +358,7 @@ export function createNetworkScene(
 
   function applyHighlight() {
     const statusColor = snapshot.state === "blocked" ? palette.error : palette.accent;
+    const edgeColor = snapshot.state === "blocked" ? palette.error : palette.accentEdge;
     for (const [id, visual] of nodeVisuals) {
       const active = snapshot.nodeIds.includes(id);
       visual.indicator.color.set(active ? statusColor : palette.border);
@@ -369,8 +371,8 @@ export function createNetworkScene(
       visual.mesh.visible = !failed;
       visual.failedLine.visible = failed;
       visual.failureMark.visible = failed;
-      visual.material.color.set(active ? statusColor : palette.border);
-      visual.material.emissive.set(active ? statusColor : "#000000");
+      visual.material.color.set(active ? edgeColor : palette.border);
+      visual.material.emissive.set(active ? edgeColor : "#000000");
       if (softwareRendering) visual.material.emissive.multiplyScalar(0.13);
       visual.material.emissiveIntensity = active ? 0.13 : 0;
     }
