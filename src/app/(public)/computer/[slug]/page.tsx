@@ -43,7 +43,7 @@ export default async function ArticlePage({ params }: Props) {
         <ul className={styles.tags} aria-label="글 태그">
           {article.tags.map((tag) => <li key={tag}><Link href={articleListHref("", tag, article.category)}>#{tag}</Link></li>)}
         </ul>
-        {interactive && <a className={styles.demoJump} href="#technology-demo">{article.category === "network" ? "3D 시뮬레이션으로 이동" : "실습으로 이동"}<span aria-hidden="true">↓</span></a>}
+        {interactive && <a className={styles.demoJump} href="#technology-demo">{(interactive.demo === "routing" || interactive.demo === "vlan") ? "3D 시뮬레이션으로 이동" : "실습으로 이동"}<span aria-hidden="true">↓</span></a>}
       </header>
       {article.example && !interactive && <aside className={styles.notice}>기본 기능을 확인하기 위한 예제 글입니다. 실제 운영 콘텐츠로 교체할 수 있습니다.</aside>}
       <div className={styles.body}>

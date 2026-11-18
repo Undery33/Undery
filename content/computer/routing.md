@@ -3,7 +3,7 @@ title: "라우팅"
 description: "Cisco 기준 정적·RIP·OSPF·EIGRP·IS-IS·BGP와 PBR을 비교하고 경로 선택과 장애 대응을 3D로 확인합니다."
 publishedAt: "2026-11-16"
 tags: ["라우팅", "Cisco", "정적 라우팅", "OSPF", "RIP", "EIGRP", "IS-IS", "BGP", "PBR", "IPv4", "IPv6"]
-category: network
+category: router
 draft: false
 example: true
 ---

@@ -27,7 +27,7 @@ assert.ok(stylesheet, "Rendered page must reference a stylesheet");
 assert.equal((await read(stylesheet[1].replaceAll("&amp;", "&"))).response.status, 200);
 console.log("PASS build identity and standalone static assets");
 
-for (const path of ["/", "/posts", "/computer", "/computer/getting-started", "/computer/vlan", "/computer/routing", "/computer/dns", "/computer/dhcp", "/computer/cnn", "/vrchat", "/valorant"]) {
+for (const path of ["/", "/posts", "/computer", "/computer/getting-started", "/computer/vlan", "/computer/routing", "/computer/dns", "/computer/dhcp", "/vrchat", "/valorant"]) {
   const { response, html } = await read(path);
   assert.equal(response.status, 200, path);
   assert.equal(response.headers.get("x-content-type-options"), "nosniff", path);
@@ -62,22 +62,27 @@ const xss = await read("/computer?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E");
 assert.doesNotMatch(xss.html, /<script>alert\(1\)<\/script>/);
 console.log("PASS search, tag, empty state, and escaped input");
 
-const network = await read("/computer?category=network&q=" + encodeURIComponent("트렁크") + "&tag=VLAN");
-assert.match(network.html, /href="\/computer\/vlan"/);
-assert.doesNotMatch(network.html, /href="\/computer\/(?:getting-started|development-workflow)"/);
-assert.match(network.html, /name="category" value="network"/);
-assert.match(network.html, /name="tag" value="VLAN"/);
+const computer = await read("/computer");
+for (const category of ["router", "switch", "asa", "server", "linux", "windows-server"]) {
+  assert.ok(computer.html.includes(`href="/computer?category=${category}"`), category);
+}
+assert.doesNotMatch(computer.html, /href="\/computer(?:\/cnn|\?category=ai)"/);
+const switchSearch = await read("/computer?category=switch&q=" + encodeURIComponent("트렁크") + "&tag=VLAN");
+assert.match(switchSearch.html, /href="\/computer\/vlan"/);
+assert.doesNotMatch(switchSearch.html, /href="\/computer\/(?:getting-started|development-workflow)"/);
+assert.match(switchSearch.html, /name="category" value="switch"/);
+assert.match(switchSearch.html, /name="tag" value="VLAN"/);
 const serverSearch = await read("/computer?category=server&q=VLAN&tag=VLAN");
 assert.match(serverSearch.html, /조건에 맞는 글이 없습니다/);
-for (const slug of ["vlan", "routing", "dns", "dhcp", "cnn"]) {
+for (const slug of ["vlan", "routing", "dns", "dhcp"]) {
   const technology = await read(`/computer/${slug}`);
   assert.ok(technology.html.includes(`data-technology-demo="${slug}"`), slug);
   assert.ok(!technology.html.includes(`<!-- demo:${slug} -->`), slug);
   assert.match(technology.html, /aria-label="화면 테마"/);
 }
-console.log("PASS combined category search and five technology examples");
+console.log("PASS six computer categories, combined category search and four technology examples");
 
-const routingSearch = await read("/computer?category=network&q=OSPF");
+const routingSearch = await read("/computer?category=router&q=OSPF");
 assert.match(routingSearch.html, /href="\/computer\/routing"/);
 const routingLab = await read("/computer/routing");
 for (const name of ["정적 실습", "RIP 실습", "OSPF 실습", "EIGRP 실습", "IS-IS 실습", "BGP 실습", "PBR 실습"]) {
@@ -112,13 +117,13 @@ assert.equal(adminEntries.response.status, adminEnabled ? 401 : 503);
 assert.equal(JSON.parse(adminEntries.html).error, adminEnabled ? "login_required" : "auth_unavailable");
 console.log("PASS expected admin login state and rejected unauthenticated access");
 
-for (const path of ["/missing-page", "/posts/not-a-real-post", "/computer/not-a-real-post", "/computer/ip-basics"]) {
+for (const path of ["/missing-page", "/posts/not-a-real-post", "/computer/not-a-real-post", "/computer/ip-basics", "/computer/cnn"]) {
   assert.equal((await read(path)).response.status, 404, path);
 }
 const sitemap = await read("/sitemap.xml");
 assert.equal(sitemap.response.status, 200);
 assert.doesNotMatch(sitemap.html, /\/portfolio|\/admin/);
-assert.doesNotMatch(sitemap.html, /\/computer\/ip-basics/);
+assert.doesNotMatch(sitemap.html, /\/computer\/(?:ip-basics|cnn)</);
 assert.equal((await read("/robots.txt")).response.status, 200);
 console.log("PASS 404, robots, and sitemap exclusions");
 console.log("All HTTP smoke checks passed.");

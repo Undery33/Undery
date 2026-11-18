@@ -13,11 +13,9 @@ describe("bundled technology examples", () => {
     expect(splitTechnologyDemo("dns", "<!-- demo:cnn -->")).toBeUndefined();
     expect(splitTechnologyDemo("__proto__", "<!-- demo:__proto__ -->")).toBeUndefined();
   });
-  it("replaces the removed IP article with all five categorized technology documents", async () => {
+  it("publishes routing, switching and server examples in their matching categories", async () => {
     expect(await getArticle("ip-basics")).toBeUndefined();
-    const articles = await getArticles();
-    expect(articles.filter((article) => article.category === "network").map((article) => article.slug).sort()).toEqual(["routing", "vlan"]);
-    expect(articles.filter((article) => article.category === "server").map((article) => article.slug).sort()).toEqual(["dhcp", "dns"]);
-    expect(articles.filter((article) => article.category === "ai").map((article) => article.slug)).toEqual(["cnn"]);
+    const categories = Object.fromEntries((await getArticles()).map((article) => [article.slug, article.category]));
+    expect(categories).toMatchObject({ routing: "router", vlan: "switch", dns: "server", dhcp: "server" });
   });
 });

@@ -5,9 +5,18 @@ import ArticlePage from "@/app/(public)/computer/[slug]/page";
 import PublicNotFound from "@/app/(public)/not-found";
 
 describe("public page states", () => {
+  it("offers the six Computer categories without linking to the retired AI collection", async () => {
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({}) }));
+    const nav = html.match(/<nav\b[^>]*aria-label="기술 분류"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+    expect(nav).toBeDefined();
+    const hrefs = [...(nav ?? "").matchAll(/<a\b[^>]*href="([^"]+)"/g)].map((match) => match[1]);
+    expect(hrefs).toEqual(["router", "switch", "asa", "server", "linux", "windows-server"].map((id) => "/computer?category=" + id));
+    expect(html).not.toContain('href="/computer/cnn"');
+    expect(html).not.toContain('href="/computer?category=ai"');
+  });
   it("marks the normalized tag filter as selected", async () => {
     const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ tag: "markdown" }) }));
-    expect(html).toMatch(/class="selected" aria-current="true" href="\/computer\?tag=Markdown"/);
+    expect(html).toMatch(/<a\b(?=[^>]*aria-current="true")(?=[^>]*href="\/computer\?tag=Markdown")[^>]*>/);
     expect(html).toContain('href="/computer/getting-started"');
     expect(html).not.toContain('href="/computer/development-workflow"');
   });
@@ -21,24 +30,24 @@ describe("public page states", () => {
     expect(html).not.toContain("<main");
     expect(html).not.toContain('id="main-content"');
   });
-  it("combines network, tag and body search while retaining the selected filters", async () => {
-    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "network", tag: "VLAN", q: "트렁크" }) }));
+  it("combines switch, tag and body search while retaining the selected filters", async () => {
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "switch", tag: "VLAN", q: "트렁크" }) }));
     expect(html).toContain('href="/computer/vlan"');
     expect(html).not.toContain('href="/computer/getting-started"');
-    expect(html).toContain('name="category" value="network"');
+    expect(html).toContain('name="category" value="switch"');
     expect(html).toContain('name="tag" value="VLAN"');
   });
-  it.each([["vlan", "network"], ["routing", "network"], ["dns", "server"], ["dhcp", "server"], ["cnn", "ai"]])("renders the authored %s example with the correct category", async (slug, category) => {
+  it.each([["vlan", "switch"], ["routing", "router"], ["dns", "server"], ["dhcp", "server"]])("renders the authored %s example with the correct category", async (slug, category) => {
     const html = renderToStaticMarkup(await ArticlePage({ params: Promise.resolve({ slug }) }));
     expect(html).toContain(`data-technology-demo="${slug}"`);
     expect(html).toContain(`href="/computer?category=${category}"`);
     expect(html).toContain('href="#technology-demo"');
     expect(html).not.toContain(`<!-- demo:${slug} -->`);
   });
-  it.each(["정적 라우팅", "OSPF", "EIGRP", "IS-IS", "BGP", "RIPng", "PBR", "VRF"])("finds Cisco routing by technology name %s in the network archive", async (q) => {
-    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "network", q }) }));
+  it.each(["정적 라우팅", "OSPF", "EIGRP", "IS-IS", "BGP", "RIPng", "PBR", "VRF"])("finds Cisco routing by technology name %s in the Router archive", async (q) => {
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "router", q }) }));
     expect(html).toContain('href="/computer/routing"');
-    expect(html).toContain('name="category" value="network"');
+    expect(html).toContain('name="category" value="router"');
     expect(html).not.toContain('href="/computer/dhcp"');
   });
   it("keeps ordinary articles free of interactive examples", async () => {

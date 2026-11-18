@@ -112,13 +112,17 @@ def verify(base, expected):
     assert {'https://discord.gg/gub', 'https://instagram.com/_undery.pth/',
             'https://github.com/Undery33', 'https://x.com/VRC_UDR'} <= home_resources.links
     main_page('/posts', ('id="post-archive-heading"', 'action="/posts"'))
-    _, computer_resources = main_page('/computer', ('id="computer-title"', '이해를 연결합니다', '기술 글 검색', 'VLAN', 'DNS', 'CNN'))
-    assert {'/computer?category=server', '/computer?category=network', '/computer?category=ai',
-            '/computer/vlan', '/computer/routing', '/computer/dns', '/computer/dhcp', '/computer/cnn'} <= computer_resources.links
+    _, computer_resources = main_page('/computer', ('Router', 'Switch', 'ASA', 'Server', 'Linux', 'Windows Server'))
+    for category in ('router', 'switch', 'asa', 'server', 'linux', 'windows-server'):
+        assert '/computer?category=' + category in computer_resources.links, category
+    assert {'/computer/vlan', '/computer/routing', '/computer/dns', '/computer/dhcp'} <= computer_resources.links
+    assert '/computer?category=ai' not in computer_resources.links
+    assert '/computer/cnn' not in computer_resources.links
     main_page('/computer/getting-started', ('<h1>기술 기록을 시작하며</h1>', '이 글은 예제입니다', '글 작성 방법'))
-    for slug in ('vlan', 'routing', 'dns', 'dhcp', 'cnn'):
+    for slug in ('vlan', 'routing', 'dns', 'dhcp'):
         main_page('/computer/' + slug, ('data-technology-demo="' + slug + '"', '인터랙티브 예제', 'aria-label="화면 테마"'))
     assert read('/computer/ip-basics')[0] == 404
+    assert read('/computer/cnn')[0] == 404
     main_page('/valorant', ('Valorant',))
 
     html, gui_resources, _ = html_page('/vrchat')
@@ -144,10 +148,10 @@ def verify(base, expected):
     assert b'href="/computer/getting-started"' not in filtered_body
     matched_status, _, matched_body = read('/computer?q=Markdown&tag=Markdown')
     assert matched_status == 200 and b'href="/computer/getting-started"' in matched_body
-    network_query = urllib.parse.urlencode({'category': 'network', 'q': '트렁크', 'tag': 'VLAN'})
-    network_status, _, network_body = read('/computer?' + network_query)
-    assert network_status == 200 and b'href="/computer/vlan"' in network_body
-    assert b'href="/computer/getting-started"' not in network_body
+    switch_query = urllib.parse.urlencode({'category': 'switch', 'q': '트렁크', 'tag': 'VLAN'})
+    switch_status, _, switch_body = read('/computer?' + switch_query)
+    assert switch_status == 200 and b'href="/computer/vlan"' in switch_body
+    assert b'href="/computer/getting-started"' not in switch_body
     escaped_status, _, escaped_body = read('/computer?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E')
     assert escaped_status == 200 and b'<script>alert(1)</script>' not in escaped_body
     print('PASS dynamic Computer search, category and tag filtering, and escaped input')
@@ -178,6 +182,7 @@ def verify(base, expected):
     sitemap_status, _, sitemap_body = read('/sitemap.xml')
     assert sitemap_status == 200
     assert b'/portfolio' not in sitemap_body and b'/admin' not in sitemap_body
+    assert b'/computer/cnn<' not in sitemap_body
     assert read('/robots.txt')[0] == 200
     print('PASS direct portfolio noindex, unavailable admin and discovery exclusions')
 

@@ -3,7 +3,7 @@ title: "VLAN"
 description: "Access와 Trunk 포트를 바꾸며 이더넷 프레임의 802.1Q 태그와 VLAN 경계를 3D로 확인합니다."
 publishedAt: "2026-11-16"
 tags: ["VLAN", "802.1Q", "Access", "Trunk", "스위치"]
-category: network
+category: switch
 draft: false
 example: true
 ---

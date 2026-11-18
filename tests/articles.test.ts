@@ -19,10 +19,10 @@ describe("Markdown article validation", () => {
   it("preserves an article with no category without guessing from its tags", () => {
     expect(parseArticle("linux-basics", source).category).toBeUndefined();
   });
-  it.each(["server", "network", "ai"])("accepts the explicit category %s", (category) => {
+  it.each(["router", "switch", "asa", "server", "linux", "windows-server"])("accepts the explicit category %s", (category) => {
     expect(parseArticle("example", source.replace("draft: false", `category: ${category}\ndraft: false`)).category).toBe(category);
   });
-  it.each(['"devops"', '"frontend"', '"backend"', '"Server"', '""', "null", "42", "[server]"])("rejects an invalid category %s", (category) => {
+  it.each(['"network"', '"ai"', '"devops"', '"frontend"', '"backend"', '"Server"', '""', "null", "42", "[server]"])("rejects an invalid category %s", (category) => {
     expect(() => parseArticle("example", source.replace("draft: false", `category: ${category}\ndraft: false`))).toThrow("category");
   });
   it.each(["../secret", "article/name", "Bad_Name", ""])('rejects unsafe slug "%s"', (slug) => {
@@ -63,15 +63,21 @@ describe("search and tag filtering", () => {
   });
   it("intersects category, query, and tag while keeping uncategorized posts in all results", () => {
     const server = parseArticle("server-notes", source.replace("draft: false", "category: server\ndraft: false"));
-    const network = parseArticle("network-notes", source.replace("draft: false", "category: network\ndraft: false"));
-    const mixed = [article, server, network];
+    const router = parseArticle("router-notes", source.replace("draft: false", "category: router\ndraft: false"));
+    const mixed = [article, server, router];
     expect(filterArticles(mixed, "", "")).toEqual(mixed);
-    expect(filterArticles(mixed, "PostgreSQL", "Git", "network")).toEqual([]);
-    expect(filterArticles(mixed, "PostgreSQL", "운영", "network")).toEqual([network]);
+    expect(filterArticles(mixed, "PostgreSQL", "Git", "router")).toEqual([]);
+    expect(filterArticles(mixed, "PostgreSQL", "운영", "router")).toEqual([router]);
     expect(filterArticles(mixed, "Ｌｉｎｕｘ", "linux", "server")).toEqual([server]);
-    expect(filterArticles(mixed, "absent", "운영", "network")).toEqual([]);
+    expect(filterArticles(mixed, "absent", "운영", "router")).toEqual([]);
     expect(filterArticles(mixed, "", "", "ai")).toEqual([]);
     expect(filterArticles(mixed, "", "", "unknown")).toEqual([]);
+  });
+  it("keeps legacy network filter URLs working across Router, Switch, and ASA", () => {
+    const categorized = computerCategories.map(({ id }) => ({ ...article, category: id }));
+    const legacy = filterArticles(categorized, "PostgreSQL", "운영", "network");
+    expect(legacy.map(({ category }) => category)).toEqual(["router", "switch", "asa"]);
+    expect(filterArticles(categorized, "", "unrelated", "network")).toEqual([]);
   });
   it("encodes filter URLs safely and resets empty values", () => {
     expect(articleListHref()).toBe("/computer");
@@ -86,9 +92,11 @@ describe("search and tag filtering", () => {
 });
 
 describe("computer category metadata", () => {
-  it("exposes the three categories in the requested order and only resolves exact IDs", () => {
-    expect(computerCategories.map(({ id }) => id)).toEqual(["server", "network", "ai"]);
-    expect(getComputerCategory("server")?.label).toBe("서버");
+  it("exposes the six public categories in order and only resolves exact IDs", () => {
+    expect(computerCategories.map(({ id }) => id)).toEqual(["router", "switch", "asa", "server", "linux", "windows-server"]);
+    expect(computerCategories.map(({ label }) => label)).toEqual(["Router", "Switch", "ASA", "Server", "Linux", "Windows Server"]);
+    expect(getComputerCategory("network")).toBeUndefined();
+    expect(getComputerCategory("ai")).toBeUndefined();
     expect(getComputerCategory("Server")).toBeUndefined();
     expect(getComputerCategory("frontend")).toBeUndefined();
     expect(getComputerCategory("backend")).toBeUndefined();
@@ -107,5 +115,11 @@ describe("repository content", () => {
     expect(await getArticle("getting-started")).toBeDefined();
     expect(await getArticle("not-a-real-post")).toBeUndefined();
     expect(await getArticle("../.env")).toBeUndefined();
+  });
+  it("keeps the archived CNN article out of search, tag suggestions, and public detail lookups", async () => {
+    const articles = await getArticles();
+    expect(filterArticles(articles, "CNN", "")).toEqual([]);
+    expect(getTags(articles)).not.toContain("AI");
+    expect(await getArticle("cnn")).toBeUndefined();
   });
 });
