@@ -14,7 +14,7 @@ const notes: Record<TopologyDevice, { role: string; questions: Question[] }> = {
     ],
   },
   switch: {
-    role: "이더넷 프레임 전달",
+    role: "Cisco Catalyst C9200L-24T-4G · 이더넷 프레임 전달",
     questions: [
       { title: "스위치란", answer: "스위치는 같은 LAN의 장비를 이더넷으로 연결합니다. 프레임을 받으면 출발지 MAC 주소와 포트를 기억하고, 목적지 MAC 주소를 이미 알면 해당 포트로 전달합니다." },
       { title: "VLAN이란", answer: "VLAN은 스위치에 연결된 장비를 논리적으로 나눈 네트워크입니다. 같은 스위치에 연결돼 있어도 서로 다른 VLAN 사이에서 통신하려면 라우팅이 필요합니다.",
@@ -22,7 +22,7 @@ const notes: Record<TopologyDevice, { role: string; questions: Question[] }> = {
     ],
   },
   asa: {
-    role: "방화벽 정책 적용",
+    role: "Cisco ASA 5506-X · 방화벽 정책 적용",
     questions: [
       { title: "ASA란", answer: "Cisco ASA는 네트워크 경계에서 트래픽을 검사하는 방화벽입니다. 출발지와 목적지, 서비스 등의 조건을 확인해 설정된 정책에 따라 통신을 허용하거나 차단합니다." },
       { title: "상태 기반 검사란", answer: "방화벽이 허용한 연결의 상태를 기록하는 방식입니다. 예를 들어 웹 서버에서 응답이 돌아오면, 방화벽은 그 패킷이 앞서 허용한 TCP 연결에 속하는지 확인합니다." },

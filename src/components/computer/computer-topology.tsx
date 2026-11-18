@@ -2,7 +2,7 @@ import { useId, type CSSProperties } from "react";
 import { computerCategories } from "@/lib/computer-categories";
 import { deviceDrawing, type Point3, type TopologyDevice } from "./computer-topology-devices";
 import { frameDevice } from "./computer-topology-framing";
-import { patchLinks } from "./computer-topology-ports";
+import { patchLinks, plugWidthScale } from "./computer-topology-ports";
 import { bootTip, jacketRoute, type CableSpan } from "./computer-topology-routing";
 import { groundPosition, openingAzimuth, openingProjection, topologyLayouts } from "./computer-topology-layout";
 import styles from "./computer-topology.module.css";
@@ -187,9 +187,13 @@ function makeScene(compact: boolean) {
 const scenes = [makeScene(false), makeScene(true)];
 
 // Face, side and top of a molded section, sharing the device projection so the plug meets the jack.
-function PlugDefinitions({ id, normal }: { id: string; normal: Point3 }) {
+function PlugDefinitions({ id, normal, device }: { id: string; normal: Point3; device: TopologyDevice }) {
   const yaw = Math.atan2(normal[0], normal[2]), ca = Math.cos(yaw), sa = Math.sin(yaw);
-  const projection = ([x, y, z]: Point3): Point => project([x * ca + z * sa, y, -x * sa + z * ca]);
+  const widthScale = plugWidthScale(device);
+  const projection = ([x, y, z]: Point3): Point => {
+    const scale = z >= .32 ? 1 : widthScale;
+    return project([x * scale * ca + z * sa, y * scale, -x * scale * sa + z * ca]);
+  };
   const face = (points: Point3[]) => path(points.map(projection));
   function section(width: number, height: number, a: number, b: number, tone: string) {
     const x = width / 2 * (Math.sin(openingAzimuth - yaw) >= 0 ? 1 : -1), y = height / 2;
@@ -240,8 +244,10 @@ export function ComputerTopology({ hrefs, selected }: Props) {
     <div data-topology-fallback="" className={styles.figure}>
       <svg width="0" height="0" aria-hidden="true" className={styles.definitions}>
         <defs>
-          {patchLinks.flatMap(({ to, startNormal, endNormal }) => [startNormal, endNormal].map((normal, i) =>
-            <PlugDefinitions key={to + i} id={`${id}-${to}-${i}`} normal={normal} />))}
+          {patchLinks.flatMap(({ from, to, startNormal, endNormal }) => [
+            <PlugDefinitions key={to + "-start"} id={`${id}-${to}-0`} device={from} normal={startNormal} />,
+            <PlugDefinitions key={to + "-end"} id={`${id}-${to}-1`} device={to} normal={endNormal} />,
+          ])}
 
           {devices.map(device => (
             <symbol key={device} id={`${id}-${device}`} viewBox={projections.get(device)!.viewBox}>

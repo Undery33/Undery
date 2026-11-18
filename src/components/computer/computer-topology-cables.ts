@@ -3,7 +3,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import type { Point3, TopologyDevice } from "./computer-topology-devices";
 import { topologyYellow } from "./computer-topology-models";
-import { patchLinks } from "./computer-topology-ports";
+import { patchLinks, plugWidthScale } from "./computer-topology-ports";
 import { bendPoint, bootTip, jacketRoute, type CableSpan, type RoundBend } from "./computer-topology-routing";
 
 const radius = .029;
@@ -39,8 +39,8 @@ function combine(parts: THREE.BufferGeometry[]) {
   return geometry;
 }
 
-function createConnectorParts() {
-  const shell = new RoundedBoxGeometry(.13, .09, .16, 1, .012).translate(0, 0, .067);
+function createConnectorParts(widthScale: number) {
+  const shell = new RoundedBoxGeometry(.13, .09, .16, 1, .012).scale(widthScale, widthScale, 1).translate(0, 0, .067);
   const pieces: THREE.BufferGeometry[] = [];
   function detail(w: number, h: number, d: number, x: number, y: number, z: number, color: number, tilt = 0) {
     const box = new THREE.BoxGeometry(w, h, d).rotateX(tilt).translate(x, y, z);
@@ -55,14 +55,15 @@ function createConnectorParts() {
   detail(.042, .013, .123, 0, .057, .083, 0xe4e4e4, -.27);
   const tapered = (front: number, rear: number, length: number, z: number) =>
     new THREE.CylinderGeometry(rear, front, length, 10).rotateX(Math.PI / 2).scale(1, .81, 1).translate(0, 0, z);
-  const boot = [tapered(.079, .032, .185, .239)];
-  for (let i = 0; i < 3; i++) boot.push(tapered(.081 - i * .009, .079 - i * .009, .016, .167 + i * .036));
-  return { shell, details: combine(pieces), boot: combine(boot) };
+  // The plug fits the jack, while the strain relief still meets the common cable jacket.
+  const boot = [tapered(.079 * widthScale, .032, .185, .239)];
+  for (let i = 0; i < 3; i++) boot.push(tapered((.081 - i * .009) * widthScale, (.079 - i * .009) * widthScale, .016, .167 + i * .036));
+  return { shell, details: combine(pieces).scale(widthScale, widthScale, 1), boot: combine(boot) };
 }
 
 export function createEthernetCables() {
   const group = new THREE.Group();
-  const parts = createConnectorParts();
+  const connectorParts = new Map<number, ReturnType<typeof createConnectorParts>>();
   const shell = new THREE.MeshPhongMaterial({ color: 0xdcdcdc, shininess: 80, transparent: true, depthWrite: false });
   const details = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .43, metalness: .14 });
   const yellow = new THREE.Color(topologyYellow), gray = new THREE.Color(), bootGray = new THREE.Color();
@@ -72,13 +73,16 @@ export function createEthernetCables() {
     const jacket = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
     jacket.name = "jacket";
     const rubber = new THREE.MeshStandardMaterial({ roughness: .88 });
-    function plug(name: string) {
+    function plug(name: string, device: TopologyDevice) {
+      const widthScale = plugWidthScale(device);
+      const parts = connectorParts.get(widthScale) ?? createConnectorParts(widthScale);
+      connectorParts.set(widthScale, parts);
       const plug = new THREE.Group();
       plug.name = name;
       plug.add(new THREE.Mesh(parts.shell, shell), new THREE.Mesh(parts.details, details), new THREE.Mesh(parts.boot, rubber));
       return plug;
     }
-    const start = plug("plug:start"), end = plug("plug:end");
+    const start = plug("plug:start", from), end = plug("plug:end", to);
     assembly.add(jacket, start, end);
     group.add(assembly);
     return { from, to, assembly, jacket, rubber, start, end };

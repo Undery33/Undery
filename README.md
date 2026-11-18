@@ -29,7 +29,13 @@
 
 [성열의 컴퓨터공학](https://cs.yeolyi.com/)의 층을 나눈 모형과 재질 표현을 참고해 장비를 모델링했습니다. 첫 화면에서는 Router, ASA, Switch와 스위치에 연결된 Server, Linux, Windows Server를 한눈에 볼 수 있습니다. 장비 그림이나 소개 아래의 분류 카드를 선택하면 해당 기술 글을 볼 수 있습니다. Linux를 선택하면 해당 모니터만 확대하여 Kubernetes(K8s), Jenkins, Docker의 구성 요소와 연결 관계를 화면 안에 표시합니다.
 
-스크롤 순서는 전체 구성도 → Router → ASA → Switch → Server → Linux → Docker → Jenkins → Kubernetes → Windows Server입니다. 장비 단계에서는 왼쪽에 확대된 장비와 노란색(`#FDC41F`) 랜선, 오른쪽에 해당 장비의 설명이 나옵니다. Router는 Cisco ISR 4331의 1U 섀시와 후면 네트워크 포트를 기준으로 모델링했습니다. [Cisco 공식 섀시 도면](https://www.cisco.com/c/en/us/td/docs/routers/access/4400/hardware/installation/guide4400-4300/C4400_isr/Overview.html)
+스크롤 순서는 전체 구성도 → Router → ASA → Switch → Server → Linux → Docker → Jenkins → Kubernetes → Windows Server입니다. 장비 단계에서는 왼쪽에 확대된 장비와 노란색(`#FDC41F`) 랜선, 오른쪽에 해당 장비의 설명이 나옵니다.
+
+네트워크 구간은 Cisco의 실물 장비 세 대를 기준으로 모델링했습니다.
+
+- **Router — ISR 4331**은 1U 섀시 후면의 GE 0/0/1 포트로 방화벽에 연결됩니다. [Cisco ISR 4331 섀시 도면](https://www.cisco.com/c/en/us/td/docs/routers/access/4400/hardware/installation/guide4400-4300/C4400_isr/Overview.html)
+- **ASA — ASA 5506-X**는 후면에 데이터용 RJ45 포트 8개가 한 줄로 놓인 데스크톱형 방화벽입니다. [Cisco ASA 5506-X 전·후면 도면](https://www.cisco.com/c/en/us/td/docs/security/asa/hw/maintenance/5506xguide/b_Install_Guide_5506/b_Install_Guide_5506_chapter_01.pdf#page=6)
+- **Switch — Catalyst C9200L-24T-4G**는 전면에 구리 이더넷 포트 24개와 고정형 1G SFP 업링크 4개를 갖춥니다. [Cisco Catalyst 9200L 하드웨어 안내서](https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9200/hardware/install/b-c9200-hig/product_overview.html)
 
 넓은 화면에서는 Router·ASA·Switch가 왼쪽에서 오른쪽으로 이어지고, Server·Linux·Windows Server는 오른쪽 한 열에 놓입니다. 좁은 화면에서는 두 그룹이 위아래로 나뉩니다. Switch의 세 UTP 케이블은 일정 간격으로 나란히 진행하고 방향을 바꾸는 부분에서만 둥글게 꺾입니다. Linux와 Windows Server의 랜선은 각각 모니터 왼쪽에 있는 본체의 후면 포트에 꽂힙니다.
 
