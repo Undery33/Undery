@@ -113,8 +113,11 @@ def verify(base, expected):
             'https://github.com/Undery33', 'https://x.com/VRC_UDR'} <= home_resources.links
     main_page('/posts', ('id="post-archive-heading"', 'action="/posts"'))
     _, computer_resources = main_page('/computer', ('Router', 'Switch', 'ASA', 'Server', 'Linux', 'Windows Server'))
-    for category in ('router', 'switch', 'asa', 'server', 'linux', 'windows-server'):
+    for category in ('router', 'switch', 'asa', 'server', 'windows-server'):
         assert '/computer?category=' + category in computer_resources.links, category
+    assert '/computer?category=linux#computer-screen' in computer_resources.links
+    main_page('/computer?category=linux', ('data-topology-view="linux"', 'data-architecture="kubernetes"',
+                                           'data-architecture="jenkins"', 'data-architecture="docker"'))
     assert {'/computer/vlan', '/computer/routing', '/computer/dns', '/computer/dhcp'} <= computer_resources.links
     assert '/computer?category=ai' not in computer_resources.links
     assert '/computer/cnn' not in computer_resources.links

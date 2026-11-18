@@ -1,8 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ComputerPage from "@/app/(public)/computer/page";
 import ArticlePage from "@/app/(public)/computer/[slug]/page";
 import PublicNotFound from "@/app/(public)/not-found";
+
+// These tests render the initial HTML outside the Next.js router.
+vi.mock(import("next/navigation"), async (importOriginal) => ({
+  ...await importOriginal(), useRouter: vi.fn(),
+}));
 
 describe("public page states", () => {
   it("offers the six Computer categories without linking to the retired AI collection", async () => {
@@ -10,9 +15,28 @@ describe("public page states", () => {
     const nav = html.match(/<nav\b[^>]*aria-label="기술 분류"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
     expect(nav).toBeDefined();
     const hrefs = [...(nav ?? "").matchAll(/<a\b[^>]*href="([^"]+)"/g)].map((match) => match[1]);
-    expect(hrefs).toEqual(["router", "switch", "asa", "server", "linux", "windows-server"].map((id) => "/computer?category=" + id));
+    expect(hrefs).toEqual([
+      "/computer?category=router", "/computer?category=switch", "/computer?category=asa",
+      "/computer?category=server", "/computer?category=linux#computer-screen", "/computer?category=windows-server",
+    ]);
     expect(html).not.toContain('href="/computer/cnn"');
     expect(html).not.toContain('href="/computer?category=ai"');
+  });
+  it("renders three named, icon-only architecture diagrams on a direct Linux request", async () => {
+    const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ category: "linux" }) }));
+    expect(html).toContain('id="computer-screen"');
+    expect(html).toContain('data-topology-view="linux"');
+    expect([...html.matchAll(/data-architecture="([^"]+)"/g)].map(match => match[1])).toEqual(["kubernetes", "jenkins", "docker"]);
+    const diagrams = html.match(/<svg\b[^>]*data-architecture="[^"]+"[^>]*>[\s\S]*?<\/svg>/g) ?? [];
+    expect(diagrams).toHaveLength(3);
+    for (const diagram of diagrams) {
+      expect(diagram).toContain('role="img"');
+      expect(diagram).toMatch(/aria-label="[^"]+"/);
+      expect(diagram).toContain("data-brand=");
+      expect(diagram).toContain("data-node=");
+      expect(diagram).toContain("data-edge=");
+      expect(diagram).not.toMatch(/<(?:text|foreignObject)\b/i);
+    }
   });
   it("marks the normalized tag filter as selected", async () => {
     const html = renderToStaticMarkup(await ComputerPage({ searchParams: Promise.resolve({ tag: "markdown" }) }));

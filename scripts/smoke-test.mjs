@@ -64,9 +64,16 @@ console.log("PASS search, tag, empty state, and escaped input");
 
 const computer = await read("/computer");
 for (const category of ["router", "switch", "asa", "server", "linux", "windows-server"]) {
-  assert.ok(computer.html.includes(`href="/computer?category=${category}"`), category);
+  const anchor = category === "linux" ? "#computer-screen" : "";
+  assert.ok(computer.html.includes(`href="/computer?category=${category}${anchor}"`), category);
 }
 assert.doesNotMatch(computer.html, /href="\/computer(?:\/cnn|\?category=ai)"/);
+const linux = await read("/computer?category=linux");
+assert.equal(linux.response.status, 200);
+assert.match(linux.html, /data-topology-view="linux"/);
+for (const diagram of ["kubernetes", "jenkins", "docker"]) {
+  assert.match(linux.html, new RegExp(`<svg\\b(?=[^>]*data-architecture="${diagram}")(?=[^>]*role="img")`), diagram);
+}
 const switchSearch = await read("/computer?category=switch&q=" + encodeURIComponent("트렁크") + "&tag=VLAN");
 assert.match(switchSearch.html, /href="\/computer\/vlan"/);
 assert.doesNotMatch(switchSearch.html, /href="\/computer\/(?:getting-started|development-workflow)"/);
