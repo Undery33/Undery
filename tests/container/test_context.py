@@ -124,7 +124,7 @@ class ContextTests(unittest.TestCase):
                          (self.source / 'dist/index.html').read_bytes())
 
     def test_social_and_site_navigation_are_links_only(self):
-        files = {'dist/app.js': b'', 'dist/styles.css': b''}
+        files = {'dist/styles.css': b''}
         links = ('/vrchat', '/birthday', 'https://vrc.group/ASS.8448',
                  'https://discord.gg/gub', 'https://x.com/VRC_UDR')
         files['dist/index.html'] = ''.join(f'<a href="{href}">Link</a>' for href in links).encode()

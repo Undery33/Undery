@@ -9,6 +9,7 @@ const types = {
   '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8',
   '.json':'application/json; charset=utf-8', '.png':'image/png', '.svg':'image/svg+xml', '.webp':'image/webp',
   '.jpg':'image/jpeg', '.jpeg':'image/jpeg', '.ico':'image/x-icon', '.mp4':'video/mp4', '.webm':'video/webm',
+  '.woff2':'font/woff2',
 };
 const server = http.createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) {

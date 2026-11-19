@@ -137,8 +137,8 @@ class AssetReferences(HTMLParser):
 
 
 def validate_assets(files):
-    require('dist/index.html' in files and 'dist/styles.css' in files and 'dist/app.js' in files,
-            'GUI must include tracked dist/index.html, dist/styles.css and dist/app.js')
+    require('dist/index.html' in files and 'dist/styles.css' in files,
+            'GUI must include tracked dist/index.html and dist/styles.css')
     require(len(files) <= MAX_FILES and sum(map(len, files.values())) <= MAX_TOTAL_BYTES,
             'Static GUI exceeds the context size limit')
     for name, data in files.items():

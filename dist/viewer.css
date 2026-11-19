@@ -1,0 +1,59 @@
+body:has(.gallery-dialog[open]) { overflow: hidden; }
+
+.gallery-dialog {
+  --gutter: clamp(30px, 5vw, 64px);
+  width: fit-content;
+  height: fit-content;
+  max-width: 100%;
+  max-height: 100dvh;
+  margin: auto;
+  border: 0;
+  padding: 0 var(--gutter);
+  overflow: visible;
+  background: transparent;
+  color: white;
+}
+.gallery-dialog::backdrop { background: rgb(12 10 7 / .92); }
+.viewer-frame { position: relative; margin: 0; outline: none; }
+.viewer-frame img, .viewer-frame video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(75rem, calc(100vw - 2 * var(--gutter)));
+  max-height: 88dvh;
+  object-fit: contain;
+}
+.gallery-dialog button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: max(44px, var(--gutter));
+  height: 56px;
+  z-index: 1;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.gallery-dialog button[hidden] { display: none; }
+.viewer-prev { left: 0; }
+.viewer-next { right: 0; }
+.gallery-dialog button::before {
+  content: "";
+  width: clamp(11px, 1.5vw, 19px);
+  aspect-ratio: 1;
+  border: solid currentColor;
+  border-width: 2px 2px 0 0;
+}
+.viewer-prev::before { transform: rotate(-135deg); }
+.viewer-next::before { transform: rotate(45deg); }
+.gallery-dialog button:focus-visible { outline: 2px solid white; outline-offset: -4px; }
+@media (prefers-reduced-motion: no-preference) {
+  .viewer-frame[data-direction] > * { animation: viewer-slide .16s ease-out; }
+  .viewer-frame[data-direction="next"] { --entry: 12px; }
+  .viewer-frame[data-direction="prev"] { --entry: -12px; }
+  @keyframes viewer-slide { from { transform: translateX(var(--entry)); opacity: .75; } }
+}
