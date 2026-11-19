@@ -4,8 +4,7 @@ import styles from "./birthday.module.css";
 import poster from "./poster.webp";
 
 export const metadata: Metadata = {
-  title: "Undery #26 생일 파티",
-  description: "11월 22일 오후 4시 5분, VRChat에서 열리는 Undery의 생일 파티 포스터입니다.",
+  title: { absolute: "Undery Birthday!" },
 };
 
 export default function BirthdayPage() {

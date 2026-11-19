@@ -9,8 +9,15 @@ if (process.env.SMOKE_ADMIN_ENABLED && !["true", "false"].includes(process.env.S
 }
 
 async function read(path, options) {
-  const response = await fetch(new URL(path, origin), { redirect: "manual", signal: AbortSignal.timeout(15000), ...options });
-  return { response, html: await response.text() };
+  const headers = new Headers(options?.headers);
+  headers.set("User-Agent", "Discordbot/2.0 (+https://discordapp.com)");
+  const response = await fetch(new URL(path, origin), { redirect: "manual", signal: AbortSignal.timeout(15000), ...options, headers });
+  const html = await response.text();
+  if (response.headers.get("content-type")?.includes("text/html")) {
+    assert.doesNotMatch(html, /<meta\b[^>]*\s(?:name|property|itemprop)\s*=\s*["'](?:description|og:description|twitter:description)["']/i,
+      "Discord preview descriptions must be absent at " + path);
+  }
+  return { response, html };
 }
 
 const health = await read("/api/health");

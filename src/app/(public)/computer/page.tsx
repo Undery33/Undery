@@ -9,8 +9,7 @@ import { computerCategories, getComputerCategory, type ComputerCategory } from "
 import { linuxTopics, type LinuxTopic } from "@/lib/linux-topics";
 
 export const metadata: Metadata = {
-  title: "Computer",
-  description: "3D 구성도에서 장비를 선택하고 네트워크와 서버 기술 글을 찾아보세요.",
+  title: "SE",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
