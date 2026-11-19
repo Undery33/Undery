@@ -46,40 +46,68 @@
     }
   }
 
-  function viewer() {
+  function viewer(noun) {
     const dialog = make("dialog", "gallery-dialog");
-    const close = make("button", "", "닫기");
-    close.type = "button";
-    const figure = make("figure");
-    dialog.setAttribute("aria-labelledby", "media-caption");
-    dialog.append(close, figure);
+    dialog.setAttribute("aria-label", noun + " 확대 보기");
+    const frame = make("div", "viewer-frame");
+    frame.tabIndex = -1;
+    const prev = make("button", "viewer-prev");
+    const next = make("button", "viewer-next");
+    prev.type = next.type = "button";
+    prev.setAttribute("aria-label", "이전 " + noun);
+    next.setAttribute("aria-label", "다음 " + noun);
+    dialog.append(prev, frame, next);
     document.body.append(dialog);
-    close.addEventListener("click", () => dialog.close());
-    dialog.addEventListener("click", event => {
-      if (event.target !== dialog) return;
-      const bounds = dialog.getBoundingClientRect();
-      if (event.clientX < bounds.left || event.clientX > bounds.right ||
-          event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
-    });
-    dialog.addEventListener("close", () => {
-      figure.querySelector("video")?.pause();
-      figure.replaceChildren();
-    });
-    return item => {
+    let items = [];
+    let index = 0;
+
+    function display() {
+      const item = items[index];
+      frame.querySelector("video")?.pause();
       const media = make(item.type === "photo" ? "img" : "video");
       media.src = item.src;
       if (item.type === "video") {
         media.controls = true;
         media.playsInline = true;
+        media.setAttribute("aria-label", item.alt);
         if (item.thumbnail) media.poster = item.thumbnail;
       } else {
         media.alt = item.alt;
       }
-      const caption = make("figcaption", "", item.alt);
-      caption.id = "media-caption";
-      figure.replaceChildren(media, caption);
+      frame.replaceChildren(media);
+    }
+
+    function step(direction) {
+      if (items.length < 2) return;
+      index = (index + direction + items.length) % items.length;
+      frame.dataset.direction = direction > 0 ? "next" : "prev";
+      display();
+    }
+    prev.addEventListener("click", () => step(-1));
+    next.addEventListener("click", () => step(1));
+    dialog.addEventListener("keydown", event => {
+      if (event.target.tagName === "VIDEO" || event.altKey || event.metaKey || event.ctrlKey) return;
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        event.preventDefault();
+        step(event.key === "ArrowRight" ? 1 : -1);
+      }
+    });
+    dialog.addEventListener("click", event => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener("close", () => {
+      frame.querySelector("video")?.pause();
+      frame.replaceChildren();
+      items = [];
+    });
+    return (entries, item) => {
+      items = entries;
+      index = items.indexOf(item);
+      prev.hidden = next.hidden = items.length < 2;
+      delete frame.dataset.direction;
+      display();
       dialog.showModal();
-      close.focus();
+      frame.focus({preventScroll: true});
     };
   }
 
@@ -105,7 +133,8 @@
     const more = document.querySelector(".gallery-more");
     const entries = items.filter(item => item.type === type);
     const noun = type === "photo" ? "사진" : "영상";
-    const open = viewer();
+    const open = viewer(noun);
+    let visibleMedia = [];
     let pages = 1;
     const selectedTags = new Set();
     let quality = "";
@@ -130,6 +159,7 @@
     for (const [label, values] of [["연도", years], ["월", numbers(12)], ["일", numbers(31)]]) {
       const select = make("select");
       select.setAttribute("aria-label", label);
+      select.className = "filter-date";
       select.add(new Option(label, ""));
       for (const value of values) select.add(new Option(String(Number(value)), value));
       select.addEventListener("change", () => {
@@ -149,7 +179,8 @@
     const buttons = [];
     function toggles(options, values, isQuality) {
       for (const value of values) {
-        const button = make("button", "", value);
+        const button = make("button", "filter-choice");
+        button.append(make("span", "", value));
         button.type = "button";
         button.addEventListener("click", () => {
           if (isQuality) quality = quality === value ? "" : value;
@@ -181,7 +212,7 @@
       render();
       dates[0].focus();
     });
-    form.append(reset);
+    dateRow.append(reset);
     form.hidden = false;
 
     function grid(orientation, media, size, filtered) {
@@ -189,6 +220,7 @@
       list.dataset.orientation = orientation;
       list.setAttribute("aria-label", orientation === "photo" ? "사진" : orientation === "portrait" ? "세로 영상" : "가로 영상");
       const visible = media.slice(0, size * pages);
+      visibleMedia.push(...visible);
       const count = filtered ? visible.length : Math.max(size, Math.ceil(visible.length / size) * size);
       for (let i = 0; i < count; i++) {
         const tile = make("li", "gallery-tile");
@@ -203,7 +235,7 @@
           link.addEventListener("click", event => {
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
-            open(item);
+            open(visibleMedia, item);
           });
           tile.append(link);
         } else {
@@ -219,7 +251,6 @@
       for (const {button, value, isQuality} of buttons) {
         button.setAttribute("aria-pressed", String(isQuality ? quality === value : selectedTags.has(value)));
       }
-      for (const select of dates) select.classList.toggle("is-active", Boolean(select.value));
       const filtered = Boolean(quality || selectedTags.size || dates.some(select => select.value));
       reset.hidden = !filtered;
       const result = entries.filter(item =>
@@ -227,6 +258,7 @@
         dates.every((select, i) => !select.value || select.value === item.date?.split("-")[i])
       );
       grids.replaceChildren();
+      visibleMedia = [];
       let displayed;
       if (type === "photo") displayed = grid("photo", result, 18, filtered);
       else {
