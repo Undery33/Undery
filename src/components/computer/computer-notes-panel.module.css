@@ -1,0 +1,87 @@
+@import "../../fonts/freesentation.css";
+
+.panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(1.5rem, 7.3svh, 5.5rem) clamp(1.1rem, 4vw, 5rem)
+    clamp(.85rem, 3svh, 2.25rem) clamp(.85rem, 1.35vw, 1.7rem);
+  background: var(--computer-paper);
+  color: var(--computer-ink);
+  font-family: "Freesentation", sans-serif;
+  overflow-wrap: anywhere;
+}
+
+.title {
+  margin: 0;
+  border-bottom: 1px solid currentColor;
+  padding: 0 clamp(.6rem, 1.15vw, 1.4rem) clamp(.75rem, 2.75svh, 1.85rem);
+  font-size: clamp(1.6rem, 3.45vw, 4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.025em;
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(.65rem, 3.3svh, 2.2rem) clamp(.55rem, 1vw, 1.2rem) .5rem;
+}
+
+.topics {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: .32em .63em;
+  font-size: clamp(.9375rem, 1.44vw, 1.65rem);
+  font-weight: 200;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.topics li + li { margin-top: .15rem; }
+.panel .row:hover:focus-visible { outline: none; }
+.row::-webkit-details-marker { display: none; }
+.row:is(:hover, :focus-visible),
+.topics details[open] > .row {
+  background: var(--computer-ink);
+  color: var(--computer-paper);
+}
+
+.body {
+  max-width: 62ch;
+  padding: .55rem .7rem 1rem;
+  font-size: clamp(.9375rem, 1.25vw, 1.2rem);
+  line-height: 1.65;
+  word-break: keep-all;
+}
+.body p { margin: 0 0 .6em; }
+.body a { color: inherit; text-underline-offset: .2em; }
+.body :global(.prose) { line-height: inherit; }
+.body :global(.prose) :not(pre) > code { color: inherit; background: var(--computer-soft); }
+.caption {
+  border-top: 1px solid var(--computer-ink);
+  padding: clamp(.45rem, 1.65svh, 1.1rem) .17em 0;
+  color: var(--computer-ink);
+  text-align: right;
+  font-size: clamp(.875rem, 1.44vw, 1.65rem);
+  font-weight: 100;
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  .panel { padding: 1.1rem .35rem 1rem .5rem; }
+  .title { padding-inline: .2rem; font-size: clamp(1.35rem, 5.4vw, 1.85rem); }
+  .content { padding-inline: 0; }
+}
+
+@media (pointer: coarse) {
+  .row { min-height: 44px; padding-block: .75em; }
+}
