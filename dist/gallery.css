@@ -9,8 +9,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { background: var(--gold); color: var(--ink); margin: 0; }
 [hidden] { display: none !important; }
-button, select { font: inherit; }
-button, select, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid #433000; outline-offset: 2px; }
 .gallery-width { width: var(--gallery-column); margin-inline: auto; container-type: inline-size; }
 .gallery-heading { background: white; color: var(--gold); overflow: hidden; }
@@ -54,7 +54,7 @@ button, select, a { -webkit-tap-highlight-color: transparent; }
   display: flex; align-items: center; flex-wrap: wrap; gap: 0 .20em;
   padding-inline-start: .53em;
 }
-.filter-choice, .filter-date {
+.filter-choice {
   display: inline-grid; place-items: center; min-height: var(--filter-row);
   margin: 0; border: 0; padding: 0; color: inherit; background: transparent; cursor: pointer;
 }
@@ -62,13 +62,7 @@ button, select, a { -webkit-tap-highlight-color: transparent; }
   padding: .23em .59em; border-radius: 999px; white-space: nowrap;
 }
 .filter-choice[aria-pressed="true"] span { min-width: 2.8em; background: var(--gold); color: white; }
-.filter-choice:hover span, .filter-date:hover { text-decoration: underline; }
-.filter-date {
-  appearance: none; text-align: center; text-align-last: center; border-radius: .2em;
-  width: 2.1em; font-variant-numeric: tabular-nums;
-}
-.filter-date:first-child { width: 3em; }
-.filter-date option { color: #3c310a; background: white; }
+.filter-choice:hover span { text-decoration: underline; }
 .filter-options :focus-visible, .gallery-back:focus-visible { outline: 2px solid #805c00; outline-offset: 0; }
 .gallery-results { border-top: 1px solid white; margin-top: clamp(10px, 2.6cqw, 24px); padding-top: clamp(10px, 2.7cqw, 25px); }
 .gallery-grids { margin-inline: 2.3%; }
@@ -77,10 +71,12 @@ button, select, a { -webkit-tap-highlight-color: transparent; }
   gap: clamp(5px, 1.45cqw, 14px) clamp(7px, 1.9cqw, 20px);
   margin: 0; padding: 0; list-style: none;
 }
-.gallery-grid + .gallery-grid { margin-top: clamp(15px, 4.4cqw, 30px); }
 .gallery-grid.is-portrait { grid-template-columns: repeat(4,minmax(0,1fr)); gap: clamp(10px, 3.7cqw, 28px); }
+.gallery-grid.is-mixed { grid-template-columns: repeat(12,minmax(0,1fr)); align-items: start; }
+.is-mixed .gallery-tile { grid-column: span 4; }
+.is-mixed .portrait-tile { grid-column: span 3; }
 .gallery-tile { aspect-ratio: 1.66; background: white; min-width: 0; }
-.is-portrait .gallery-tile { aspect-ratio: 9 / 15.5; }
+.portrait-tile { aspect-ratio: 9 / 15.5; }
 .gallery-tile a, .gallery-tile img, .gallery-tile video { display: block; width: 100%; height: 100%; }
 .gallery-tile a { overflow: hidden; }
 .gallery-tile img, .gallery-tile video { object-fit: cover; }
