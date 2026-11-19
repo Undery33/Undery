@@ -32,17 +32,17 @@
   function populatePreviews(items) {
     for (const list of previewLists) {
       const mediaType = list.dataset.galleryPreview;
-      const entries = items.filter(item => item.type === mediaType);
-      Array.from(list.children).forEach((tile, index) => {
-        const entry = entries[index];
-        if (!entry) return;
+      const limit = mediaType === "photo" ? 6 : 4;
+      const entries = items.filter(item => item.type === mediaType).slice(0, limit);
+      list.replaceChildren(...entries.map(entry => {
+        const tile = make("li");
         const link = make("a");
         link.href = mediaType === "photo" ? "/vrchat/photos.html" : "/vrchat/videos.html";
         link.setAttribute("aria-label", entry.alt + (mediaType === "photo" ? " 사진 목록 보기" : " 영상 목록 보기"));
         link.append(thumbnail(entry));
-        tile.removeAttribute("aria-hidden");
-        tile.replaceChildren(link);
-      });
+        tile.append(link);
+        return tile;
+      }));
     }
   }
 
@@ -215,35 +215,30 @@
     dateRow.append(reset);
     form.hidden = false;
 
-    function grid(orientation, media, size, filtered) {
+    function grid(orientation, media, size) {
+      if (!media.length) return 0;
       const list = make("ul", "gallery-grid" + (orientation === "portrait" ? " is-portrait" : ""));
       list.dataset.orientation = orientation;
       list.setAttribute("aria-label", orientation === "photo" ? "사진" : orientation === "portrait" ? "세로 영상" : "가로 영상");
       const visible = media.slice(0, size * pages);
       visibleMedia.push(...visible);
-      const count = filtered ? visible.length : Math.max(size, Math.ceil(visible.length / size) * size);
-      for (let i = 0; i < count; i++) {
+      for (const item of visible) {
         const tile = make("li", "gallery-tile");
-        const item = visible[i];
-        if (item) {
-          const link = make("a");
-          link.href = item.src;
-          link.dataset.mediaId = item.id;
-          link.setAttribute("aria-label", item.alt);
-          link.setAttribute("aria-haspopup", "dialog");
-          link.append(thumbnail(item));
-          link.addEventListener("click", event => {
-            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-            event.preventDefault();
-            open(visibleMedia, item);
-          });
-          tile.append(link);
-        } else {
-          tile.setAttribute("aria-hidden", "true");
-        }
+        const link = make("a");
+        link.href = item.src;
+        link.dataset.mediaId = item.id;
+        link.setAttribute("aria-label", item.alt);
+        link.setAttribute("aria-haspopup", "dialog");
+        link.append(thumbnail(item));
+        link.addEventListener("click", event => {
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          open(visibleMedia, item);
+        });
+        tile.append(link);
         list.append(tile);
       }
-      if (count) grids.append(list);
+      grids.append(list);
       return visible.length;
     }
 
@@ -260,13 +255,13 @@
       grids.replaceChildren();
       visibleMedia = [];
       let displayed;
-      if (type === "photo") displayed = grid("photo", result, 18, filtered);
+      if (type === "photo") displayed = grid("photo", result, 18);
       else {
-        displayed = grid("portrait", result.filter(item => item.height > item.width), 8, filtered);
-        displayed += grid("landscape", result.filter(item => item.height <= item.width), 6, filtered);
+        displayed = grid("portrait", result.filter(item => item.height > item.width), 8);
+        displayed += grid("landscape", result.filter(item => item.height <= item.width), 6);
       }
       more.disabled = displayed >= result.length;
-      status.classList.toggle("is-quiet", result.length > 0 || !filtered);
+      status.classList.toggle("is-quiet", result.length > 0);
       if (result.length) status.textContent = noun + " " + result.length + "개 중 " + displayed + "개 표시";
       else status.textContent = filtered ? "조건에 맞는 " + noun + "이 없습니다." : "아직 등록된 " + noun + "이 없습니다.";
       document.querySelector(".gallery-results").setAttribute("aria-busy", "false");
@@ -283,7 +278,7 @@
 
   async function load() {
     try {
-      const response = await fetch("/vrchat/media.json");
+      const response = await fetch("/api/vrchat/media");
       if (!response.ok) throw new Error("Media catalog unavailable");
       const items = await response.json();
       items.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
