@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getPost, getPosts } from "@/lib/posts";
+import PostPage, { generateMetadata } from "@/app/(public)/posts/[slug]/page";
+import { renderToStaticMarkup } from "react-dom/server";
 
 describe("general Markdown posts", () => {
   let root: string;
@@ -47,6 +49,16 @@ describe("general Markdown posts", () => {
     expect(await getPost("older")).toMatchObject({ category: "일반", description: "", tags: [] });
     expect(await getPost("hidden")).toBeUndefined();
     expect(await getPost("unknown")).toBeUndefined();
+  });
+
+  it("displays an author's summary inside the post and omits it from link metadata", async () => {
+    await writePost("summary", "2026-11-18", 'description: "공연 후기 요약"');
+    const request = { params: Promise.resolve({ slug: "summary" }) };
+    const metadata = await generateMetadata(request);
+    for (const field of ["description", "openGraph.description", "twitter.description"]) {
+      expect(metadata).not.toHaveProperty(field);
+    }
+    expect(renderToStaticMarkup(await PostPage(request))).toContain("<p>공연 후기 요약</p>");
   });
 
   it("rejects unsafe lookup slugs and invalid filenames", async () => {

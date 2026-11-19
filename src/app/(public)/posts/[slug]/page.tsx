@@ -16,7 +16,7 @@ const readPost = cache(async (slug: string) => {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await readPost((await params).slug);
-  return { title: post.title, description: post.description || undefined };
+  return { title: post.title };
 }
 
 export default async function PostPage({ params }: Props) {

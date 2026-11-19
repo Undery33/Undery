@@ -6,7 +6,6 @@ import styles from "./posts.module.css";
 
 export const metadata: Metadata = {
   title: "POST",
-  description: "Undery가 작성한 게시글을 찾아보세요.",
 };
 
 type Props = { searchParams: Promise<{ q?: string | string[] }> };

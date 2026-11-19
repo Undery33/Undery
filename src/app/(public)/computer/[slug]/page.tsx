@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = await getArticle((await params).slug);
   if (!article) return { title: "글을 찾을 수 없습니다" };
-  return { title: article.title, description: article.description };
+  return { title: article.title };
 }
 
 export default async function ArticlePage({ params }: Props) {

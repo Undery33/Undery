@@ -1,6 +1,5 @@
 export const site = {
   name: "Undery",
-  description: "기술과 취미를 기록하는 개인 공간",
 };
 
 export function siteOrigin(): URL {
