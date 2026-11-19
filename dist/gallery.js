@@ -33,7 +33,8 @@
     for (const list of previewLists) {
       const mediaType = list.dataset.galleryPreview;
       const limit = mediaType === "photo" ? 6 : 4;
-      const entries = items.filter(item => item.type === mediaType).slice(0, limit);
+      const entries = items.filter(item => item.type === mediaType)
+        .sort((a, b) => compareDates(a, b, mediaType, "desc")).slice(0, limit);
       list.replaceChildren(...entries.map(entry => {
         const tile = make("li");
         const link = make("a");
@@ -126,10 +127,13 @@
     return "";
   }
 
-  function compareDates(a, b, order) {
-    if (!a.date) return b.date ? 1 : 0;
-    if (!b.date) return -1;
-    return order === "asc" ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
+  function compareDates(a, b, mediaType, order) {
+    const key = mediaType === "photo" ? "uploadedAt" : "date";
+    const first = a[key];
+    const second = b[key];
+    if (!first) return second ? 1 : 0;
+    if (!second) return -1;
+    return order === "asc" ? first.localeCompare(second) : second.localeCompare(first);
   }
 
   function prepareGallery(items) {
@@ -235,7 +239,7 @@
       reset.hidden = !filtered && dateOrder === "desc";
       const result = entries.filter(item =>
         (!quality || resolution(item) === quality) && [...selectedTags].every(tag => hasTag(item, tag))
-      ).sort((a, b) => compareDates(a, b, dateOrder));
+      ).sort((a, b) => compareDates(a, b, type, dateOrder));
       let limit = 18 * pages;
       if (type === "video") {
         const portraits = result.filter(item => item.height > item.width).length;
@@ -266,7 +270,7 @@
       const response = await fetch("/api/vrchat/media");
       if (!response.ok) throw new Error("Media catalog unavailable");
       const items = await response.json();
-      if (previewLists.length) populatePreviews(items.sort((a, b) => compareDates(a, b, "desc")));
+      if (previewLists.length) populatePreviews(items);
       if (type) prepareGallery(items);
     } catch {
       if (!type) return;

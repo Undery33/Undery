@@ -9,10 +9,11 @@ import { checkUploadHeaders, receiveMedia } from "./vrchat-media-upload";
 
 export type GalleryItem = {
   id: string; type: "photo" | "video"; alt: string; width: number; height: number;
-  date: string | null; tags: string[]; src: string; thumbnail: string;
+  date: string | null; uploadedAt: string; tags: string[]; src: string; thumbnail: string;
 };
 
 const publicColumns = "id,type,alt,width,height,to_char(taken_on,'YYYY-MM-DD') AS date,tags," +
+  `to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "uploadedAt",` +
   "coalesce(static_src,'/api/vrchat/media/files/'||id||'/original') AS src," +
   "coalesce(static_thumbnail,'/api/vrchat/media/files/'||id||'/thumbnail') AS thumbnail";
 
@@ -32,7 +33,8 @@ export class GalleryStore {
 
   async list() {
     const rows = await this.pool.query<GalleryItem>("SELECT " + publicColumns + " FROM " + this.table +
-      " ORDER BY taken_on DESC NULLS LAST, created_at DESC, id");
+      " ORDER BY CASE WHEN type = 'photo' THEN created_at ELSE taken_on::timestamp AT TIME ZONE 'UTC' END DESC NULLS LAST," +
+      " created_at DESC, taken_on DESC NULLS LAST, id");
     return rows.rows;
   }
 
