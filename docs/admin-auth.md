@@ -17,7 +17,7 @@
 
 ## 경로와 보안 계약
 
-- 관리자 화면: `/birthday/memo/admin`. 설정된 경우 `/admin`은 여기로 이동합니다. 그 밖의 기존 `/admin/*` 경로와 미설정 상태는 기존 HTTP 503 차단을 유지합니다.
+- 관리자 화면은 `/birthday/memo/admin`과 `/vrchat/admin`입니다. 설정된 경우 `/admin`은 메시지 관리로 이동합니다. VRChat 화면은 로그인과 로그아웃 요청에 `?section=vrchat`을 사용하며 서버가 정한 고정 경로로 돌아옵니다. 로그인 시작 위치는 브라우저에 바인딩된 state의 해시에 포함됩니다.
 - 로그인 시작: 같은 origin의 `fetch`에서 `POST /api/auth/github`, `credentials: same-origin`, `Accept: application/json`. 성공 JSON의 `redirectTo`는 서버가 생성한 GitHub 인증 URL이며 브라우저가 그 주소로 이동합니다.
 - callback: `GET /api/auth/github/callback`. state·로그인 브라우저 쿠키·만료 시간을 함께 검사하고 PostgreSQL `DELETE ... RETURNING`으로 한 번만 소비합니다. HEAD로 state를 소비하지 않습니다.
 - 로그아웃: 같은 origin의 `fetch`에서 `POST /api/auth/logout`, `Accept: application/json`, `application/x-www-form-urlencoded` 본문의 `csrfToken`. 세션과 같은 origin·CSRF를 검사한 뒤 그 세션만 폐기하고 고정 경로 `/birthday/memo/admin`을 JSON `redirectTo`로 반환합니다.

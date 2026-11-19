@@ -96,6 +96,14 @@ function setCookie(response: Response, config: AdminAuthConfig, kind: "login" | 
 
 function redirect(location: string) { return new Response(null, { status: 303, headers: { ...memoHeaders, Location: location } }); }
 
+const vrchatAdmin = "/vrchat/admin";
+const birthdayAdmin = "/birthday/memo/admin";
+const vrchatStatePrefix = "vrchat.";
+
+function adminDestination(request: Request) {
+  return new URL(request.url).searchParams.get("section") === "vrchat" ? vrchatAdmin : birthdayAdmin;
+}
+
 /** Database counters prevent concurrent processes or restarts from bypassing throttling. */
 async function limitLogin(request: Request) {
   for (const [key, limit] of [[hash(`undery-admin-login:${memoClientAddress(request)}`), 10], [hash("undery-admin-login:global"), 60]] as const) {
@@ -114,7 +122,9 @@ export async function startAdminLogin(request: Request) {
   const config = configured();
   if (!sameAdminOrigin(request.headers, config.origin)) throw new MemoError("forbidden_origin", 403, "허용되지 않은 요청입니다.");
   await limitLogin(request);
-  const state = token(), browser = token(), verifier = token();
+  // Include the entry point in the opaque state whose full hash is bound to this browser.
+  const state = (adminDestination(request) === vrchatAdmin ? vrchatStatePrefix : "") + token();
+  const browser = token(), verifier = token();
   const pool = getBirthdayMemoPool();
   await pool.query(`DELETE FROM public."AdminLoginAttempt" WHERE "expiresAt" <= (now() AT TIME ZONE 'UTC')`);
   await pool.query(`INSERT INTO public."AdminLoginAttempt"("stateHash","browserHash",verifier,"expiresAt")
@@ -180,13 +190,16 @@ export async function verifyGitHubOwner(config: AdminAuthConfig, code: string, v
 
 export async function finishAdminLogin(request: Request) {
   const config = configured();
-  const response = redirect(`${config.origin}/birthday/memo/admin?error=login`);
-  setCookie(response, config, "login", "", 0);
   const url = new URL(request.url);
   const state = url.searchParams.get("state") ?? "", code = url.searchParams.get("code") ?? "";
+  const forVrchat = state.startsWith(vrchatStatePrefix);
+  const destination = config.origin + (forVrchat ? vrchatAdmin : birthdayAdmin);
+  const response = redirect(destination + "?error=login");
+  setCookie(response, config, "login", "", 0);
   const browser = readCookie(request.headers, adminCookieName("login", config.secure));
   if (url.searchParams.getAll("state").length !== 1 || url.searchParams.getAll("code").length !== 1 ||
-      !tokenPattern.test(state) || !browser || !code || code.length > 512 || url.searchParams.has("error")) return response;
+      !tokenPattern.test(forVrchat ? state.slice(vrchatStatePrefix.length) : state) ||
+      !browser || !code || code.length > 512 || url.searchParams.has("error")) return response;
   try {
     const pool = getBirthdayMemoPool();
     // DELETE ... RETURNING consumes the browser-bound state once, before exchange.
@@ -211,7 +224,7 @@ export async function finishAdminLogin(request: Request) {
       await client.query("ROLLBACK").catch(() => undefined);
       throw error;
     } finally { client.release(); }
-    response.headers.set("Location", `${config.origin}/birthday/memo/admin`);
+    response.headers.set("Location", destination);
     setCookie(response, config, "session", session, 28800);
   } catch { /* Do not expose provider responses, authorization codes, sessions, or database details. */ }
   return response;
@@ -231,8 +244,9 @@ export async function logoutAdmin(request: Request) {
     throw new MemoError("invalid_csrf", 403, "로그인 상태를 새로 확인한 뒤 다시 시도해 주세요.");
   }
   await getBirthdayMemoPool().query(`DELETE FROM public."AdminSession" WHERE "tokenHash"=$1 AND "githubUserId"=$2`, [session.tokenHash, config.ownerId]);
+  const destination = adminDestination(request);
   const response = request.headers.get("accept") === "application/json"
-    ? memoJson({ ok: true, redirectTo: "/birthday/memo/admin" }) : redirect(`${config.origin}/birthday/memo/admin`);
+    ? memoJson({ ok: true, redirectTo: destination }) : redirect(config.origin + destination);
   setCookie(response, config, "session", "", 0);
   return response;
 }

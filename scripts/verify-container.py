@@ -151,6 +151,12 @@ def verify(base, expected):
             assert url.startswith('/vrchat/assets/'), url
             asset(url)
     print('PASS VRChat home, social links, event, media galleries and bundled assets')
+    admin_html, _, _ = html_page('/vrchat/admin')
+    assert '관리자' in admin_html, 'VRChat admin must reach Next instead of the static GUI'
+    status, _, body = read('/api/vrchat/media')
+    assert status == 503 and json.loads(body)['error'] == 'storage_unavailable', 'CI has no gallery database'
+    assert read('/api/vrchat/media', method='POST')[0] in (401, 403, 503), 'Upload must reach the protected API'
+    assert read('/api/vrchat/media/extra', method='POST')[0] == 405
     for path, location in (('/vrchat/', '/vrchat'),
                            ('/vrchat/?view=gallery&from=qa', '/vrchat?view=gallery&from=qa')):
         status, headers, _ = read(path)

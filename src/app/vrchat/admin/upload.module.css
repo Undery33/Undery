@@ -1,0 +1,55 @@
+@import "../../../fonts/freesentation.css";
+
+.page {
+  --accent: #604700;
+  min-height: 100svh;
+  border-top: 6px solid #fdc41f;
+  background: #fffdf7;
+  color: #262626;
+  font-family: "Freesentation", sans-serif;
+}
+.content { max-width: 52rem; margin: auto; padding: clamp(18px, 4vw, 46px) clamp(18px, 4vw, 44px) 64px; }
+.nav, .actions, .rowActions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.nav { min-height: 44px; justify-content: space-between; }
+.nav a { color: #494236; text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+.content h1 { margin: clamp(24px, 6vw, 64px) 0 24px; color: #262626; font-size: clamp(2rem, 5vw, 3.25rem); }
+.page button { color: #fff; background: #262626; border: 1px solid #262626; border-radius: 5px; }
+.page button:hover:enabled { color: #fff; background: #474239; }
+.page button:disabled { cursor: default; background: #e6e2d8; color: #746f61; border-color: #e6e2d8; }
+.page .logout, .rowActions button { min-height: 36px; padding: 5px 12px; background: transparent; border-color: #beb9ae; color: #413d33; }
+.login { margin-top: 24px; }
+.login p { margin-bottom: 16px; }
+
+.drop {
+  display: grid;
+  position: relative;
+  place-content: center;
+  gap: 5px;
+  min-height: clamp(138px, 21vw, 178px);
+  padding: 20px;
+  border: 2px dashed #b7aa84;
+  border-radius: 8px;
+  background: #fff;
+  text-align: center;
+}
+.drop input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.drop strong { font-size: clamp(1.1rem, 3vw, 1.4rem); }
+.drop span, .actions span, .file small { color: #655f52; }
+.drop span { font-size: .94rem; }
+.drop[data-dragging="true"], .drop:focus-within { background: #fff5cb; border: 2px solid #785900; }
+.drop[data-busy="true"] { opacity: .65; }
+.drop[data-busy="true"] input { cursor: default; }
+.tags { border: 0; padding: 0; margin: 22px 0; }
+.tags legend { padding: 0; margin-bottom: 6px; font-weight: 700; }
+.tags legend span { font-weight: 400; color: #655f52; }
+.tags label { display: inline-flex; align-items: center; gap: 6px; margin-right: 20px; min-height: 36px; cursor: pointer; }
+.tags input { margin: 0; width: 17px; height: 17px; accent-color: #785900; }
+.actions span { font-size: .93rem; }
+.queue { margin: 24px 0 0; padding: 0; list-style: none; }
+.queue li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; padding: 14px 0; border-top: 1px solid #dedacd; }
+.file { flex: 1 1 14rem; min-width: 0; }
+.file strong, .file small { display: block; overflow-wrap: anywhere; }
+.file p { margin: 4px 0 0; color: #962c17; }
+.rowActions { gap: 6px; }
+.rowActions:empty { display: none; }
