@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { HomePosts } from "@/components/home/home-posts";
 import { HomeStack } from "@/components/home/home-stack";
+import equipment from "@/components/home/assets/cisco-equipment.png";
 import discord from "@/components/home/assets/discord.png";
 import github from "@/components/home/assets/github.png";
 import instagram from "@/components/home/assets/instagram.png";
@@ -44,7 +45,7 @@ export default function HomePage() {
       <section className={styles.content} aria-labelledby="content-heading">
         <h2 id="content-heading" className={styles.sectionTitle}>CONTENT</h2>
         <Link className={styles.techLink} href="/computer" aria-label="Computer · 기술에 대해 궁금하시다면?">
-          <span className={styles.techBanner} aria-hidden="true" />
+          <Image className={styles.techBanner} src={equipment} alt="Cisco 네트워크 장비와 서버 연결 구성도" unoptimized />
           <span className={styles.caption}>기술에 대해 궁금하시다면?</span>
         </Link>
         <div className={styles.games}>

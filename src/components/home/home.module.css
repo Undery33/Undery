@@ -113,8 +113,7 @@ body:has(.page) > :global(.site-footer) { display: none; }
 .techBanner {
   display: block;
   width: 100%;
-  aspect-ratio: 2190 / 265;
-  background: #fff;
+  height: auto;
 }
 .caption {
   display: block;
@@ -147,7 +146,6 @@ body:has(.page) > :global(.site-footer) { display: none; }
   .content { margin-top: 2.25rem; }
   .sectionTitle { padding: 0 0 .35rem; font-size: 1.75rem; }
   .techLink { margin-top: .85rem; }
-  .techBanner { min-height: 3.5rem; }
   .caption { margin: .4rem 0 0; font-size: .9rem; }
   .games { margin-top: 1.15rem; gap: .65rem; }
   .page > :last-child { padding-bottom: 2rem; }
