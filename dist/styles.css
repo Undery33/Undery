@@ -25,6 +25,13 @@ ul { list-style: none; padding: 0; }
 }
 
 .landing { width: 100%; container-type: inline-size; }
+.vrchat-peek { width: clamp(80px, 9vw, 144px); }
+
+@media (min-width: 640px) and (min-aspect-ratio: 3 / 2) {
+  body { position: relative; }
+  .vrchat-peek { position: absolute; left: 0; bottom: 0; }
+}
+
 .hero {
   position: relative;
   aspect-ratio: 16 / 9;
