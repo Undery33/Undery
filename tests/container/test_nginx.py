@@ -22,6 +22,9 @@ class NginxRoutingTests(unittest.TestCase):
 
         class Backend(BaseHTTPRequestHandler):
             def handle_request(self):
+                length = int(self.headers.get('Content-Length', 0))
+                if length:
+                    self.rfile.read(length)
                 seen.append((self.command, self.path, self.headers.get('X-Undery-Client-IP')))
                 self.send_response(503)
                 self.send_header('Content-Type', 'application/json')
@@ -66,9 +69,9 @@ class NginxRoutingTests(unittest.TestCase):
                         else:
                             self.fail('Isolated Nginx did not bind')
 
-                        def read(path, method):
+                        def read(path, method, data=None):
                             request = urllib.request.Request(f'http://127.0.0.1:{port}' + path,
-                                method=method, headers={'X-Undery-Client-IP': '192.0.2.55'})
+                                method=method, data=data, headers={'X-Undery-Client-IP': '192.0.2.55'})
                             try:
                                 response = opener.open(request, timeout=5)
                             except urllib.error.HTTPError as error:
@@ -84,10 +87,16 @@ class NginxRoutingTests(unittest.TestCase):
                             self.assertIn('no-store', ','.join(headers.get_all('Cache-Control', [])))
                             self.assertIn('no-referrer', ','.join(headers.get_all('Referrer-Policy', [])))
                             self.assertEqual(seen[-1][2], '192.0.2.55')
+                        large = b'x' * (1024 * 1024 + 1)
+                        self.assertEqual(read('/api/vrchat/media?private-query-marker=4', 'POST', large)[0], 503)
+                        self.assertEqual(read('/api/auth/github', 'POST', large)[0], 413)
+                        self.assertEqual(read('/vrchat/admin?private-query-marker=5', 'GET')[0], 503)
+                        self.assertEqual(read('/api/vrchat/media/files/test/original', 'HEAD')[0], 503)
                         allowed_count = len(seen)
                         for path in ('/', '/birthday/memo/submit', '/birthday/memo/prepare',
                                      '/api/auth/github/callback', '/api/auth/github/extra',
-                                     '/api/auth/github/', '/birthday/memo/admin/entries/extra'):
+                                     '/api/auth/github/', '/birthday/memo/admin/entries/extra',
+                                     '/vrchat/admin', '/api/vrchat/media/', '/api/vrchat/media/files/test/original'):
                             self.assertEqual(read(path + '?private-query-marker=denied' if path.startswith(('/api/auth/', '/birthday/memo/')) else path, 'POST')[0], 405, path)
                         for method in ('PUT', 'PATCH', 'DELETE', 'OPTIONS'):
                             self.assertEqual(read('/api/auth/github', method)[0], 405)

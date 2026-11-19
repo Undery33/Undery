@@ -77,7 +77,7 @@ JSON의 한국어 설명값은 그대로 사용할 설정값이 아닙니다. �
 
 메시지 관리는 기존 GitHub 로그인 설정 `SITE_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `ADMIN_GITHUB_ID` 네 개를 같은 보호된 env-file에 함께 전달합니다. 기존 `/etc/undery/app.env`의 값을 서버 안에서 재사용하며 새 계정이나 비밀번호를 만들지 않습니다. 일부 키만 있거나 비어 있으면 배포를 거부합니다. 이 고정 사이트의 `SITE_URL`은 `https://undery.link`(마지막 `/` 허용), 관리자 ID는 기존 GitHub 숫자 ID여야 합니다. 비밀 값은 이미지·저장소·빌드 인수에 넣지 않습니다.
 
-컨테이너는 GET/HEAD 외에 정확히 `/api/auth/github`, `/api/auth/logout`, `/birthday/memo/admin/entries` 세 경로의 POST만 허용하며 애플리케이션에서 Origin·세션·CSRF를 검사합니다. OAuth callback은 GET입니다. 호스트의 기존 `/api/auth/` location은 `deploy/admin-auth-host-location.conf`를 검토해 교체하고, 메시지 location은 `deploy/birthday-memo-host-location.conf`를 사용합니다. 중복 location을 추가하지 않고 백업·`nginx -t` 후 반영합니다. 두 계층 모두 해당 경로의 access/error 로그를 끄므로 OAuth 코드와 등록 URL이 로그에 남지 않습니다.
+컨테이너가 POST를 앱으로 전달하는 경로는 `/api/auth/github`, `/api/auth/logout`, `/birthday/memo/admin/entries`, `/birthday/memo/web-submit`, `/api/vrchat/media`입니다. 관리자 변경 요청은 앱에서 Origin·세션·CSRF를 검사합니다. OAuth callback은 GET입니다. 호스트의 인증 설정은 `deploy/admin-auth-host-location.conf`, 메시지 설정은 `deploy/birthday-memo-host-location.conf`에서 관리합니다.
 
 관리 설정이 있으면 후보·loopback·공개 HTTPS 각각에서 `/admin`의 canonical URL 303, 메시지 관리 로그인 페이지 200, 비인증 관리 API 401을 읽기 요청으로 확인합니다. OAuth를 시작하거나 세션·메시지를 만들지 않습니다. 외부 HTTP smoke는 `SMOKE_ADMIN_ENABLED=true`로 같은 활성 상태를 기대합니다. 설정 없는 CI 컨테이너는 관리자 API 503과 정확한 POST 경로만 앱에 도달하는지 확인합니다. 실제 GitHub 계정 승인·callback 성공은 별도 브라우저 검증입니다.
 
@@ -101,7 +101,7 @@ JSON의 한국어 설명값은 그대로 사용할 설정값이 아닙니다. �
 8. 후보가 정상이면 이전 런타임을 멈추고 호스트 `127.0.0.1:3000`을 새 컨테이너의 Nginx `8080`에 연결합니다. 기존 호스트 Nginx의 HTTPS proxy와 인증서는 계속 사용합니다.
 9. loopback·운영 HTTPS의 커밋 식별 검사 실패 시 이전 컨테이너 또는 기존 systemd 서비스를 복구합니다.
 
-컨테이너에 호스트 디렉터리나 Docker socket을 마운트하지 않습니다. 기존 Next 릴리스 파일은 삭제하지 않습니다. `/`의 메인 화면과 Computer·portfolio·관리자 차단 동작을 유지하며 새 GUI는 `/vrchat`에만 적용합니다. rollback은 보관한 이전 컨테이너를 원래 실행 명령으로 다시 시작하므로 기존 Nginx 전용 이미지도 복원할 수 있습니다.
+VRChat 업로드를 활성화한 호스트에서는 후보·운영 컨테이너가 동일한 갤러리 데이터 디렉터리 하나를 읽고 씁니다. 컨테이너 루트는 읽기 전용이며 rollback은 이전 컨테이너를 원래 마운트와 실행 옵션으로 복원합니다. [갤러리 저장소 준비 및 확인](vrchat-gallery-deployment.md)
 
 `/api/health` 응답은 `branch=main`과 동일한 `commit`·`pipelineCommit`을 반환합니다. 내부 Next.js가 응답하지 않으면 Nginx도 성공 상태를 반환하지 않습니다. 이미지 digest는 별도 값이며 Jenkins `release.json`에서 확인합니다.
 

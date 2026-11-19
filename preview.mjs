@@ -16,7 +16,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(405, {'Allow':'GET, HEAD'}); res.end(); return;
   }
   try {
-    const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    const name = pathname === '/api/vrchat/media' ? '/vrchat/media.json' : pathname;
     if (name !== '/vrchat' && !name.startsWith('/vrchat/')) throw new Error('Outside VRChat');
     if (name.includes('\\') || name.split('/').some(part => part.startsWith('.'))) throw new Error('Invalid path');
     const relative = name === '/vrchat' || name === '/vrchat/' ? 'index.html' : name.slice('/vrchat/'.length);

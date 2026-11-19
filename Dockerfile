@@ -15,8 +15,9 @@ FROM nginx:1.30.6-alpine3.24
 
 # Both stages use Alpine 3.24. Keep only the Node runtime and production trace.
 COPY --from=main-build /usr/local/bin/node /usr/local/bin/node
-RUN apk add --no-cache libstdc++ \
+RUN apk add --no-cache libstdc++ ffmpeg \
     && node --version \
+    && ffprobe -version > /dev/null \
     && nginx -V 2>&1 | grep -q -- --with-http_auth_request_module
 
 ARG SOURCE_COMMIT

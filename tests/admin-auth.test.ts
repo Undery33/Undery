@@ -119,6 +119,17 @@ describe("session and administrator permission boundary", () => {
 });
 
 describe("GitHub state, browser binding, and PKCE flow", () => {
+  it("returns to the originating VRChat admin page after owner login", async () => {
+    const start = await login(new Request(origin + "/api/auth/github?section=vrchat", { method: "POST", headers: headers() }));
+    const state = new URL(start.headers.get("location")!).searchParams.get("state")!;
+    const cookie = start.headers.getSetCookie()[0].split(";")[0];
+    const changed = await callback(callbackRequest(state.replace("vrchat.", ""), cookie));
+    expect(changed.headers.get("location")).toContain("?error=login");
+    expect(provider).not.toHaveBeenCalled();
+    const done = await callback(callbackRequest(state, cookie));
+    expect(done.headers.get("location")).toBe(origin + "/vrchat/admin");
+    expect(done.headers.getSetCookie().some(value => value.startsWith("__Host-undery-session="))).toBe(true);
+  });
   it("uses POST login and secure browser cookie with state and S256 PKCE", async () => {
     const { response, destination, state } = await startedLogin();
     expect(response.status).toBe(303);

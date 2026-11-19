@@ -26,6 +26,7 @@ const config: NextConfig = {
       },
       { source: "/portfolio/:path*", headers: [noIndex] },
       { source: "/admin/:path*", headers: [noIndex] },
+      { source: "/vrchat/admin", headers: [noIndex, { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] },
       { source: "/api/auth/:path*", headers: [noIndex, { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] },
       {
         source: "/birthday/memo/:path*",

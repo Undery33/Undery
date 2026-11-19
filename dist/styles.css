@@ -8,6 +8,7 @@
 
 * { box-sizing: border-box; }
 body, h1, h2, p, ul { margin: 0; }
+body { display: flex; flex-direction: column; min-height: 100svh; }
 a { color: inherit; touch-action: manipulation; }
 img { display: block; max-width: 100%; height: auto; }
 ul { list-style: none; padding: 0; }
@@ -25,11 +26,15 @@ ul { list-style: none; padding: 0; }
 }
 
 .landing { width: 100%; container-type: inline-size; }
-.vrchat-peek { width: clamp(80px, 9vw, 144px); }
+.vrchat-peek {
+  width: clamp(80px, calc(9 * var(--vrchat-window-vw, 1vw)), 144px);
+  align-self: flex-start;
+  margin-top: auto;
+}
 
 @media (min-width: 640px) and (min-aspect-ratio: 3 / 2) {
   body { position: relative; }
-  .vrchat-peek { position: absolute; left: 0; bottom: 0; }
+  :root:not([data-peek-below]) .vrchat-peek { position: absolute; left: 0; bottom: 0; }
 }
 
 .hero {
@@ -148,15 +153,20 @@ ul { list-style: none; padding: 0; }
 /* Across a landscape screen the background is edge-to-edge. The poster, social links
    and galleries share a column sized from the height of the 16:9 composition. */
 @media (min-aspect-ratio: 4 / 3) {
-  body { background: linear-gradient(to bottom, white 38.2463svh, var(--gold) 38.2463svh); }
+  body {
+    --poster-width: calc(100.7463 * var(--vrchat-window-vh, 1svh));
+    --poster-offset: calc(.1866 * var(--vrchat-window-vh, 1svh));
+    --poster-split: min(calc(38.2463 * var(--vrchat-window-vh, 1svh)), 37.963vw);
+    background: linear-gradient(to bottom, white var(--poster-split), var(--gold) var(--poster-split));
+  }
   .landing {
-    width: min(100%, 100.7463svh);
+    width: min(100%, var(--poster-width));
     margin-inline: auto;
     position: relative;
-    inset-inline-start: .1866svh;
+    inset-inline-start: clamp(0px, (100% - var(--poster-width)) / 2, var(--poster-offset));
   }
   .hero { aspect-ratio: 540 / 303; background: transparent; }
-  .poster-art { position: absolute; top: -.1866svh; }
+  .poster-art { position: absolute; top: calc(0px - var(--poster-offset)); }
   .monogram { left: 25%; top: 71.3%; width: 5.4%; }
   .socials {
     height: 12.4074cqw;

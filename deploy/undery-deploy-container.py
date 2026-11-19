@@ -27,6 +27,7 @@ PUBLIC_HEALTH = 'https://undery.link/api/health'
 BIRTHDAY_DIRECTORY = Path('/etc/undery')
 BIRTHDAY_ENV = BIRTHDAY_DIRECTORY / 'birthday-memo.env'
 BIRTHDAY_RUNTIME = BIRTHDAY_DIRECTORY / 'birthday-memo-runtime.json'
+GALLERY_DIRECTORY = Path('/var/lib/undery/vrchat-media')
 BIRTHDAY_ENV_KEYS = frozenset({
     'BIRTHDAY_MEMO_DATABASE_URL', 'BIRTHDAY_MEMO_ENABLED', 'BIRTHDAY_MEMO_TRUST_PROXY',
     'DATABASE_URL', 'PGHOST', 'PGDATABASE', 'PGUSER', 'PGPORT', 'PGPASSWORD',
@@ -69,14 +70,14 @@ def verify_image(info, commit, branch, pipeline_commit, image):
     require(not info.get('Config', {}).get('Volumes'), 'Image-declared volumes are not allowed')
 
 
-def read_response(url, limit):
+def read_response(url, limit, method='GET'):
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
             return None
 
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
     try:
-        response = opener.open(url, timeout=5)
+        response = opener.open(urllib.request.Request(url, method=method), timeout=5)
     except urllib.error.HTTPError as error:
         response = error
     with response:
@@ -93,6 +94,21 @@ def read_json(url, limit):
 
 def read_health(url):
     return read_json(url, 65536)
+
+
+def gallery_ready(health_url, attempts=40):
+    require(health_url.endswith('/api/health'), 'Unexpected deployment health URL')
+    url = health_url[:-len('/api/health')] + '/api/vrchat/media'
+    for attempt in range(attempts):
+        try:
+            status, headers, _ = read_response(url, 0, method='HEAD')
+            if status == 200 and 'application/json' in headers.get('Content-Type', ''):
+                return True
+        except (OSError, ValueError):
+            pass
+        if attempt + 1 < attempts:
+            time.sleep(0.5)
+    return False
 
 
 def healthy(url, expected, attempts=40):
@@ -232,9 +248,19 @@ def read_birthday_runtime():
             'settings_sha256': hashlib.sha256(settings).hexdigest()}
 
 
+def check_gallery_directory():
+    trusted_path(GALLERY_DIRECTORY.parent.parent, directory=True)
+    trusted_path(GALLERY_DIRECTORY.parent, directory=True)
+    info = GALLERY_DIRECTORY.lstat()
+    require(stat.S_ISDIR(info.st_mode) and info.st_uid == 101 and info.st_gid == 101
+            and stat.S_IMODE(info.st_mode) == 0o700,
+            'Expected a private gallery data directory owned by container 101:101')
+
+
 class DockerHost:
-    def __init__(self, birthday_runtime=None):
+    def __init__(self, birthday_runtime=None, gallery=False):
         self.birthday_runtime = dict(birthday_runtime) if birthday_runtime is not None else None
+        self.gallery = gallery
 
     def command(self, args, timeout=60, check=True):
         result = subprocess.run(args, capture_output=True, text=True, timeout=timeout,
@@ -275,11 +301,17 @@ class DockerHost:
                     and info[0].get('Name') == network and info[0].get('Driver') == 'bridge',
                     'Birthday runtime requires an existing Docker bridge network')
             runtime_options = ['--env-file', str(BIRTHDAY_ENV), '--network', network]
+        if self.gallery:
+            require(self.birthday_runtime and self.birthday_runtime.get('admin_enabled'),
+                    'Gallery requires the configured application database and administrator login')
+            check_gallery_directory()
+            runtime_options.extend(['--mount', f'type=bind,src={GALLERY_DIRECTORY},dst={GALLERY_DIRECTORY}',
+                                    '--env', f'VRCHAT_MEDIA_DIR={GALLERY_DIRECTORY}'])
         self.docker(
             'run', '--detach', '--name', name, '--label', f'{OWNER_LABEL}={OWNER_VALUE}',
             '--user', '101:101', '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m,mode=1777',
             '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
-            '--pids-limit', '128', '--memory', '256m', '--cpus', '1',
+            '--pids-limit', '128', '--memory', '512m' if self.gallery else '256m', '--cpus', '1',
             '--restart', 'no' if candidate else 'unless-stopped',
             '--publish', '127.0.0.1::8080' if candidate else '127.0.0.1:3000:8080',
             *runtime_options,
@@ -346,7 +378,9 @@ class DockerHost:
             return True
         if self.birthday_runtime['enabled'] and not birthday_ready(url, attempts=attempts):
             return False
-        return not self.birthday_runtime.get('admin_enabled', False) or admin_ready(url, attempts=attempts)
+        if self.birthday_runtime.get('admin_enabled') and not admin_ready(url, attempts=attempts):
+            return False
+        return not self.gallery or gallery_ready(url, attempts=attempts)
 
 
 def deploy(host, commit, branch, pipeline_commit, image, suffix=None):
@@ -446,7 +480,8 @@ def main():
             require(stat.S_ISREG(info.st_mode) and info.st_uid == 0 and not info.st_mode & 0o077,
                     'Deployment lock must be a root-private regular file')
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        print(json.dumps(deploy(DockerHost(birthday_runtime), *sys.argv[1:])))
+        host = DockerHost(birthday_runtime, gallery=os.path.lexists(GALLERY_DIRECTORY))
+        print(json.dumps(deploy(host, *sys.argv[1:])))
 
 
 if __name__ == '__main__':
