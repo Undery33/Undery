@@ -50,7 +50,7 @@ describe("birthday memo request parsing", () => {
     expect(() => parseMemoUrl(`https://undery.link/birthday/memo/submit?message=${"a".repeat(6000)}`, ["message"])).toThrow("너무 깁니다");
   });
   it("accepts the static oldest-first page URLs authored into the world", () => {
-    const url = parseMemoUrl("https://undery.link/birthday/memo/feed?page=999&order=oldest", ["page", "order"]);
+    const url = parseMemoUrl("https://undery.link/api/vrchat/birthday/feed?page=999&order=oldest", ["page", "order"]);
     expect(parseMemoPage(url.searchParams.get("page"))).toBe(999);
     expect(parseMemoOrder(url.searchParams.get("order"))).toBe("oldest");
     expect(parseMemoPage(null)).toBe(0);

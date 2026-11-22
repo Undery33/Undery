@@ -134,7 +134,7 @@ def verify(base, expected):
         assert 'lang="ko"' in html, route
         if route == '/vrchat':
             assert {'https://vrc.group/ASS.8448', 'https://discord.gg/gub', 'https://x.com/VRC_UDR',
-                    '/birthday', *galleries} <= gui_resources.links, 'Missing VRChat destination'
+                    '/vrchat/birthday', *galleries} <= gui_resources.links, 'Missing VRChat destination'
         else:
             assert galleries[route] in html and '/vrchat' in gui_resources.links, route
         assert gui_resources.urls, 'Missing GUI resources: '+route
@@ -190,17 +190,21 @@ def verify(base, expected):
         assert 'noindex' in headers.get('X-Robots-Tag', ''), path
         assert not re.search(rb'<form\b', content, re.IGNORECASE), path
         assert read(path, method='POST')[0] == 405, path
-    html_page('/birthday/memo/admin')
+    for route in ('/birthday', '/birthday/memo', '/birthday/memo/admin'):
+        assert read(route)[0] == 404, route
+    for route in ('/vrchat/birthday', '/vrchat/birthday/photos', '/vrchat/birthday/messages'):
+        html_page(route)
+    html_page('/admin/messages')
     # CI has no credentials. Exact POST routes reach the closed app, while every
     # other write remains rejected by Nginx. No login attempts or messages created.
-    for path in ('/api/auth/github', '/api/auth/logout', '/birthday/memo/admin/entries'):
+    for path in ('/api/auth/github', '/api/auth/logout', '/admin/messages/entries'):
         status, headers, content = read(path, method='POST')
         assert status == 503 and json.loads(content)['error'] == 'auth_unavailable', path
         assert 'no-store' in ','.join(headers.get_all('Cache-Control', [])), path
         assert 'no-referrer' in ','.join(headers.get_all('Referrer-Policy', [])), path
         assert read(path, method='DELETE')[0] == 405, path
     for path in ('/birthday/memo/submit', '/birthday/memo/prepare', '/api/auth/github/callback',
-                 '/api/auth/github/extra', '/birthday/memo/admin/entries/extra'):
+                 '/api/auth/github/extra', '/admin/messages/entries/extra'):
         assert read(path, method='POST')[0] == 405, path
     sitemap_status, _, sitemap_body = read('/sitemap.xml')
     assert sitemap_status == 200

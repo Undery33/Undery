@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useRef, useState, type FormEvent } from "react";
 import type { ManagedMemo, ManagedMemoPage, MemoMutation, MemoStatus } from "@/lib/birthday-memo-management";
 import { validateMemo } from "@/lib/birthday-memo-validation";
@@ -43,7 +45,7 @@ export function MemoManager({ initial, csrfToken }: { initial: ManagedMemoPage; 
   }
 
   async function load(page: number, selected = filter, q = appliedQuery) {
-    const result = await request(`/birthday/memo/admin/entries?${new URLSearchParams({ page: String(page), status: selected, q })}`) as ManagedMemoPage;
+    const result = await request(`/admin/messages/entries?${new URLSearchParams({ page: String(page), status: selected, q })}`) as ManagedMemoPage;
     // A mutation can remove the final item on the last filtered page.
     if (page > 0 && result.entries.length === 0) return load(Math.max(0, result.totalPages - 1), selected, q);
     setData(result); setFilter(selected); setAppliedQuery(q);
@@ -61,7 +63,7 @@ export function MemoManager({ initial, csrfToken }: { initial: ManagedMemoPage; 
     if (busy) return;
     setBusy(true); setError(""); setLoginNeeded(false); setNotice("");
     try {
-      await request("/birthday/memo/admin/entries", input);
+      await request("/admin/messages/entries", input);
       if (input.action === "create") { setNickname(""); setMessage(""); createRequest.current = null; }
       if (input.action === "update") { setEditing(null); setEditConflict(null); }
       setTrash(null); setTrashConfirmed(false); setNotice(success);
@@ -83,7 +85,7 @@ export function MemoManager({ initial, csrfToken }: { initial: ManagedMemoPage; 
   }
 
   return <div className={styles.manager}>
-    <div className={styles.toolbar}><a href="/birthday/memo">공개 메시지 보기</a><AdminLogoutButton csrfToken={csrfToken} className={styles.secondary} /></div>
+    <div className={styles.toolbar}><Link href="/vrchat/birthday/messages">공개 메시지 보기</Link><AdminLogoutButton csrfToken={csrfToken} className={styles.secondary} /></div>
     <section className={styles.compose} aria-labelledby="new-message-heading">
       <h2 id="new-message-heading">새 메시지</h2>
       <form onSubmit={event => submit(event)}><fieldset disabled={busy || editing !== null}>
@@ -100,7 +102,7 @@ export function MemoManager({ initial, csrfToken }: { initial: ManagedMemoPage; 
       <div className={styles.filters} aria-label="표시 상태 필터">{(["all", "visible", "hidden", "deleted"] as const).map(status => <button key={status} type="button" disabled={busy || editing !== null} aria-pressed={filter === status} className={filter === status ? styles.selected : styles.secondary} onClick={() => void refresh(0, status)}>{status === "all" ? "전체" : labels[status]} <span>{status === "all" ? Object.values(data.counts).reduce((sum, count) => sum + count, 0) : data.counts[status]}</span></button>)}</div>
       <form className={styles.search} onSubmit={event => { event.preventDefault(); void refresh(0, filter, query); }}><label htmlFor="message-search">닉네임·메시지 검색</label><div><input id="message-search" type="search" value={query} maxLength={100} onChange={event => setQuery(event.target.value)} disabled={busy || editing !== null} /><button disabled={busy || editing !== null}>검색</button></div></form>
       {notice && <p className={styles.notice} role="status">{notice}</p>}
-      {error && <p className={styles.error} role="alert">{error}{loginNeeded && <> <a href="/birthday/memo/admin">로그인 상태 확인</a></>}</p>}
+      {error && <p className={styles.error} role="alert">{error}{loginNeeded && <> <Link href="/admin/messages">로그인 상태 확인</Link></>}</p>}
       <p className={styles.summary}>{data.total}개 · {data.totalPages ? `${data.page + 1} / ${data.totalPages} 페이지` : "표시할 메시지 없음"}</p>
       <div className={styles.list} aria-busy={busy}>{data.entries.map(entry => <article className={styles.card} key={entry.id}>
         <div className={styles.heading}><h3>{entry.nickname}</h3><span className={`${styles.badge} ${entry.status === "visible" ? styles.visible : ""}`}>{labels[entry.status]}</span></div>

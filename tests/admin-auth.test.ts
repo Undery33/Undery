@@ -85,7 +85,7 @@ describe("existing administrator authentication configuration", () => {
     expect(legacyAdmin(new Request(`${origin}/admin`)).status).toBe(503);
   });
   it("only redirects the known legacy admin entry when enabled", () => {
-    expect(legacyAdmin(new Request(`${origin}/admin`)).headers.get("location")).toBe(`${origin}/birthday/memo/admin`);
+    expect(legacyAdmin(new Request(`${origin}/admin`)).headers.get("location")).toBe(`${origin}/admin/messages`);
     expect(legacyAdmin(new Request(`${origin}/admin/photos`)).status).toBe(503);
   });
 });
@@ -107,13 +107,13 @@ describe("session and administrator permission boundary", () => {
     await expect(requireAdminSession(headers())).rejects.toMatchObject({ status: 401 });
   });
   it.each([{ origin: "https://evil.example" }, { origin: "" }, { "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }])("rejects cross-origin mutation before session lookup", async extra => {
-    await expect(requireAdminMutation(new Request(`${origin}/birthday/memo/admin/api`, { method: "POST", headers: headers({ "x-csrf-token": csrfToken, ...extra }) }))).rejects.toMatchObject({ status: 403 });
+    await expect(requireAdminMutation(new Request(`${origin}/admin/messages/api`, { method: "POST", headers: headers({ "x-csrf-token": csrfToken, ...extra }) }))).rejects.toMatchObject({ status: 403 });
     expect(database.query).not.toHaveBeenCalled();
   });
   it("requires the session-specific CSRF token even for the owner", async () => {
-    await expect(requireAdminMutation(new Request(`${origin}/birthday/memo/admin/api`, { method: "POST", headers: headers() }))).rejects.toMatchObject({ status: 403 });
-    await expect(requireAdminMutation(new Request(`${origin}/birthday/memo/admin/api`, { method: "POST", headers: headers({ "x-csrf-token": "z".repeat(43) }) }))).rejects.toMatchObject({ status: 403 });
-    expect(await requireAdminMutation(new Request(`${origin}/birthday/memo/admin/api`, { method: "POST", headers: headers({ "x-csrf-token": csrfToken }) }))).toMatchObject({ githubUserId: "12345" });
+    await expect(requireAdminMutation(new Request(`${origin}/admin/messages/api`, { method: "POST", headers: headers() }))).rejects.toMatchObject({ status: 403 });
+    await expect(requireAdminMutation(new Request(`${origin}/admin/messages/api`, { method: "POST", headers: headers({ "x-csrf-token": "z".repeat(43) }) }))).rejects.toMatchObject({ status: 403 });
+    expect(await requireAdminMutation(new Request(`${origin}/admin/messages/api`, { method: "POST", headers: headers({ "x-csrf-token": csrfToken }) }))).toMatchObject({ githubUserId: "12345" });
     expect(matchesAdminToken("한".repeat(43), csrfToken)).toBe(false);
   });
 });
@@ -158,7 +158,7 @@ describe("GitHub state, browser binding, and PKCE flow", () => {
     expect(rejected.headers.get("location")).toContain("?error=login");
     expect(attempt).toBeDefined();
     expect(provider).not.toHaveBeenCalled();
-    expect((await callback(callbackRequest(state, cookie))).headers.get("location")).toBe(`${origin}/birthday/memo/admin`);
+    expect((await callback(callbackRequest(state, cookie))).headers.get("location")).toBe(`${origin}/admin/messages`);
   });
   it("negotiates a JSON login destination and cookie without weakening the Origin check", async () => {
     const saved = await login(loginRequest({ accept: "application/json" }));
@@ -177,7 +177,7 @@ describe("GitHub state, browser binding, and PKCE flow", () => {
   it("consumes a state once and rotates the session only after verifying the owner", async () => {
     const { state, cookie } = await startedLogin();
     const saved = await callback(callbackRequest(state, cookie + `; __Host-undery-session=${sessionToken}`));
-    expect(saved.headers.get("location")).toBe(`${origin}/birthday/memo/admin`);
+    expect(saved.headers.get("location")).toBe(`${origin}/admin/messages`);
     expect(saved.headers.getSetCookie().some(value => /^__Host-undery-session=[A-Za-z0-9_-]{43};.*Max-Age=28800; Secure$/.test(value))).toBe(true);
     expect(database.transaction.mock.calls.some(([sql, values]) => sql.startsWith('DELETE FROM public."AdminSession"') && values[1] === digest(sessionToken))).toBe(true);
     expect(database.transaction.mock.calls.some(([sql, values]) => sql.startsWith('INSERT INTO public."AdminSession"') && values[1] === "12345" && values[0] !== sessionToken)).toBe(true);
@@ -252,7 +252,7 @@ describe("provider and logout handling", () => {
     expect((await logout(request("invalid"))).status).toBe(403);
     const saved = await logout(request());
     expect(saved.status).toBe(200);
-    expect(await saved.json()).toEqual({ ok: true, redirectTo: "/birthday/memo/admin" });
+    expect(await saved.json()).toEqual({ ok: true, redirectTo: "/admin/messages" });
     expect(saved.headers.get("location")).toBeNull();
     expect(saved.headers.getSetCookie()[0]).toContain("undery-session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure");
   });

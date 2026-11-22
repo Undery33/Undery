@@ -4,9 +4,9 @@ import { MemoError } from "@/lib/birthday-memo-validation";
 const mocks = vi.hoisted(() => ({ session: vi.fn(), mutation: vi.fn(), list: vi.fn(), mutate: vi.fn(), get: vi.fn() }));
 vi.mock("@/lib/admin-auth", () => ({ requireAdminSession: mocks.session, requireAdminMutation: mocks.mutation }));
 vi.mock("@/lib/birthday-memo-management", async importOriginal => ({ ...await importOriginal<object>(), getBirthdayMemoManagement: mocks.get }));
-import { GET, POST } from "@/app/birthday/memo/admin/entries/route";
+import { GET, POST } from "@/app/admin/messages/entries/route";
 
-const endpoint = "https://undery.link/birthday/memo/admin/entries";
+const endpoint = "https://undery.link/admin/messages/entries";
 const post = (body: unknown, headers = { "Content-Type": "application/json" }) => new Request(endpoint, { method: "POST", headers, body: JSON.stringify(body) });
 beforeEach(() => {
   vi.resetAllMocks();

@@ -125,7 +125,7 @@ class ContextTests(unittest.TestCase):
 
     def test_social_and_site_navigation_are_links_only(self):
         files = {'dist/styles.css': b''}
-        links = ('/vrchat', '/birthday', 'https://vrc.group/ASS.8448',
+        links = ('/vrchat', '/vrchat/birthday', 'https://vrc.group/ASS.8448',
                  'https://discord.gg/gub', 'https://x.com/VRC_UDR')
         files['dist/index.html'] = ''.join(f'<a href="{href}">Link</a>' for href in links).encode()
         CONTEXT.validate_assets(files)

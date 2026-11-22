@@ -190,6 +190,14 @@ export class BirthdayMemoStore {
     } finally { client.release(); }
   }
 
+  async visibleMessages() {
+    const result = await this.pool.query<Pick<MemoEntry, "id" | "nickname" | "message">>(
+      `SELECT id::text AS id, nickname, message FROM ${this.schema}.entries
+       WHERE status='visible' ORDER BY created_at DESC, entries.id DESC`,
+    );
+    return result.rows;
+  }
+
   async feed(page = 0, order: MemoOrder = "oldest"): Promise<MemoFeed> {
     if (!Number.isSafeInteger(page) || page < 0 || page > 9999999) throw new MemoError("invalid_page", 400, "페이지 번호가 올바르지 않습니다.");
     const client = await this.pool.connect();

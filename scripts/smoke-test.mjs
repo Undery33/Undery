@@ -43,19 +43,14 @@ for (const path of ["/", "/posts", "/computer", "/computer/getting-started", "/c
   console.log(`PASS ${path}`);
 }
 
-const birthday = await read("/birthday");
-assert.equal(birthday.response.status, 200);
-assert.match(birthday.html, /Undery #26 생일 파티/);
-const posterNav = birthday.html.match(/<nav\b[^>]*aria-label="생일 포스터 링크"[^>]*>([\s\S]*?)<\/nav>/);
-assert.ok(posterNav, "The birthday poster must group its two links");
-assert.match(posterNav[1], /<a\b[^>]*href="\/birthday\/memo"[^>]*>\s*축하 메시지\s*<\/a>/);
-assert.match(posterNav[1], /<a\b[^>]*href="https:\/\/vrchat\.com\/home\/world\/wrld_59673787-ac01-41bb-8d81-568a17ca6993\/info"[^>]*>\s*월드 구경하기\s*<\/a>/);
-const poster = birthday.html.match(/<img\b[^>]*\bsrc="(\/_next\/static\/media\/[^"<>]+\.webp)"/);
-assert.ok(poster, "The birthday page must reference its bundled poster");
-const posterResponse = await fetch(new URL(poster[1], origin), { signal: AbortSignal.timeout(15000) });
-assert.equal(posterResponse.status, 200);
-assert.match(posterResponse.headers.get("content-type") || "", /^image\/webp\b/);
-console.log("PASS /birthday and its bundled poster");
+for (const path of ["/birthday", "/birthday/memo", "/birthday/memo/admin", "/birthday/memo/submit"]) {
+  assert.equal((await read(path)).response.status, 404, path);
+}
+for (const [path, title] of [["/vrchat/birthday", "THANK YOU"], ["/vrchat/birthday/photos", "PHOTO ZONE"], ["/vrchat/birthday/messages", "MASSAGE"]]) {
+  const page = await read(path);
+  assert.equal(page.response.status, 200, path);
+  assert.ok(page.html.includes(title), path);
+}
 
 const search = await read("/computer?q=PostgreSQL&tag=Markdown");
 assert.equal(search.response.status, 200);
@@ -116,17 +111,17 @@ for (const path of ["/admin", "/admin/posts", "/admin/settings"]) {
   const { response, html } = await read(path);
   assert.equal(response.status, path === "/admin" && adminEnabled ? 303 : 503, path);
   if (path === "/admin" && adminEnabled) {
-    assert.equal(response.headers.get("location"), new URL("/birthday/memo/admin", process.env.SITE_URL || "https://undery.link").href);
+    assert.equal(response.headers.get("location"), new URL("/admin/messages", process.env.SITE_URL || "https://undery.link").href);
   }
   assert.equal(response.headers.get("cache-control"), "no-store", path);
   assert.doesNotMatch(html, /<form/, path);
   assert.equal((await read(path, { method: "POST" })).response.status, 405, `${path} POST`);
 }
-const adminPage = await read("/birthday/memo/admin");
+const adminPage = await read("/admin/messages");
 assert.equal(adminPage.response.status, 200);
 assert.match(adminPage.response.headers.get("cache-control") || "", /no-store/);
 if (adminEnabled) assert.match(adminPage.html, /GitHub/);
-const adminEntries = await read("/birthday/memo/admin/entries");
+const adminEntries = await read("/admin/messages/entries");
 assert.equal(adminEntries.response.status, adminEnabled ? 401 : 503);
 assert.equal(JSON.parse(adminEntries.html).error, adminEnabled ? "login_required" : "auth_unavailable");
 console.log("PASS expected admin login state and rejected unauthenticated access");
