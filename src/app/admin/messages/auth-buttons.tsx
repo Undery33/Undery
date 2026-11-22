@@ -26,7 +26,7 @@ function AuthButton({ action, csrfToken, className, section }: AdminButtonProps 
         if (target.origin !== "https://github.com" || target.pathname !== "/login/oauth/authorize" || target.username || target.password) throw new Error("로그인 주소를 확인하지 못했습니다.");
         window.location.assign(target.href);
       } else {
-        const page = section === "vrchat" ? "/vrchat/admin" : "/birthday/memo/admin";
+        const page = section === "vrchat" ? "/vrchat/admin" : "/admin/messages";
         if (result.redirectTo !== page) throw new Error("이동할 화면을 확인하지 못했습니다.");
         // Discard the authenticated document and in-memory drafts after revocation.
         window.location.assign(page);

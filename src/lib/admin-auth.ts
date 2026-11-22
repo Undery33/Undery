@@ -97,7 +97,7 @@ function setCookie(response: Response, config: AdminAuthConfig, kind: "login" | 
 function redirect(location: string) { return new Response(null, { status: 303, headers: { ...memoHeaders, Location: location } }); }
 
 const vrchatAdmin = "/vrchat/admin";
-const birthdayAdmin = "/birthday/memo/admin";
+const birthdayAdmin = "/admin/messages";
 const vrchatStatePrefix = "vrchat.";
 
 function adminDestination(request: Request) {

@@ -34,7 +34,7 @@ describe("private-by-discovery is not authentication", () => {
     expect(metadata.robots).toMatchObject({ index: false, follow: false });
   });
   it("fails closed for admin without pretending authentication exists", async () => {
-    const response = GET();
+    const response = GET(new Request("https://undery.link/admin"));
     expect(response.status).toBe(503);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("x-robots-tag")).toContain("noindex");

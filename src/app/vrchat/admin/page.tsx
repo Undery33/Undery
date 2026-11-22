@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { AdminLoginButton, AdminLogoutButton } from "@/app/birthday/memo/admin/auth-buttons";
+import { AdminLoginButton, AdminLogoutButton } from "@/app/admin/messages/auth-buttons";
 import { authConfigEnabled, getAdminSession } from "@/lib/admin-auth";
 import { MediaUploader } from "./media-uploader";
 import styles from "./upload.module.css";

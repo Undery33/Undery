@@ -80,7 +80,7 @@ class NginxRoutingTests(unittest.TestCase):
                                 response.read()
                                 return response.status, response.headers
 
-                        allowed = ('/api/auth/github', '/api/auth/logout', '/birthday/memo/admin/entries', '/birthday/memo/web-submit')
+                        allowed = ('/api/auth/github', '/api/auth/logout', '/admin/messages/entries')
                         for path in allowed:
                             status, headers = read(path + '?private-query-marker=1', 'POST')
                             self.assertEqual(status, 503, path)
@@ -95,14 +95,15 @@ class NginxRoutingTests(unittest.TestCase):
                         allowed_count = len(seen)
                         for path in ('/', '/birthday/memo/submit', '/birthday/memo/prepare',
                                      '/api/auth/github/callback', '/api/auth/github/extra',
-                                     '/api/auth/github/', '/birthday/memo/admin/entries/extra',
+                                     '/api/auth/github/', '/admin/messages/entries/extra',
                                      '/vrchat/admin', '/api/vrchat/media/', '/api/vrchat/media/files/test/original'):
                             self.assertEqual(read(path + '?private-query-marker=denied' if path.startswith(('/api/auth/', '/birthday/memo/')) else path, 'POST')[0], 405, path)
                         for method in ('PUT', 'PATCH', 'DELETE', 'OPTIONS'):
                             self.assertEqual(read('/api/auth/github', method)[0], 405)
                         self.assertEqual(len(seen), allowed_count)
+                        self.assertEqual(read('/birthday/memo?private-query-marker=retired', 'GET')[0], 404)
                         self.assertEqual(read('/api/auth/github/callback?private-query-marker=2', 'GET')[0], 503)
-                        self.assertEqual(read('/birthday/memo/feed?private-query-marker=3', 'HEAD')[0], 503)
+                        self.assertEqual(read('/api/vrchat/birthday/feed?private-query-marker=3', 'HEAD')[0], 503)
                     finally:
                         process.terminate()
                         process.wait(timeout=10)

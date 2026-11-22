@@ -31,54 +31,23 @@ try {
     await setTimeout(250);
   }
   assert.ok(ready, "Temporary production server must become ready.");
-  const page = await read("/birthday/memo");
-  assert.equal(page.status, 200);
-  const html = await page.text();
-  assert.match(html, /<form\b[^>]*aria-label="생일 축하 메시지 작성"/);
-  assert.match(html, /<button\b[^>]*aria-label="축하 메시지 보내기"/);
-  assert.doesNotMatch(html, /id="messages"|id="message-heading"|<footer\b|메시지를 불러오지 못했어요/);
-  for (const route of ["/birthday/memo/prepare", "/birthday/memo/feed?page=0&order=oldest"]) {
-    const response = await read(route);
-    assert.equal(response.status, 503, route);
-    assert.equal(response.headers.get("location"), null, "The API must not redirect.");
-    assert.match(response.headers.get("cache-control") || "", /no-store/);
-    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
-    assert.deepEqual((await response.json()).ok, false);
+  for (const path of ["/birthday", "/birthday/memo", "/birthday/memo/feed", "/birthday/memo/submit", "/birthday/memo/admin"]) {
+    assert.equal((await read(path)).status, 404, path);
   }
-  const blank = await read(`/birthday/memo/submit?token=${"a".repeat(64)}&nickname=%E3%80%80&message=hello`);
-  assert.equal(blank.status, 400);
-  assert.equal((await blank.json()).error, "nickname_required");
-  assert.equal((await read("/birthday/memo/prepare", "HEAD")).status, 405);
-  assert.equal((await read("/birthday/memo/submit", "HEAD")).status, 405);
-  assert.equal((await read("/birthday/memo/submit", "POST")).status, 405);
-  const deletePath = `/birthday/memo/delete?entryId=1&token=${"a".repeat(64)}&requestId=${"b".repeat(32)}&confirm=trash`;
-  for (const retiredPath of [deletePath, "/birthday/memo/delete", deletePath + "&token=other", "/birthday/memo/delete?token=%FF"]) {
-    const deletion = await read(retiredPath);
-    assert.equal(deletion.status, 403);
-    assert.equal(deletion.headers.get("location"), null);
-    assert.match(deletion.headers.get("cache-control") || "", /no-store/);
-    assert.equal(deletion.headers.get("referrer-policy"), "no-referrer");
-    assert.deepEqual(await deletion.json(), { ok: false, error: "owner_deletion_disabled", message: "메시지는 등록만 가능합니다." });
-  }
-  assert.equal((await read(deletePath, "HEAD")).status, 405);
-  assert.equal((await read(deletePath, "POST")).status, 405);
-  const prefetch = await fetch(new URL(deletePath, origin), { headers: { "sec-purpose": "prefetch" }, signal: AbortSignal.timeout(5000) });
-  assert.equal(prefetch.status, 403);
-  assert.equal((await prefetch.json()).error, "owner_deletion_disabled");
-  assert.equal((await read("/birthday/memo/feed?page=0&order=invalid")).status, 400);
-  const managementPage = await read("/birthday/memo/admin");
+  const feed = await read("/api/vrchat/birthday/feed?page=0&order=oldest");
+  assert.equal(feed.status, 503);
+  assert.match(feed.headers.get("cache-control") || "", /no-store/);
+  assert.equal((await feed.json()).ok, false);
+  const managementPage = await read("/admin/messages");
   assert.equal(managementPage.status, 200);
   assert.match(await managementPage.text(), /메시지 관리/);
-  const managementApi = await read("/birthday/memo/admin/entries");
+  const managementApi = await read("/admin/messages/entries");
   assert.equal(managementApi.status, 503);
   assert.equal((await managementApi.json()).error, "auth_unavailable");
   assert.equal((await read("/api/auth/github", "GET")).status, 405);
   assert.equal((await read("/api/auth/github", "POST")).status, 503);
   assert.equal((await read("/api/auth/github/callback", "HEAD")).status, 405);
-  console.log("PASS birthday subdirectory routes, no redirects/cache, blank nickname rejection, safe missing-DB failure and read-only HEAD/POST");
-  console.log("PASS message management renders and authentication endpoints fail closed without configuration");
-  console.log("PASS owner deletion disabled for old, missing, duplicate and malformed parameters without DB; safe HEAD/POST/prefetch");
-  console.log("PostgreSQL persistence is deliberately not covered by this HTTP check.");
+  console.log("PASS retired birthday routes, read-only feed and protected management");
 } finally {
   if (server.exitCode === null) server.kill("SIGTERM");
   await exited;

@@ -125,7 +125,7 @@ def healthy(url, expected, attempts=40):
 
 def birthday_ready(health_url, attempts=40):
     require(health_url.endswith('/api/health'), 'Unexpected deployment health URL')
-    url = health_url[:-len('/api/health')] + '/birthday/memo/feed?page=0&order=oldest'
+    url = health_url[:-len('/api/health')] + '/api/vrchat/birthday/feed?page=0&order=oldest'
     for attempt in range(attempts):
         try:
             result = read_json(url, 1048576)
@@ -147,12 +147,12 @@ def admin_ready(health_url, attempts=40):
     for attempt in range(attempts):
         try:
             status, headers, _ = read_response(base + '/admin', 65536)
-            require(status == 303 and headers.get('Location') == 'https://undery.link/birthday/memo/admin'
+            require(status == 303 and headers.get('Location') == 'https://undery.link/admin/messages'
                     and 'no-store' in headers.get('Cache-Control', ''), 'Admin redirect unavailable')
-            status, headers, body = read_response(base + '/birthday/memo/admin', 1048576)
+            status, headers, body = read_response(base + '/admin/messages', 1048576)
             require(status == 200 and 'no-store' in headers.get('Cache-Control', '')
                     and b'GitHub' in body, 'Admin login page unavailable')
-            status, headers, body = read_response(base + '/birthday/memo/admin/entries', 65536)
+            status, headers, body = read_response(base + '/admin/messages/entries', 65536)
             result = json.loads(body)
             require(status == 401 and 'no-store' in headers.get('Cache-Control', '')
                     and isinstance(result, dict) and result.get('error') == 'login_required',

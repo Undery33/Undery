@@ -29,7 +29,7 @@ const config: NextConfig = {
       { source: "/vrchat/admin", headers: [noIndex, { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] },
       { source: "/api/auth/:path*", headers: [noIndex, { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }] },
       {
-        source: "/birthday/memo/:path*",
+        source: "/admin/messages/:path*",
         headers: [noIndex, { key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }],
       },
     ];

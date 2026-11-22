@@ -362,15 +362,15 @@ class BirthdayRuntimeTests(unittest.TestCase):
 
     def test_admin_probes_check_canonical_redirect_login_page_and_closed_api_without_mutating(self):
         responses = [
-            (303, {'Location': 'https://undery.link/birthday/memo/admin', 'Cache-Control': 'no-store'}, b''),
+            (303, {'Location': 'https://undery.link/admin/messages', 'Cache-Control': 'no-store'}, b''),
             (200, {'Cache-Control': 'private, no-store'}, b'<button>GitHub login</button>'),
             (401, {'Cache-Control': 'no-store'}, b'{"ok":false,"error":"login_required"}'),
         ]
         with patch.object(deployment, 'read_response', side_effect=responses) as read:
             self.assertTrue(deployment.admin_ready(deployment.PUBLIC_HEALTH, attempts=1))
             self.assertEqual([call.args[0] for call in read.call_args_list], [
-                'https://undery.link/admin', 'https://undery.link/birthday/memo/admin',
-                'https://undery.link/birthday/memo/admin/entries'])
+                'https://undery.link/admin', 'https://undery.link/admin/messages',
+                'https://undery.link/admin/messages/entries'])
         for index, invalid in [
             (0, (503, {'Cache-Control': 'no-store'}, b'')),
             (0, (303, {'Location': 'https://elsewhere.invalid', 'Cache-Control': 'no-store'}, b'')),
@@ -439,7 +439,7 @@ class BirthdayRuntimeTests(unittest.TestCase):
             host.healthy = deployment.DockerHost(self.load()).healthy
 
             def feed_response(url, limit):
-                if url == failed_url.replace('/api/health', '/birthday/memo/feed?page=0&order=oldest'):
+                if url == failed_url.replace('/api/health', '/api/vrchat/birthday/feed?page=0&order=oldest'):
                     raise OSError('database unavailable')
                 return {'ok': True, 'page': 0, 'entries': []}
 
@@ -476,7 +476,7 @@ class BirthdayRuntimeTests(unittest.TestCase):
     def test_feed_probe_uses_readonly_oldest_path_and_fails_on_bad_database_response(self):
         with patch.object(deployment, 'read_json', return_value={'ok': True, 'page': 0, 'entries': []}) as read:
             self.assertTrue(deployment.birthday_ready(deployment.PUBLIC_HEALTH, attempts=1))
-            read.assert_called_once_with('https://undery.link/birthday/memo/feed?page=0&order=oldest', 1048576)
+            read.assert_called_once_with('https://undery.link/api/vrchat/birthday/feed?page=0&order=oldest', 1048576)
         for response in [{'ok': False, 'page': 0, 'entries': []}, {'ok': True, 'page': 1, 'entries': []},
                          {'ok': True, 'page': 0}, {'ok': True, 'page': False, 'entries': []}, [], 'not JSON object']:
             with self.subTest(response=response), patch.object(deployment, 'read_json', return_value=response):
