@@ -31,10 +31,12 @@ export class GalleryStore {
     this.table = schema + ".media";
   }
 
-  async list() {
-    const rows = await this.pool.query<GalleryItem>("SELECT " + publicColumns + " FROM " + this.table +
+  async list(album?: "birthday" | "birthday-art") {
+    const scope = album ? " WHERE type='photo' AND request_id IS NOT NULL AND $1=ANY(tags)"
+      : " WHERE NOT (tags && ARRAY['birthday','birthday-art']::text[])";
+    const rows = await this.pool.query<GalleryItem>("SELECT " + publicColumns + " FROM " + this.table + scope +
       " ORDER BY CASE WHEN type = 'photo' THEN created_at ELSE taken_on::timestamp AT TIME ZONE 'UTC' END DESC NULLS LAST," +
-      " created_at DESC, taken_on DESC NULLS LAST, id");
+      " created_at DESC, taken_on DESC NULLS LAST, id", album ? [album] : []);
     return rows.rows;
   }
 

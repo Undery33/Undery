@@ -32,7 +32,7 @@ function formatSize(bytes: number) {
 
 const statusText = { ready: "대기", uploading: "업로드 중…", done: "등록 완료", failed: "업로드 실패", invalid: "선택 오류" };
 
-export function MediaUploader({ csrfToken }: { csrfToken: string }) {
+export function MediaUploader({ csrfToken, album }: { csrfToken: string; album?: "birthday" | "birthday-art" }) {
   const [items, setItems] = useState<Upload[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -74,7 +74,8 @@ export function MediaUploader({ csrfToken }: { csrfToken: string }) {
         const data = new FormData();
         data.set("file", item.file);
         data.set("requestId", item.id);
-        data.set("tags", JSON.stringify(batchTags));
+        data.set("tags", JSON.stringify(album ? [...batchTags, album] : batchTags));
+        if (album) data.set("alt", item.name);
         try {
           const response = await fetch("/api/vrchat/media", {
             method: "POST", credentials: "same-origin", headers: { "X-CSRF-Token": csrfToken },

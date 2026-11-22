@@ -13,8 +13,8 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
-export default async function VrchatUploadPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function VrchatUploadPage({ searchParams }: { searchParams: Promise<{ error?: string; album?: string }> }) {
+  const { error, album } = await searchParams;
   let session: Awaited<ReturnType<typeof getAdminSession>> = null;
   let unavailable = false;
   try {
@@ -31,7 +31,7 @@ export default async function VrchatUploadPage({ searchParams }: { searchParams:
           {session && <AdminLogoutButton section="vrchat" csrfToken={session.csrfToken} className={styles.logout} />}
         </div>
         <h1>사진·영상 업로드</h1>
-        {session ? <MediaUploader csrfToken={session.csrfToken} /> : (
+        {session ? <MediaUploader csrfToken={session.csrfToken} album={album === "birthday" || album === "birthday-art" ? album : undefined} /> : (
           <section className={styles.login} aria-label="관리자 로그인">
             {unavailable ? <p role="alert">로그인 상태를 확인하지 못했습니다. 잠시 후 새로고침해 주세요.</p>
               : authConfigEnabled() ? <>
