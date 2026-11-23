@@ -17,19 +17,37 @@ function Heading({ title, more }: { title: string; more?: string }) {
 }
 
 function Credits({ names }: { names: string[] }) {
-  const [current, setCurrent] = useState(0);
+  const [step, setStep] = useState(0);
   useEffect(() => {
-    if (names.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setCurrent(n => (n + 1) % names.length), 2700);
-    return () => window.clearInterval(timer);
+    if (names.length < 2) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timer: number | undefined;
+    function updateTimer() {
+      window.clearInterval(timer);
+      if (!motion.matches && !document.hidden) timer = window.setInterval(() => setStep(value => value + 1), 2700);
+    }
+    updateTimer();
+    motion.addEventListener("change", updateTimer);
+    document.addEventListener("visibilitychange", updateTimer);
+    return () => {
+      window.clearInterval(timer);
+      motion.removeEventListener("change", updateTimer);
+      document.removeEventListener("visibilitychange", updateTimer);
+    };
   }, [names.length]);
-  const count = Math.min(5, names.length);
-  const center = Math.floor(count / 2);
-  return <section className="birthday-credits"><h2 lang="en">THANK YOU,</h2><div>
-    {Array.from({ length: count }, (_, i) => {
-      const name = names[(current + i - center + names.length) % names.length];
-      return <span key={i} data-distance={Math.abs(i - center)} title={name}>{name}</span>;
-    })}
+  const radius = names.length >= 5 ? 2 : names.length >= 3 ? 1 : 0;
+  return <section className="birthday-credits"><div className="credits-inner">
+    <h2 lang="en">THANK YOU,</h2>
+    {names.length > 0 && <div className="credits-window" style={{ height: `calc(var(--row) * ${radius * 2 + 1})` }}>
+      {Array.from({ length: radius * 2 + 3 }, (_, index) => {
+        const offset = index - radius - 1;
+        const position = step + offset;
+        const name = names[((position % names.length) + names.length) % names.length];
+        return <span key={position} className="credits-name" data-distance={Math.abs(offset)}
+          aria-hidden={offset !== 0} title={name}
+          style={{ transform: `translateY(${offset * 100 - 50}%)` }}>{name}</span>;
+      })}
+    </div>}
   </div></section>;
 }
 
@@ -40,6 +58,7 @@ export default function Birthday() {
   const names = [...new Set(messages.data?.map(entry => entry.nickname) ?? [])];
   return <>
     <header className="birthday-hero">
+      <div className="birthday-hero-inner">
       {art["hero.png"] && <Photo className="birthday-character" src={art["hero.png"]} fetchPriority="high" />}
       <div className="birthday-intro">
         <h1 lang="en">THANK YOU</h1>
@@ -47,7 +66,7 @@ export default function Birthday() {
         <p>365일 중 한 번 밖에 없는 생일을 축하해주셔서 진심으로 감사드립니다.<br/>추억을 여러분과 다시 꺼내고 싶어 만들었습니다.</p>
         <nav><a href={photosUrl}>사진 목록 보기 <span>↗</span></a><a href={messagesUrl}>메시지 보기 <span>↗</span></a></nav>
       </div>
-      <div className="birthday-wave" aria-hidden="true" />
+      </div>
     </header>
     <section className="birthday-letter">
       <h2 lang="en">THANK YOU FOR EVERYONE!</h2>
