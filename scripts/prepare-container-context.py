@@ -118,6 +118,8 @@ class AssetReferences(HTMLParser):
             if value is None:
                 continue
             # Social destinations and the birthday page are navigation, not packaged resources.
+            if tag == 'img' and key == 'src' and value == '/api/vrchat/birthday/banner':
+                continue  # Original photo served from the persistent birthday album.
             if tag == 'a' and key == 'href' and value in GUI_NAVIGATION:
                 continue
             if key in ('src', 'href', 'poster', 'action', 'data'):

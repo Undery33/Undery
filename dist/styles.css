@@ -95,8 +95,12 @@ ul { list-style: none; padding: 0; }
   margin-inline: clamp(12px, 4.35%, 64px) clamp(12px, 4.45%, 64px);
   padding-bottom: clamp(18px, 4.7cqw, 76px);
 }
-.event-banner { display: block; }
-.event-banner img { width: 100%; aspect-ratio: 2190 / 282; }
+.event-banner { display: block; position: relative; overflow: hidden; aspect-ratio: 2190 / 282; container-type: inline-size; color: white; }
+.event-banner img { width: 100%; height: 100%; object-fit: cover; object-position: center 33%; }
+.event-label { position: absolute; left: 0; bottom: -.14em; color: var(--gold); font-size: 4cqw; font-weight: 900; line-height: 1; }
+.event-copy { position: absolute; right: 1.4%; top: 50%; transform: translateY(-50%); display: grid; gap: .6cqw; text-align: right; color: white; }
+.event-copy strong { font-size: 4.2cqw; line-height: .8; font-weight: 900; letter-spacing: -.035em; }
+.event-copy span { font-size: 1.85cqw; line-height: 1.15; }
 .media-section { margin-top: clamp(9px, 2.2cqw, 26px); }
 .media-section + .media-section { margin-top: clamp(24px, 6.15cqw, 72px); }
 .section-heading {

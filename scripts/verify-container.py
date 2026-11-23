@@ -139,6 +139,9 @@ def verify(base, expected):
             assert galleries[route] in html and '/vrchat' in gui_resources.links, route
         assert gui_resources.urls, 'Missing GUI resources: '+route
         for resource in gui_resources.urls:
+            if resource == '/api/vrchat/birthday/banner':
+                assert route == '/vrchat' and read(resource)[0] == 503  # No database in container CI.
+                continue
             assert resource.startswith('/vrchat/'), 'GUI assets must stay under /vrchat/: '+resource
             asset(resource)
     status, headers, body = read('/vrchat/media.json')
