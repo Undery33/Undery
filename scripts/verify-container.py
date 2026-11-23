@@ -133,7 +133,7 @@ def verify(base, expected):
         html, gui_resources, _ = html_page(route)
         assert 'lang="ko"' in html, route
         if route == '/vrchat':
-            assert {'https://vrc.group/ASS.8448', 'https://discord.gg/gub', 'https://x.com/VRC_UDR',
+            assert {'https://vrc.group/ASS.8448', 'https://discord.gg/sRDD9u38TC', 'https://x.com/VRC_UDR',
                     '/vrchat/birthday', *galleries} <= gui_resources.links, 'Missing VRChat destination'
         else:
             assert galleries[route] in html and '/vrchat' in gui_resources.links, route
