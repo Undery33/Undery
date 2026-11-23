@@ -6,6 +6,7 @@ import { ArchiveError, birthday, Photo, useArchive, type Album, type Message } f
 
 const photosUrl = birthday + "/photos";
 const messagesUrl = birthday + "/messages";
+const previewSize = 6;
 const socials = [
   ["vrchat.png", "VRChat", "https://vrchat.com/home/user/usr_c001da31-2e22-4c85-bd15-94feaaff7bf6"],
   ["x.png", "X", "https://x.com/VRC_UDR"],
@@ -56,8 +57,19 @@ export default function Birthday() {
   const album = useArchive<Album>("album");
   const messages = useArchive<Message[]>("messages");
   const art = album.data?.art ?? {};
-  const names = [...new Set(messages.data?.map(entry => entry.nickname) ?? [])];
-  const preview = messages.data?.slice(0, 6) ?? [];
+  const entries = messages.data ?? [];
+  const names = [...new Set(entries.map(entry => entry.nickname))];
+  const count = entries.length;
+  const [previewStart, setPreviewStart] = useState(0);
+  useEffect(() => {
+    if (count <= previewSize) return;
+    const timer = window.setInterval(() => {
+      setPreviewStart(start => (start + previewSize) % count);
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [count]);
+  const preview = Array.from({ length: Math.min(previewSize, count) }, (_, i) =>
+    entries[(previewStart + i) % count]);
   const card = (entry: Message) => <article key={entry.id}><h3>{entry.nickname}</h3><p>{entry.message}</p></article>;
   return <>
     <header className="birthday-hero">
