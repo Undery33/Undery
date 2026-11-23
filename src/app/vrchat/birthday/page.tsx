@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BirthdayGallery } from "./gallery";
 import { ArchiveError, birthday, Photo, useArchive, type Album, type Message } from "./archive";
 
 const photosUrl = birthday + "/photos";
@@ -36,7 +37,7 @@ function Credits({ names }: { names: string[] }) {
     };
   }, [names.length]);
   const radius = names.length >= 5 ? 2 : names.length >= 3 ? 1 : 0;
-  return <section className="birthday-credits"><div className="credits-inner">
+  return <section className="birthday-credits">
     <h2 lang="en">THANK YOU,</h2>
     {names.length > 0 && <div className="credits-window" style={{ height: `calc(var(--row) * ${radius * 2 + 1})` }}>
       {Array.from({ length: radius * 2 + 3 }, (_, index) => {
@@ -48,7 +49,7 @@ function Credits({ names }: { names: string[] }) {
           style={{ transform: `translateY(${offset * 100 - 50}%)` }}>{name}</span>;
       })}
     </div>}
-  </div></section>;
+  </section>;
 }
 
 export default function Birthday() {
@@ -56,9 +57,10 @@ export default function Birthday() {
   const messages = useArchive<Message[]>("messages");
   const art = album.data?.art ?? {};
   const names = [...new Set(messages.data?.map(entry => entry.nickname) ?? [])];
+  const preview = messages.data?.slice(0, 6) ?? [];
+  const card = (entry: Message) => <article key={entry.id}><h3>{entry.nickname}</h3><p>{entry.message}</p></article>;
   return <>
     <header className="birthday-hero">
-      <div className="birthday-hero-inner">
       {art["hero.png"] && <Photo className="birthday-character" src={art["hero.png"]} fetchPriority="high" />}
       <div className="birthday-intro">
         <h1 lang="en">THANK YOU</h1>
@@ -66,7 +68,9 @@ export default function Birthday() {
         <p>365일 중 한 번 밖에 없는 생일을 축하해주셔서 진심으로 감사드립니다.<br/>추억을 여러분과 다시 꺼내고 싶어 만들었습니다.</p>
         <nav><a href={photosUrl}>사진 목록 보기 <span>↗</span></a><a href={messagesUrl}>메시지 보기 <span>↗</span></a></nav>
       </div>
-      </div>
+      <svg className="birthday-wave" viewBox="0 0 1000 150.17" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M 266.47 0.00 C 403.74 0.00 526.39 33.16 607.43 85.18 L 620.84 94.68 657.74 87.52 C 699.25 80.68 743.38 77.00 789.14 77.00 C 865.40 77.00 937.15 87.23 999.76 105.25 L 1000.00 105.33 1000 150.17 0 150.17 0.00 47.67 19.42 39.98 C 89.94 14.74 174.96 0.00 266.47 0.00 Z" />
+      </svg>
     </header>
     <section className="birthday-letter">
       <h2 lang="en">THANK YOU FOR EVERYONE!</h2>
@@ -85,15 +89,16 @@ export default function Birthday() {
     </section>
     <section className="birthday-memos">
       <Heading title="MASSAGE ZONE" more={messagesUrl} />
-      <div className="birthday-mosaic">{messages.data?.slice(0, 6).map(entry =>
-        <article key={entry.id}><h3>{entry.nickname}</h3><p>{entry.message}</p></article>
-      )}{messages.failed && <ArchiveError />}</div>
+      <div className="birthday-mosaic">
+        <div className="birthday-mosaic-left">{preview.filter((_, i) => i !== 2 && i !== 5).map(card)}</div>
+        <div className="birthday-mosaic-right">{preview.filter((_, i) => i === 2 || i === 5).map(card)}</div>
+        {messages.failed && <ArchiveError />}
+      </div>
     </section>
     <section className="birthday-photos">
       <Heading title="PHOTO ZONE" more={photosUrl} />
-      <div className="birthday-preview">{album.data?.photos.slice(0, 9).map(photo =>
-        <a key={photo.id} href={photo.src}><Photo alt={photo.alt} src={photo.thumbnail} loading="lazy" /></a>
-      )}</div>{album.failed && <ArchiveError />}
+      {album.data && <BirthdayGallery photos={album.data.photos} preview />}
+      {album.failed && <ArchiveError />}
     </section>
     <section className="birthday-bio">
       <Heading title="BIO" />
