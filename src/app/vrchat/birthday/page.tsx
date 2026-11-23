@@ -73,7 +73,9 @@ export default function Birthday() {
   const card = (entry: Message) => <article key={entry.id}><h3>{entry.nickname}</h3><p>{entry.message}</p></article>;
   return <>
     <header className="birthday-hero">
-      {art["hero.png"] && <Photo className="birthday-character" src={art["hero.png"]} fetchPriority="high" />}
+      {art["hero.png"] && <div className="birthday-character-frame">
+        <Photo className="birthday-character" src={art["hero.png"]} fetchPriority="high" />
+      </div>}
       <div className="birthday-intro">
         <h1 lang="en">THANK YOU</h1>
         <div className="birthday-date"><b>참여해주셔서 감사합니다!</b><time dateTime="2026-11-22">2026.11.22</time></div>
@@ -81,7 +83,7 @@ export default function Birthday() {
         <nav><a href={photosUrl}>사진 목록 보기 <span>↗</span></a><a href={messagesUrl}>메시지 보기 <span>↗</span></a></nav>
       </div>
       <svg className="birthday-wave" viewBox="0 0 1000 150.17" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M 266.47 0.00 C 403.74 0.00 526.39 33.16 607.43 85.18 L 620.84 94.68 657.74 87.52 C 699.25 80.68 743.38 77.00 789.14 77.00 C 865.40 77.00 937.15 87.23 999.76 105.25 L 1000.00 105.33 1000 150.17 0 150.17 0.00 47.67 19.42 39.98 C 89.94 14.74 174.96 0.00 266.47 0.00 Z" />
+        <path d="M 266.47 0.00 C 403.74 0.00 526.39 33.16 607.43 85.18 L 620.84 94.68 657.74 87.52 C 699.25 80.68 743.38 77.00 789.14 77.00 C 865.40 77.00 937.15 87.23 999.76 105.25 L 1000 105.33 C 1044 118.53 1080 127 1140 127 H 10000 V 152 H -10000 V 78 H -140 C -85 78 -40 63.51 0 47.67 L 19.42 39.98 C 89.94 14.74 174.96 0.00 266.47 0.00 Z" />
       </svg>
     </header>
     <section className="birthday-letter">
