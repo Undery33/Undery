@@ -4,5 +4,7 @@ import "./birthday.css";
 export const metadata: Metadata = { title: "Birthday", robots: { index: false, follow: false } };
 
 export default function BirthdayLayout({ children }: { children: React.ReactNode }) {
-  return <main id="main-content" className="birthday shell">{children}</main>;
+  return <div className="birthday-surround">
+    <main id="main-content" className="birthday shell">{children}</main>
+  </div>;
 }

@@ -8,17 +8,37 @@
   unicode-range: U+0020-007E;
 }
 
-.birthday {
+.birthday-surround {
   --brown: #a27b5c;
   --paper: #dcd7c9;
-  min-height: 100vh;
+  background: var(--brown);
   overflow: clip;
+}
+.birthday {
+  --hero-height: 54.89cqw;
+  --archive-head-height: 19.3cqw;
+  position: relative;
+  min-height: 100vh;
   container-type: inline-size;
   color: var(--paper);
   background: var(--brown);
   font-family: "Freesentation", sans-serif;
   line-height: 1.3;
 }
+.birthday::before, .birthday::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 50vw;
+  height: var(--archive-head-height);
+  background: var(--paper);
+  pointer-events: none;
+}
+.birthday::before { right: 100%; }
+.birthday::after { left: 100%; }
+/* Continue the paper color up to the two ends of the original wave. */
+.birthday:has(> .birthday-hero)::before { height: calc(var(--hero-height) - 10.25cqw + 1px); }
+.birthday:has(> .birthday-hero)::after { height: calc(var(--hero-height) - 4.49cqw + 1px); }
 /* Match the centered poster width on wide VRChat screens. The site shell supplies the mobile gutters. */
 @media (min-width: 760px) and (min-height: 600px) and (min-aspect-ratio: 4 / 3) {
   .birthday.shell { max-width: 100.7463svh; }
@@ -28,7 +48,7 @@
 .birthday :is(h1,h2) { font-weight: 900; line-height: 1; letter-spacing: -.035em; }
 .birthday img { display: block; }
 .birthday a:focus-visible,.birthday input:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
-.birthday-hero { position: relative; isolation: isolate; overflow: hidden; height: 54.89cqw; background: var(--paper); color: var(--brown); }
+.birthday-hero { position: relative; isolation: isolate; overflow: hidden; height: var(--hero-height); background: var(--paper); color: var(--brown); }
 .birthday-character { position: absolute; top: -3.72cqw; right: 0; width: 42.84%; height: auto; z-index: -1; }
 .birthday-intro { position: relative; width: 45.25%; margin-left: 7.6%; padding-top: 7.2cqw; }
 .birthday-intro h1 { font-size: 8.55cqw; white-space: nowrap; border-bottom: .3cqw solid; }
@@ -36,6 +56,11 @@
 .birthday-intro p { margin-top: 2.05cqw; font-size: 1.67cqw; line-height: 1.22; letter-spacing: -.035em; }
 .birthday-intro nav { display: flex; justify-content: space-between; margin: 3.35cqw 8% 0 3%; }
 .birthday-intro nav a,.album-toolbar :is(a,button) { display: inline-flex; justify-content: center; align-items: center; gap: .75em; width: 17.3cqw; height: 5.85cqw; border: .31cqw solid; font-weight: 700; font-size: 1.72cqw; white-space: nowrap; }
+.birthday-intro nav a { border-color: var(--brown); }
+@media (hover: hover) {
+  .birthday-intro nav a:hover { background: var(--brown); color: var(--paper); }
+}
+.birthday-intro nav a:focus-visible { background: var(--brown); color: var(--paper); outline-color: var(--brown); }
 .birthday-wave { position: absolute; bottom: -1px; left: 0; width: 100%; height: 15.02cqw; fill: var(--brown); pointer-events: none; }
 .birthday-letter,.birthday-memos,.birthday-photos,.birthday-bio { width: 88%; margin-inline: auto; }
 .birthday-letter > h2 { margin: 2.8cqw 0 2.1cqw; font-size: 4.48cqw; text-align: center; }
@@ -98,7 +123,7 @@
 .birthday-footer a { position: relative; display: block; aspect-ratio: 510.9/92.7; overflow: hidden; }
 .birthday-footer img:first-child { width: 100%; height: 100%; object-fit: cover; object-position: center 61.15%; }
 .birthday-footer .birthday-badge { position: absolute; width: 22%; top: 27%; left: 3.3%; }
-.archive-head { position: relative; height: 19.3cqw; background: var(--paper); color: var(--brown); }
+.archive-head { position: relative; height: var(--archive-head-height); background: var(--paper); color: var(--brown); }
 .archive-head a { position: absolute; left: 2.2cqw; top: 1.4cqw; font-size: 2.7cqw; font-weight: 700; z-index: 1; }
 .archive-head h1 { position: absolute; bottom: -1.65cqw; width: 100%; text-align: center; font-size: 15.3cqw; line-height: .88; }
 .archive-inner { width: 82.6%; margin: 7.35cqw auto 0; padding-bottom: 4cqw; }
@@ -123,7 +148,7 @@
 .archive-error { padding: 1em; font-size: 1rem; }
 @media (max-width: 650px) {
   .birthday-intro { width: 55%; margin-left: 5%; padding-top: 5.5cqw; }
-  .birthday-hero { height: max(55cqw,246px); }
+  .birthday { --hero-height: max(55cqw,246px); }
   .birthday-intro p { font-size: max(10px,2.3cqw); }
   .birthday-date { font-size: max(10px,2.1cqw); }
   .birthday-intro nav { margin-inline: 0; }
