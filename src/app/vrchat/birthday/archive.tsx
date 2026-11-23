@@ -25,9 +25,7 @@ export function useArchive<T>(endpoint: "album" | "messages") {
 }
 
 export function Header({ title }: { title: string }) {
-  return <header className="archive-head"><div className="archive-head-inner">
-    <a href={birthday} aria-label="생일 페이지로 돌아가기">←</a><h1 lang="en">{title}</h1>
-  </div></header>;
+  return <header className="archive-head"><a href={birthday} aria-label="생일 페이지로 돌아가기">←</a><h1 lang="en">{title}</h1></header>;
 }
 
 export function ArchiveError() {
