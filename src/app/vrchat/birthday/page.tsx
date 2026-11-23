@@ -8,7 +8,7 @@ const messagesUrl = birthday + "/messages";
 const socials = [
   ["vrchat.png", "VRChat", "https://vrchat.com/home/user/usr_c001da31-2e22-4c85-bd15-94feaaff7bf6"],
   ["x.png", "X", "https://x.com/VRC_UDR"],
-  ["discord.png", "Discord", "https://discord.gg/gub"],
+  ["discord.png", "Discord", "https://discord.gg/sRDD9u38TC"],
   ["group.png", "VRChat 그룹", "https://vrc.group/ASS.8448"],
 ];
 

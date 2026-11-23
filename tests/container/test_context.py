@@ -126,10 +126,10 @@ class ContextTests(unittest.TestCase):
     def test_social_and_site_navigation_are_links_only(self):
         files = {'dist/styles.css': b''}
         links = ('/vrchat', '/vrchat/birthday', 'https://vrc.group/ASS.8448',
-                 'https://discord.gg/gub', 'https://x.com/VRC_UDR')
+                 'https://discord.gg/sRDD9u38TC', 'https://x.com/VRC_UDR')
         files['dist/index.html'] = ''.join(f'<a href="{href}">Link</a>' for href in links).encode()
         CONTEXT.validate_assets(files)
-        for tag in ('<img src="https://discord.gg/gub">', '<script src="/birthday"></script>',
+        for tag in ('<img src="https://discord.gg/sRDD9u38TC">', '<script src="/birthday"></script>',
                     '<link rel="stylesheet" href="https://x.com/VRC_UDR">',
                     '<a href="https://outside.invalid/">Outside</a>'):
             with self.subTest(tag=tag), self.assertRaises(ValueError):
