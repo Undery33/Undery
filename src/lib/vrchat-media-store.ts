@@ -34,15 +34,22 @@ export class GalleryStore {
   async list(album?: "birthday" | "birthday-art") {
     const scope = album ? " WHERE type='photo' AND request_id IS NOT NULL AND $1=ANY(tags)"
       : " WHERE NOT (tags && ARRAY['birthday','birthday-art']::text[])";
-    const rows = await this.pool.query<GalleryItem>("SELECT " + publicColumns + " FROM " + this.table + scope +
+    const rows = await this.pool.query<GalleryItem>("SELECT " + publicColumns + " FROM " + this.table + scope + " AND deleted_at IS NULL" +
       " ORDER BY CASE WHEN type = 'photo' THEN created_at ELSE taken_on::timestamp AT TIME ZONE 'UTC' END DESC NULLS LAST," +
       " created_at DESC, taken_on DESC NULLS LAST, id", album ? [album] : []);
     return rows.rows;
   }
 
   async file(id: string) {
-    const rows = await this.pool.query<{ mime: string }>("SELECT mime FROM " + this.table + " WHERE id=$1 AND request_id IS NOT NULL", [id]);
+    const rows = await this.pool.query<{ mime: string }>("SELECT mime FROM " + this.table + " WHERE id=$1 AND request_id IS NOT NULL AND deleted_at IS NULL", [id]);
     return rows.rows[0];
+  }
+
+  async removePhoto(id: string) {
+    const result = await this.pool.query(
+      "UPDATE " + this.table + " SET deleted_at=COALESCE(deleted_at, now())" +
+      " WHERE id=$1 AND type='photo' AND NOT (tags && ARRAY['birthday','birthday-art']::text[])", [id]);
+    if (!result.rowCount) throw new MemoError("not_found", 404, "갤러리에서 사진을 찾을 수 없습니다.");
   }
 
   async upload(request: Request) {
@@ -64,10 +71,11 @@ export class GalleryStore {
         await db.query("BEGIN");
         // The lock covers concurrent retries on other app instances, too.
         await db.query("SELECT pg_advisory_xact_lock(hashtext('vrchat-gallery-upload'),hashtext($1))", [requestId.toLowerCase()]);
-        const existing = await db.query<GalleryItem & { fingerprint: string }>("SELECT fingerprint," + publicColumns +
+        const existing = await db.query<GalleryItem & { fingerprint: string; deleted_at: Date | null }>("SELECT deleted_at,fingerprint," + publicColumns +
           " FROM " + this.table + " WHERE request_id=$1", [requestId]);
         if (existing.rows.length) {
-          const { fingerprint: savedFingerprint, ...item } = existing.rows[0];
+          const { fingerprint: savedFingerprint, deleted_at, ...item } = existing.rows[0];
+          if (deleted_at) throw new MemoError("photo_removed", 410, "갤러리에서 삭제한 사진입니다.");
           if (savedFingerprint !== fingerprint) throw new MemoError("upload_conflict", 409, "이미 다른 파일 또는 정보로 등록한 요청입니다.");
           await db.query("COMMIT");
           return { item, created: false };

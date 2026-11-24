@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS vrchat_gallery.media (
       OR (request_id IS NOT NULL AND fingerprint IS NOT NULL AND static_src IS NULL AND static_thumbnail IS NULL))
 );
 
+ALTER TABLE vrchat_gallery.media ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
 INSERT INTO vrchat_gallery.media (id,type,alt,width,height,taken_on,tags,mime,static_src,static_thumbnail)
 VALUES
   ('sunset','photo','노을을 바라보는 언더리',2560,1440,'2026-11-13',ARRAY['배경','캐릭터'],
