@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import styles from "./upload.module.css";
+import { useRouter } from "next/navigation";
 
 const tags = ["배경", "캐릭터", "친구"];
 const accept = ".jpg,.jpeg,.png,.webp,.mp4,.webm,image/jpeg,image/png,image/webp,video/mp4,video/webm";
@@ -39,6 +40,7 @@ export function MediaUploader({ csrfToken, album }: { csrfToken: string; album?:
   const [dragging, setDragging] = useState(false);
   const active = useRef<AbortController | null>(null);
   const dragDepth = useRef(0);
+  const router = useRouter();
 
   useEffect(() => () => active.current?.abort(), []);
 
@@ -64,6 +66,7 @@ export function MediaUploader({ csrfToken, album }: { csrfToken: string; album?:
     const controller = new AbortController();
     active.current = controller;
     setBusy(true);
+    let added = false;
     try {
       for (const item of batch) {
         if (controller.signal.aborted) return;
@@ -84,6 +87,7 @@ export function MediaUploader({ csrfToken, album }: { csrfToken: string; album?:
           const result = await response.json().catch(() => null);
           if (response.ok && result?.ok && typeof result.item?.id === "string") {
             update(item.id, { state: "done", file: null });
+            added = true;
           } else {
             const message = typeof result?.message === "string" ? result.message : response.status === 413
               ? "파일 용량이 업로드 한도를 넘었습니다." : "파일을 등록하지 못했습니다. 다시 시도해 주세요.";
@@ -97,6 +101,7 @@ export function MediaUploader({ csrfToken, album }: { csrfToken: string; album?:
     } finally {
       active.current = null;
       if (!controller.signal.aborted) setBusy(false);
+      if (added && !album && !controller.signal.aborted) router.refresh();
     }
   }
 

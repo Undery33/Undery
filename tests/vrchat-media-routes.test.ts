@@ -4,10 +4,10 @@ import { join } from "node:path";
 import { beforeEach, expect, it, vi } from "vitest";
 import { MemoError } from "@/lib/birthday-memo-validation";
 
-const mocks = vi.hoisted(() => ({ guard: vi.fn(), getStore: vi.fn(), list: vi.fn(), upload: vi.fn(), file: vi.fn(), dir: vi.fn() }));
+const mocks = vi.hoisted(() => ({ guard: vi.fn(), getStore: vi.fn(), list: vi.fn(), upload: vi.fn(), removePhoto: vi.fn(), file: vi.fn(), dir: vi.fn() }));
 vi.mock("@/lib/admin-auth", () => ({ requireAdminMutation: mocks.guard }));
 vi.mock("@/lib/vrchat-media-store", () => ({ getGalleryStore: mocks.getStore, mediaDirectory: mocks.dir }));
-import { GET, POST } from "@/app/api/vrchat/media/route";
+import { DELETE, GET, POST } from "@/app/api/vrchat/media/route";
 import { GET as getFile, HEAD as headFile } from "@/app/api/vrchat/media/files/[id]/[variant]/route";
 
 const endpoint = "https://undery.link/api/vrchat/media";
@@ -46,6 +46,18 @@ it("bounds concurrent uploads and releases the worker for retries", async () => 
   expect((await first).status).toBe(201);
   mocks.upload.mockResolvedValueOnce({ item: { id: "one" }, created: false });
   expect((await POST(post())).status).toBe(200);
+});
+
+it("requires the admin guard and one photo ID before removing a photo", async () => {
+  const remove = (query: string) => DELETE(new Request(endpoint + query, { method: "DELETE" }));
+  mocks.guard.mockRejectedValueOnce(new MemoError("invalid_csrf", 403, "요청이 허용되지 않았습니다."));
+  expect((await remove("?id=sunset")).status).toBe(403);
+  expect(mocks.getStore).not.toHaveBeenCalled();
+  expect((await remove("?id=sunset&id=portrait")).status).toBe(400);
+  expect((await remove("")).status).toBe(400);
+  expect(mocks.removePhoto).not.toHaveBeenCalled();
+  expect((await remove("?id=sunset")).status).toBe(200);
+  expect(mocks.removePhoto).toHaveBeenCalledWith("sunset");
 });
 
 it("serves exact byte ranges and HEAD with the saved type; unknown or uncommitted files are unreachable", async () => {

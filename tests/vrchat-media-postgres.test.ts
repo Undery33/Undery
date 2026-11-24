@@ -65,6 +65,11 @@ describe.skipIf(!connectionString)("gallery PostgreSQL and persistent files", ()
     await expect(store.upload(request("[]", new Uint8Array([1,2,3])))).rejects.toMatchObject({ status: 415 });
     expect(await readdir(directory)).toEqual([item.id]);
     expect((await new GalleryStore(database, directory, schema).list()).map(row => row.id).sort()).toEqual(["sunset","portrait",item.id].sort());
+    await Promise.all([store.removePhoto(item.id), store.removePhoto(item.id)]);
+    expect(await store.file(item.id)).toBeUndefined();
+    expect((await store.list()).map(row => row.id)).not.toContain(item.id);
+    expect(await readFile(join(directory, item.id, "original"))).toEqual(Buffer.from(source));
+    await expect(store.upload(request())).rejects.toMatchObject({ status: 410 });
   });
 
   it("orders photos by upload instant and videos by capture date", async () => {
@@ -84,8 +89,18 @@ describe.skipIf(!connectionString)("gallery PostgreSQL and persistent files", ()
       expect(photos.map(item => item.id)).toEqual(["order-photo-b", "order-photo-a"]);
       expect(photos[0]).toMatchObject({ date: null, uploadedAt: "2026-01-01T12:00:00.000002Z" });
       expect(items.filter(item => item.type === "video").map(item => item.id)).toEqual(["order-video-a", "order-video-b"]);
+      await expect(store.removePhoto("order-video-a")).rejects.toMatchObject({ status: 404 });
+      await database.query(`UPDATE ${table} SET tags=ARRAY['birthday'] WHERE id='order-photo-a'`);
+      await expect(store.removePhoto("order-photo-a")).rejects.toMatchObject({ status: 404 });
     } finally {
       await database.query(`DELETE FROM ${table} WHERE id LIKE 'order-%'`);
     }
+  });
+
+  it("keeps a removed built-in photo off the list after reseeding", async () => {
+    await store.removePhoto("sunset");
+    const migration = await readFile(new URL("../src/lib/vrchat-gallery-migration.sql", import.meta.url), "utf8");
+    await database.query(migration.replaceAll("vrchat_gallery", schema));
+    expect((await store.list()).map(item => item.id)).toEqual(["portrait"]);
   });
 });

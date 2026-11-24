@@ -53,3 +53,5 @@
 .file p { margin: 4px 0 0; color: #962c17; }
 .rowActions { gap: 6px; }
 .rowActions:empty { display: none; }
+.photos { margin-top: 3rem; }
+.photos img { display: block; object-fit: contain; background: #f0ece2; border-radius: 4px; }

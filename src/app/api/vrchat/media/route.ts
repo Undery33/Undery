@@ -13,6 +13,18 @@ export async function GET() {
 
 let uploading = false;
 
+export async function DELETE(request: Request) {
+  try {
+    await requireAdminMutation(request);
+    const ids = new URL(request.url).searchParams.getAll("id");
+    if (ids.length !== 1 || !ids[0] || ids[0].length > 128) {
+      throw new MemoError("invalid_id", 400, "삭제할 사진 한 장을 선택해 주세요.");
+    }
+    await getGalleryStore().removePhoto(ids[0]);
+    return galleryJson({ ok: true });
+  } catch (error) { return galleryFailure(error); }
+}
+
 export async function POST(request: Request) {
   try {
     await requireAdminMutation(request);

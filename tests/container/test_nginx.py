@@ -32,7 +32,7 @@ class NginxRoutingTests(unittest.TestCase):
                 if self.command != 'HEAD':
                     self.wfile.write(b'{"ok":false,"error":"auth_unavailable"}')
 
-            do_GET = do_HEAD = do_POST = handle_request
+            do_GET = do_HEAD = do_POST = do_DELETE = handle_request
 
             def log_message(self, *_):
                 pass
@@ -92,6 +92,8 @@ class NginxRoutingTests(unittest.TestCase):
                         self.assertEqual(read('/api/auth/github', 'POST', large)[0], 413)
                         self.assertEqual(read('/vrchat/admin?private-query-marker=5', 'GET')[0], 503)
                         self.assertEqual(read('/api/vrchat/media/files/test/original', 'HEAD')[0], 503)
+                        self.assertEqual(read('/api/vrchat/media?id=sunset', 'DELETE')[0], 503)
+                        self.assertEqual(read('/api/vrchat/media/', 'DELETE')[0], 405)
                         allowed_count = len(seen)
                         for path in ('/', '/birthday/memo/submit', '/birthday/memo/prepare',
                                      '/api/auth/github/callback', '/api/auth/github/extra',

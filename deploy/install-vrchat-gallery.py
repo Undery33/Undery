@@ -82,6 +82,7 @@ def migrate(target, backup):
             run([*pg, 'pg_dump', name, '-w', '--format=custom', '--schema=vrchat_gallery'], stdout=out)
     sql = (ROOT / 'src/lib/vrchat-gallery-migration.sql').read_bytes()
     grants = b'\nGRANT USAGE ON SCHEMA vrchat_gallery TO :"app_role";\nGRANT SELECT, INSERT ON vrchat_gallery.media TO :"app_role";\n'
+    grants += b'GRANT UPDATE (deleted_at) ON vrchat_gallery.media TO :"app_role";\n'
     run(psql, input=sql + grants)
 
 
