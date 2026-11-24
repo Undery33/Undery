@@ -19,9 +19,10 @@ pipeline {
       steps {
         script {
           dir('source') {
-            checkout([$class: 'GitSCM',
+            // The job SCM already tracks main when it loads this Jenkinsfile.
+            checkout(changelog: false, poll: false, scm: [$class: 'GitSCM',
               branches: [[name: 'refs/heads/main']],
-              userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery',
+              userRemoteConfigs: [[url: 'https://github.com/Undery33/Undery.git',
                 refspec: '+refs/heads/main:refs/remotes/origin/main']],
               extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CloneOption',
                 shallow: true, depth: 1, noTags: true, honorRefspec: true]]])
